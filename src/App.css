@@ -1,0 +1,449 @@
+.app-shell {
+  min-height: 100vh;
+  padding: 32px;
+  position: relative;
+}
+
+.top-hud {
+  position: fixed;
+  top: 32px;
+  left: 32px;
+  right: 340px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 24px;
+  background: rgba(248, 250, 252, 0.82);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.hud-button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #14532d;
+  background: rgba(240, 253, 250, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.22);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.hud-button:hover {
+  transform: translateY(-1px);
+  color: #134e4a;
+  background: rgba(204, 251, 241, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.35),
+    0 10px 24px rgba(13, 148, 136, 0.12);
+}
+
+.hud-button.is-active {
+  color: #f0fdfa;
+  background: linear-gradient(135deg, #0f766e 0%, #06b6d4 100%);
+  box-shadow: 0 12px 30px rgba(8, 145, 178, 0.24);
+}
+
+.content-area {
+  padding-top: 128px;
+  padding-right: 340px;
+}
+
+.home-form-wrap {
+  width: min(420px, 100%);
+}
+
+.medical-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(380px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.content-card {
+  border-radius: 28px;
+  background: rgba(248, 250, 252, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(14px);
+}
+
+.form-card,
+.list-card,
+.placeholder-card {
+  padding: 28px;
+}
+
+.section-head,
+.list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.section-kicker {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.section-head h2,
+.list-head h3,
+.placeholder-card h2 {
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.section-head h2,
+.placeholder-card h2 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.list-head h3 {
+  font-size: 1.45rem;
+}
+
+.section-copy {
+  margin: 18px 0 0;
+  max-width: 62ch;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #475569;
+}
+
+.panel-counter {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(236, 253, 245, 0.95);
+  color: #0f766e;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  box-sizing: border-box;
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.18);
+}
+
+.inline-month-picker {
+  margin-top: 18px;
+  max-width: 220px;
+}
+
+.month-picker,
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-picker span,
+.field span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.month-picker input,
+.field input {
+  min-height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 0 16px;
+  font: inherit;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.month-picker input:focus,
+.field input:focus {
+  outline: none;
+  border-color: rgba(20, 184, 166, 0.55);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.14);
+}
+
+.patient-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 28px;
+}
+
+.field-wide {
+  width: 100%;
+}
+
+.primary-button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  padding: 0 22px;
+  font: inherit;
+  font-weight: 700;
+  color: #f0fdfa;
+  background: linear-gradient(135deg, #0f766e 0%, #06b6d4 100%);
+  box-shadow: 0 12px 30px rgba(8, 145, 178, 0.22);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(8, 145, 178, 0.26);
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.patient-count {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(236, 253, 245, 0.95);
+  color: #0f766e;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.state-banner,
+.empty-state {
+  margin-top: 20px;
+  border-radius: 18px;
+  padding: 16px 18px;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.error-banner {
+  background: rgba(254, 242, 242, 0.96);
+  color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.empty-state {
+  background: rgba(255, 255, 255, 0.82);
+  color: #64748b;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.patient-list {
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.patient-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.patient-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.patient-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.patient-meta {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: #64748b;
+}
+
+.danger-button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.danger-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.26);
+}
+
+.danger-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.clock-panel {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  z-index: 20;
+  text-align: right;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.clock-time {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: #0f172a;
+}
+
+.clock-date {
+  margin-top: 10px;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  line-height: 1.4;
+  color: #475569;
+  text-transform: capitalize;
+}
+
+.weather-panel {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.weather-city {
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.weather-temp {
+  margin-top: 8px;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-weight: 700;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.weather-description {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #475569;
+}
+
+@media (max-width: 1120px) {
+  .content-area {
+    padding-right: 0;
+    padding-top: 240px;
+  }
+
+  .top-hud {
+    right: 32px;
+  }
+
+  .clock-panel {
+    top: 132px;
+    right: 32px;
+    left: 32px;
+    text-align: left;
+  }
+
+  .medical-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 24px;
+  }
+
+  .top-hud {
+    top: 24px;
+    left: 24px;
+    right: 24px;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .hud-button {
+    width: 100%;
+    text-align: left;
+  }
+
+  .content-area {
+    padding-top: 356px;
+  }
+
+  .clock-panel {
+    top: 240px;
+    right: 24px;
+    left: 24px;
+  }
+
+  .form-card,
+  .list-card,
+  .placeholder-card {
+    padding: 22px;
+  }
+
+  .section-head,
+  .list-head,
+  .patient-form,
+  .patient-item {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .inline-month-picker {
+    max-width: none;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .danger-button {
+    width: 100%;
+  }
+}
