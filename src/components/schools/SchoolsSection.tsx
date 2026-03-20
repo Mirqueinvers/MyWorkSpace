@@ -52,11 +52,16 @@ export function SchoolsSection({
   const [linkFormOpenByStudentId, setLinkFormOpenByStudentId] = useState<Record<number, boolean>>({})
   const [expandedInstitutionId, setExpandedInstitutionId] = useState<number | null>(null)
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
+  const [editingInstitutionIds, setEditingInstitutionIds] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     if (institutions.length === 0) {
       setExpandedInstitutionId(null)
       setSelectedClassId(null)
+      return
+    }
+
+    if (expandedInstitutionId === null) {
       return
     }
 
@@ -147,6 +152,13 @@ export function SchoolsSection({
     void onDeleteClass(id)
   }
 
+  function toggleInstitutionEditing(institutionId: number) {
+    setEditingInstitutionIds((currentState) => ({
+      ...currentState,
+      [institutionId]: !currentState[institutionId],
+    }))
+  }
+
   return (
     <section className="medical-layout">
       <div className="content-card form-card">
@@ -167,6 +179,7 @@ export function SchoolsSection({
           <div className="schools-tree">
             {institutions.map((institution) => {
               const isExpanded = institution.id === expandedInstitutionId
+              const isEditing = Boolean(editingInstitutionIds[institution.id])
 
               return (
                 <div key={institution.id} className="schools-tree-item">
@@ -186,57 +199,73 @@ export function SchoolsSection({
                       </span>
                     </button>
 
-                    <button
-                      type="button"
-                      className="schools-tree-delete"
-                      onClick={() => {
-                        handleDeleteInstitution(institution.id, institution.name)
-                      }}
-                      disabled={deletingEntityKey === `institution-${institution.id}`}
-                    >
-                      {deletingEntityKey === `institution-${institution.id}` ? '...' : '×'}
-                    </button>
+                    <div className="schools-tree-actions">
+                      <button
+                        type="button"
+                        className={`schools-edit-button${isEditing ? ' is-active' : ''}`}
+                        onClick={() => {
+                          toggleInstitutionEditing(institution.id)
+                        }}
+                      >
+                        {isEditing ? 'Готово' : 'Редактировать'}
+                      </button>
+
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          className="schools-tree-delete"
+                          onClick={() => {
+                            handleDeleteInstitution(institution.id, institution.name)
+                          }}
+                          disabled={deletingEntityKey === `institution-${institution.id}`}
+                        >
+                          {deletingEntityKey === `institution-${institution.id}` ? '...' : '×'}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   {isExpanded ? (
                     <div className="schools-tree-body">
-                      <div className="schools-inline-form">
-                        <input
-                          type="text"
-                          value={classDrafts[institution.id] ?? ''}
-                          onChange={(event) =>
-                            setClassDrafts((currentDrafts) => ({
-                              ...currentDrafts,
-                              [institution.id]: event.target.value,
-                            }))
-                          }
-                          placeholder={
-                            institution.type === 'school'
-                              ? 'Добавить класс'
-                              : 'Добавить группу'
-                          }
-                        />
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={async () => {
-                            const isSaved = await onAddClass(
-                              institution.id,
-                              classDrafts[institution.id] ?? '',
-                            )
-
-                            if (isSaved) {
+                      {isEditing ? (
+                        <div className="schools-inline-form">
+                          <input
+                            type="text"
+                            value={classDrafts[institution.id] ?? ''}
+                            onChange={(event) =>
                               setClassDrafts((currentDrafts) => ({
                                 ...currentDrafts,
-                                [institution.id]: '',
+                                [institution.id]: event.target.value,
                               }))
                             }
-                          }}
-                          disabled={savingClassInstitutionId === institution.id}
-                        >
-                          {savingClassInstitutionId === institution.id ? '...' : 'Добавить'}
-                        </button>
-                      </div>
+                            placeholder={
+                              institution.type === 'school'
+                                ? 'Добавить класс'
+                                : 'Добавить группу'
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={async () => {
+                              const isSaved = await onAddClass(
+                                institution.id,
+                                classDrafts[institution.id] ?? '',
+                              )
+
+                              if (isSaved) {
+                                setClassDrafts((currentDrafts) => ({
+                                  ...currentDrafts,
+                                  [institution.id]: '',
+                                }))
+                              }
+                            }}
+                            disabled={savingClassInstitutionId === institution.id}
+                          >
+                            {savingClassInstitutionId === institution.id ? '...' : 'Добавить'}
+                          </button>
+                        </div>
+                      ) : null}
 
                       <div className="schools-class-list">
                         {institution.classes.map((schoolClass, classIndex) => (
@@ -255,21 +284,24 @@ export function SchoolsSection({
                                 classIndex,
                               )}
                             </button>
-                            <button
-                              type="button"
-                              className="schools-tree-delete"
-                              onClick={() => {
-                                handleDeleteClass(
-                                  schoolClass.id,
-                                  schoolClass.name,
-                                  institution.type,
-                                  classIndex,
-                                )
-                              }}
-                              disabled={deletingEntityKey === `class-${schoolClass.id}`}
-                            >
-                              {deletingEntityKey === `class-${schoolClass.id}` ? '...' : '×'}
-                            </button>
+
+                            {isEditing ? (
+                              <button
+                                type="button"
+                                className="schools-tree-delete"
+                                onClick={() => {
+                                  handleDeleteClass(
+                                    schoolClass.id,
+                                    schoolClass.name,
+                                    institution.type,
+                                    classIndex,
+                                  )
+                                }}
+                                disabled={deletingEntityKey === `class-${schoolClass.id}`}
+                              >
+                                {deletingEntityKey === `class-${schoolClass.id}` ? '...' : '×'}
+                              </button>
+                            ) : null}
                           </div>
                         ))}
                       </div>

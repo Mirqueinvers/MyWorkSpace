@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { Reminder } from '../types/reminders'
+import type { Reminder, ReminderRecurrence } from '../types/reminders'
 import { normalizeBirthDateInput } from '../utils/patient'
 
 const ELECTRON_API_UNAVAILABLE =
@@ -12,6 +12,8 @@ const DELETE_ERROR = 'Не удалось удалить напоминание.
 export function useReminders() {
   const [text, setText] = useState('')
   const [reminderDate, setReminderDate] = useState('')
+  const [recurrence, setRecurrence] = useState<ReminderRecurrence>('none')
+  const [recurrenceDay, setRecurrenceDay] = useState('')
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -65,9 +67,23 @@ export function useReminders() {
       return
     }
 
-    if (reminderDate && !/^\d{8}$/.test(reminderDate)) {
+    if (recurrence !== 'none' && !/^\d{8}$/.test(reminderDate)) {
+      setError('Введите дату повторения в формате ДДММГГГГ.')
+      return
+    }
+
+    if (recurrence === 'none' && reminderDate && !/^\d{8}$/.test(reminderDate)) {
       setError('Введите дату напоминания в формате ДДММГГГГ.')
       return
+    }
+
+    if (recurrence === 'monthly') {
+      const monthlyDay = Number(reminderDate.slice(0, 2))
+
+      if (!Number.isInteger(monthlyDay) || monthlyDay < 1 || monthlyDay > 31) {
+        setError('Проверьте дату повторения для ежемесячного напоминания.')
+        return
+      }
     }
 
     if (!window.electronAPI?.reminders) {
@@ -82,11 +98,15 @@ export function useReminders() {
       const createdReminder = await window.electronAPI.reminders.add({
         text: normalizedText,
         reminderDate: reminderDate || null,
+        recurrence,
+        recurrenceDay: recurrence === 'monthly' ? Number(reminderDate.slice(0, 2)) : null,
       })
 
       setReminders((currentReminders) => [createdReminder, ...currentReminders])
       setText('')
       setReminderDate('')
+      setRecurrence('none')
+      setRecurrenceDay('')
     } catch {
       setError(SAVE_ERROR)
     } finally {
@@ -120,6 +140,10 @@ export function useReminders() {
     setText,
     reminderDate,
     setReminderDate: (value: string) => setReminderDate(normalizeBirthDateInput(value)),
+    recurrence,
+    setRecurrence,
+    recurrenceDay,
+    setRecurrenceDay: (value: string) => setRecurrenceDay(value.replace(/\D/g, '').slice(0, 2)),
     reminders,
     loading,
     error,

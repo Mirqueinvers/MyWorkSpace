@@ -8,24 +8,31 @@ import { ReferencesSection } from './components/references/ReferencesSection'
 import { RemindersPanel } from './components/reminders/RemindersPanel'
 import { SchoolsSection } from './components/schools/SchoolsSection'
 import { SickLeavesSection } from './components/sickLeaves/SickLeavesSection'
+import { NAV_ITEMS } from './constants/navigation'
 import type { AppSection } from './constants/navigation'
 import { useMedicalExams } from './hooks/useMedicalExams'
 import { useReminders } from './hooks/useReminders'
 import { useSchools } from './hooks/useSchools'
 import { useSickLeaves } from './hooks/useSickLeaves'
 import { useWeather } from './hooks/useWeather'
-import { getCurrentDateDigits, getCurrentMonthKey } from './utils/date'
+import {
+  getCurrentDateDigits,
+  getCurrentDayOfMonth,
+  getCurrentMonthKey,
+  isReminderVisibleOnDate,
+} from './utils/date'
 import './App.css'
 
 function App() {
   const currentMonthKey = getCurrentMonthKey()
-  const [activeSection, setActiveSection] = useState<AppSection>('Главная')
+  const [activeSection, setActiveSection] = useState<AppSection>(NAV_ITEMS[0])
   const weather = useWeather()
   const medicalExams = useMedicalExams(currentMonthKey)
   const sickLeaves = useSickLeaves()
   const reminders = useReminders()
   const schools = useSchools()
   const todayDateDigits = getCurrentDateDigits()
+  const currentDayOfMonth = getCurrentDayOfMonth()
   const urgentSickLeaves = sickLeaves.sickLeaves.filter((sickLeave) => {
     if (sickLeave.status !== 'open' || sickLeave.periods.length === 0) {
       return false
@@ -34,13 +41,12 @@ function App() {
     const lastPeriod = sickLeave.periods[sickLeave.periods.length - 1]
     return lastPeriod.endDate === todayDateDigits
   })
-  const visibleReminders = reminders.reminders.filter(
-    (reminder) =>
-      reminder.reminderDate === null || reminder.reminderDate === todayDateDigits,
+  const visibleReminders = reminders.reminders.filter((reminder) =>
+    isReminderVisibleOnDate(reminder, todayDateDigits, currentDayOfMonth),
   )
 
   function renderContent() {
-    if (activeSection === 'Главная') {
+    if (activeSection === NAV_ITEMS[0]) {
       return (
         <section className="home-form-wrap">
           <MedicalExamsForm
@@ -59,7 +65,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Мед осмотры') {
+    if (activeSection === NAV_ITEMS[1]) {
       return (
         <MedicalExamsSection
           currentMonthExamCount={medicalExams.currentMonthExamCount}
@@ -81,7 +87,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Больничные листы') {
+    if (activeSection === NAV_ITEMS[2]) {
       return (
         <SickLeavesSection
           lastName={sickLeaves.lastName}
@@ -115,7 +121,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Школы') {
+    if (activeSection === NAV_ITEMS[3]) {
       return (
         <SchoolsSection
           institutionName={schools.institutionName}
@@ -142,7 +148,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Справки') {
+    if (activeSection === NAV_ITEMS[4]) {
       return <ReferencesSection />
     }
 
@@ -151,10 +157,7 @@ function App() {
 
   return (
     <main className="app-shell">
-      <TopNav
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-      />
+      <TopNav activeSection={activeSection} onSectionChange={setActiveSection} />
 
       <section className="content-area">{renderContent()}</section>
 
@@ -162,15 +165,19 @@ function App() {
         <ClockPanel weather={weather} />
         <RemindersPanel
           reminders={visibleReminders}
+          allReminders={reminders.reminders}
           urgentSickLeaves={urgentSickLeaves}
           reminderText={reminders.text}
           reminderDate={reminders.reminderDate}
+          recurrence={reminders.recurrence}
           loading={reminders.loading}
           error={reminders.error}
           isSaving={reminders.isSaving}
           deletingReminderId={reminders.deletingReminderId}
           onReminderTextChange={reminders.setText}
           onReminderDateChange={reminders.setReminderDate}
+          onRecurrenceChange={reminders.setRecurrence}
+          onRecurrenceDayChange={reminders.setRecurrenceDay}
           onAddReminder={reminders.handleAddReminder}
           onDeleteReminder={reminders.handleDeleteReminder}
         />

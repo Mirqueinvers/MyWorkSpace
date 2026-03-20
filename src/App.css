@@ -180,8 +180,21 @@
   box-sizing: border-box;
 }
 
+.field textarea {
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 9px 16px 15px;
+  font: inherit;
+  line-height: 1.45;
+  color: #0f172a;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
 .month-picker input:focus,
 .field input:focus,
+.field textarea:focus,
 .schools-select:focus {
   outline: none;
   border-color: rgba(20, 184, 166, 0.55);
@@ -512,6 +525,36 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: start;
+}
+
+.schools-tree-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.schools-edit-button {
+  min-height: 28px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 999px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f766e;
+  background: rgba(240, 253, 250, 0.92);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.schools-edit-button.is-active {
+  border-color: rgba(15, 118, 110, 0.3);
+  color: #0b5f59;
+  background: rgba(204, 251, 241, 0.96);
 }
 
 .schools-tree-button {
@@ -929,6 +972,107 @@
   margin-top: 28px;
 }
 
+.reminder-textarea {
+  width: 100%;
+  min-height: 52px;
+  height: 52px;
+  overflow: hidden;
+  transition:
+    height 0.25s ease,
+    min-height 0.25s ease,
+    padding 0.25s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.reminder-textarea:focus {
+  min-height: 144px;
+  height: 144px;
+}
+
+.reminder-repeat-group {
+  display: grid;
+  gap: 10px;
+}
+
+.reminder-repeat-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.reminder-repeat-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reminder-repeat-button {
+  min-height: 38px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f766e;
+  background: rgba(240, 253, 250, 0.9);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.reminder-repeat-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.34);
+  background: rgba(204, 251, 241, 0.96);
+}
+
+.reminder-repeat-button-active {
+  border-color: rgba(13, 148, 136, 0.92);
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  box-shadow: 0 10px 22px rgba(20, 184, 166, 0.2);
+}
+
+.reminders-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reminder-calendar-button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.reminder-calendar-button:hover {
+  transform: translateY(-1px);
+  color: #475569;
+}
+
+.reminder-calendar-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 .reminder-heading-button {
   border: 0;
   padding: 0;
@@ -1035,6 +1179,112 @@
 
 .reminder-meta {
   margin-top: 6px;
+}
+
+.reminders-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  padding: 32px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(10px);
+}
+
+.reminders-modal {
+  width: min(720px, 100%);
+  max-height: min(80vh, 760px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 28px;
+  padding: 24px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  box-shadow:
+    0 26px 60px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.reminders-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.reminders-modal-title {
+  margin: 6px 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.reminders-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #b91c1c;
+  background: transparent;
+  cursor: pointer;
+}
+
+.reminders-modal-list {
+  max-height: min(60vh, 620px);
+  padding-right: 6px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+}
+
+.reminders-modal-item {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.reminders-modal-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.reminders-modal-delete {
+  position: static;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #b91c1c;
+  background: transparent;
+  box-shadow: none;
+}
+
+.reminders-modal-close:hover,
+.reminders-modal-delete:hover:not(:disabled) {
+  transform: none;
+  background: transparent;
+  box-shadow: none;
+  color: #991b1b;
+}
+
+.reminders-modal-empty {
+  margin-top: 0;
+  padding: 24px 12px;
 }
 
 .right-rail {

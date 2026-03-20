@@ -71,6 +71,8 @@ function ensureRemindersSchema(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       text TEXT NOT NULL,
       reminder_date TEXT,
+      recurrence TEXT NOT NULL DEFAULT 'none',
+      recurrence_day INTEGER,
       created_at TEXT NOT NULL
     );
 
@@ -87,6 +89,20 @@ function ensureRemindersSchema(db) {
     db.exec(`
       ALTER TABLE reminders
       ADD COLUMN reminder_date TEXT;
+    `);
+  }
+
+  if (!columns.includes('recurrence')) {
+    db.exec(`
+      ALTER TABLE reminders
+      ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none';
+    `);
+  }
+
+  if (!columns.includes('recurrence_day')) {
+    db.exec(`
+      ALTER TABLE reminders
+      ADD COLUMN recurrence_day INTEGER;
     `);
   }
 }
@@ -482,7 +498,7 @@ function deleteSickLeave(id) {
 function listReminders() {
   const db = getDatabase();
   const statement = db.prepare(`
-    SELECT id, text, reminder_date, created_at
+    SELECT id, text, reminder_date, recurrence, recurrence_day, created_at
     FROM reminders
     ORDER BY created_at DESC, id DESC
   `);
@@ -491,24 +507,54 @@ function listReminders() {
     id: reminder.id,
     text: reminder.text,
     reminderDate: reminder.reminder_date ?? null,
+    recurrence:
+      reminder.recurrence === 'weekly' ||
+      reminder.recurrence === 'monthly' ||
+      reminder.recurrence === 'yearly'
+        ? reminder.recurrence
+        : 'none',
+    recurrenceDay:
+      reminder.recurrence_day === null || reminder.recurrence_day === undefined
+        ? null
+        : Number(reminder.recurrence_day),
     createdAt: reminder.created_at,
   }));
 }
 
-function addReminder({ text, reminderDate }) {
+function addReminder({ text, reminderDate, recurrence, recurrenceDay }) {
   const normalizedText = normalizeRequiredText(text, 'REMINDER_TEXT_REQUIRED');
+  const normalizedRecurrence =
+    recurrence === 'weekly' ||
+    recurrence === 'monthly' ||
+    recurrence === 'yearly'
+      ? recurrence
+      : 'none';
   const normalizedReminderDate = reminderDate
     ? normalizeDateDigits(reminderDate)
     : null;
+  const normalizedRecurrenceDay =
+    normalizedRecurrence === 'monthly' ? Number(recurrenceDay) : null;
+
+  if (
+    normalizedRecurrence === 'monthly' &&
+    (!Number.isInteger(normalizedRecurrenceDay) ||
+      normalizedRecurrenceDay < 1 ||
+      normalizedRecurrenceDay > 31)
+  ) {
+    throw new Error('RECURRENCE_DAY_INVALID');
+  }
+
   const createdAt = new Date().toISOString();
   const db = getDatabase();
   const insertStatement = db.prepare(`
-    INSERT INTO reminders (text, reminder_date, created_at)
-    VALUES (?, ?, ?)
+    INSERT INTO reminders (text, reminder_date, recurrence, recurrence_day, created_at)
+    VALUES (?, ?, ?, ?, ?)
   `);
   const result = insertStatement.run(
     normalizedText,
     normalizedReminderDate,
+    normalizedRecurrence,
+    normalizedRecurrenceDay,
     createdAt
   );
 
@@ -516,6 +562,8 @@ function addReminder({ text, reminderDate }) {
     id: Number(result.lastInsertRowid),
     text: normalizedText,
     reminderDate: normalizedReminderDate,
+    recurrence: normalizedRecurrence,
+    recurrenceDay: normalizedRecurrenceDay,
     createdAt,
   };
 }
