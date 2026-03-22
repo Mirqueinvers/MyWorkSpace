@@ -8,6 +8,7 @@ import { ReferencesSection } from './components/references/ReferencesSection'
 import { RemindersPanel } from './components/reminders/RemindersPanel'
 import { SchoolsSection } from './components/schools/SchoolsSection'
 import { SickLeavesSection } from './components/sickLeaves/SickLeavesSection'
+import { XRaySection } from './components/xray/XRaySection'
 import { NAV_ITEMS } from './constants/navigation'
 import type { AppSection } from './constants/navigation'
 import { useMedicalExams } from './hooks/useMedicalExams'
@@ -15,6 +16,7 @@ import { useReminders } from './hooks/useReminders'
 import { useSchools } from './hooks/useSchools'
 import { useSickLeaves } from './hooks/useSickLeaves'
 import { useWeather } from './hooks/useWeather'
+import { useXRay } from './hooks/useXRay'
 import {
   getCurrentDateDigits,
   getCurrentDayOfMonth,
@@ -31,6 +33,7 @@ function App() {
   const sickLeaves = useSickLeaves()
   const reminders = useReminders()
   const schools = useSchools()
+  const xray = useXRay()
   const todayDateDigits = getCurrentDateDigits()
   const currentDayOfMonth = getCurrentDayOfMonth()
   const urgentSickLeaves = sickLeaves.sickLeaves.filter((sickLeave) => {
@@ -149,6 +152,36 @@ function App() {
     }
 
     if (activeSection === NAV_ITEMS[4]) {
+      return (
+        <XRaySection
+          query={xray.query}
+          results={xray.results}
+          selectedPatient={xray.selectedPatient}
+          studies={xray.studies}
+          lastSubmittedQuery={xray.lastSubmittedQuery}
+          loading={xray.loading}
+          error={xray.error}
+          isSaving={xray.isSaving}
+          isDeleting={xray.isDeleting}
+          studiesLoading={xray.studiesLoading}
+          isSavingStudy={xray.isSavingStudy}
+          deletingStudyId={xray.deletingStudyId}
+          onQueryChange={xray.setQuery}
+          onSearch={xray.handleSearch}
+          onSelectPatient={xray.handleSelectPatient}
+          onAddPatient={xray.handleAddPatient}
+          onUpdatePatient={xray.handleUpdatePatient}
+          onDeletePatient={xray.handleDeletePatient}
+          onOpenLink={xray.handleOpenLink}
+          onAddStudy={xray.handleAddStudy}
+          onUpdateStudy={xray.handleUpdateStudy}
+          onDeleteStudy={xray.handleDeleteStudy}
+          onReset={xray.resetState}
+        />
+      )
+    }
+
+    if (activeSection === NAV_ITEMS[5]) {
       return <ReferencesSection />
     }
 

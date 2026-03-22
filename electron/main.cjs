@@ -142,6 +142,75 @@ function ensureSchoolsSchema(db) {
   `);
 }
 
+function ensureXRaySchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS xray_patients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      last_name TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      patronymic TEXT NOT NULL,
+      birth_date TEXT NOT NULL,
+      address TEXT NOT NULL,
+      rmis_url TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_xray_patients_birth_date
+    ON xray_patients (birth_date);
+
+    CREATE INDEX IF NOT EXISTS idx_xray_patients_created_at
+    ON xray_patients (created_at DESC, id DESC);
+
+    CREATE TABLE IF NOT EXISTS xray_studies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      patient_id INTEGER NOT NULL,
+      study_date TEXT NOT NULL,
+      referral_diagnosis TEXT NOT NULL,
+      study_area TEXT NOT NULL,
+      study_type TEXT NOT NULL,
+      cassette TEXT NOT NULL,
+      study_count INTEGER NOT NULL,
+      radiation_dose TEXT NOT NULL,
+      referred_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (patient_id) REFERENCES xray_patients (id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_xray_studies_patient_created_at
+    ON xray_studies (patient_id, created_at DESC, id DESC);
+  `);
+
+  const columns = db
+    .prepare(`PRAGMA table_info('xray_patients')`)
+    .all()
+    .map((column) => column.name);
+
+  if (!columns.includes('rmis_url')) {
+    db.exec(`
+      ALTER TABLE xray_patients
+      ADD COLUMN rmis_url TEXT;
+    `);
+  }
+
+  const studyColumns = db
+    .prepare(`PRAGMA table_info('xray_studies')`)
+    .all()
+    .map((column) => column.name);
+
+  if (!studyColumns.includes('study_date')) {
+    db.exec(`
+      ALTER TABLE xray_studies
+      ADD COLUMN study_date TEXT NOT NULL DEFAULT '';
+    `);
+
+    db.exec(`
+      UPDATE xray_studies
+      SET study_date = substr(created_at, 1, 10)
+      WHERE study_date = '';
+    `);
+  }
+}
+
 function normalizeText(value) {
   return String(value ?? '').trim();
 }
@@ -151,6 +220,32 @@ function normalizeDateDigits(value) {
 
   if (!/^\d{8}$/.test(normalizedValue)) {
     throw new Error('DATE_INVALID');
+  }
+
+  return normalizedValue;
+}
+
+function normalizeIsoDate(value, errorCode) {
+  const normalizedValue = normalizeText(value);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    throw new Error(errorCode);
+  }
+
+  const parsedDate = new Date(`${normalizedValue}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error(errorCode);
+  }
+
+  const [year, month, day] = normalizedValue.split('-').map(Number);
+
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    throw new Error(errorCode);
   }
 
   return normalizedValue;
@@ -190,8 +285,507 @@ function getDatabase() {
   ensureSickLeavesSchema(database);
   ensureRemindersSchema(database);
   ensureSchoolsSchema(database);
+  ensureXRaySchema(database);
 
   return database;
+}
+
+function normalizeSearchFragment(value) {
+  return String(value ?? '')
+    .toLocaleLowerCase('ru-RU')
+    .replaceAll('ё', 'е')
+    .replace(/[^a-zа-я0-9]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getCompactSearchValue(value) {
+  return normalizeSearchFragment(value).replace(/\s+/g, '');
+}
+
+function mapXRayPatient(row) {
+  return {
+    id: row.id,
+    lastName: row.last_name,
+    firstName: row.first_name,
+    patronymic: row.patronymic,
+    birthDate: row.birth_date,
+    address: row.address,
+    rmisUrl: row.rmis_url ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+function mapXRayStudy(row) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    studyDate: row.study_date,
+    referralDiagnosis: row.referral_diagnosis,
+    studyArea: row.study_area,
+    studyType: row.study_type,
+    cassette: row.cassette,
+    studyCount: Number(row.study_count),
+    radiationDose: row.radiation_dose,
+    referredBy: row.referred_by,
+    createdAt: row.created_at,
+  };
+}
+
+function normalizePositiveInteger(value, errorCode) {
+  const numericValue = Number(value);
+
+  if (!Number.isInteger(numericValue) || numericValue <= 0) {
+    throw new Error(errorCode);
+  }
+
+  return numericValue;
+}
+
+function normalizeXRayStudyPayload(payload) {
+  const normalizedPatientId = normalizePositiveInteger(
+    payload.patientId,
+    'XRAY_PATIENT_ID_INVALID'
+  );
+  const normalizedStudyDate = normalizeIsoDate(
+    payload.studyDate,
+    'XRAY_STUDY_DATE_INVALID'
+  );
+  const normalizedReferralDiagnosis = normalizeRequiredText(
+    payload.referralDiagnosis,
+    'XRAY_REFERRAL_DIAGNOSIS_REQUIRED'
+  );
+  const normalizedStudyArea = normalizeRequiredText(
+    payload.studyArea,
+    'XRAY_STUDY_AREA_REQUIRED'
+  );
+  const normalizedStudyType =
+    payload.studyType === 'Урография' ? 'Урография' : 'Рентген';
+  const normalizedCassette = normalizeRequiredText(
+    payload.cassette,
+    'XRAY_CASSETTE_REQUIRED'
+  );
+  const normalizedStudyCount = Number(payload.studyCount);
+  const normalizedRadiationDose = normalizeRequiredText(
+    payload.radiationDose,
+    'XRAY_RADIATION_DOSE_REQUIRED'
+  );
+  const normalizedReferredBy = normalizeRequiredText(
+    payload.referredBy,
+    'XRAY_REFERRED_BY_REQUIRED'
+  );
+
+  if (![1, 2, 3, 4, 5, 6].includes(normalizedStudyCount)) {
+    throw new Error('XRAY_STUDY_COUNT_INVALID');
+  }
+
+  return {
+    patientId: normalizedPatientId,
+    studyDate: normalizedStudyDate,
+    referralDiagnosis: normalizedReferralDiagnosis,
+    studyArea: normalizedStudyArea,
+    studyType: normalizedStudyType,
+    cassette: normalizedCassette,
+    studyCount: normalizedStudyCount,
+    radiationDose: normalizedRadiationDose,
+    referredBy: normalizedReferredBy,
+  };
+}
+
+function getXRayPatientSearchIndex(patient) {
+  const lastName = getCompactSearchValue(patient.last_name);
+  const firstName = getCompactSearchValue(patient.first_name);
+  const patronymic = getCompactSearchValue(patient.patronymic);
+  const birthDate = String(patient.birth_date ?? '').replace(/\D/g, '').slice(0, 8);
+  const fullName = [lastName, firstName, patronymic].filter(Boolean).join(' ');
+  const fullNameCompact = fullName.replace(/\s+/g, '');
+  const initials = `${lastName.slice(0, 1)}${firstName.slice(0, 1)}${patronymic.slice(0, 1)}`;
+  const keys = new Set(
+    [
+      `${initials}${birthDate}`,
+      `${lastName}${birthDate}`,
+      `${lastName}${firstName}${birthDate}`,
+      `${fullNameCompact}${birthDate}`,
+      fullNameCompact,
+      lastName,
+      `${lastName}${firstName}`,
+    ].filter(Boolean)
+  );
+
+  return {
+    birthDate,
+    fullName,
+    fullNameCompact,
+    lastName,
+    firstName,
+    patronymic,
+    keys,
+  };
+}
+
+function getXRayMatchLabel(patient) {
+  return `${patient.last_name} ${patient.first_name} ${patient.patronymic} ${patient.birth_date}`.trim();
+}
+
+function scoreXRayPatientMatch(patient, query) {
+  const trimmedQuery = String(query ?? '').trim();
+  if (!trimmedQuery) {
+    return null;
+  }
+
+  const queryBirthDate = trimmedQuery.replace(/\D/g, '').slice(0, 8);
+  const normalizedQuery = normalizeSearchFragment(trimmedQuery);
+  const compactQuery = normalizedQuery.replace(/\s+/g, '');
+  const lettersOnlyQuery = normalizedQuery.replace(/\d/g, '').replace(/\s+/g, ' ').trim();
+  const compactLettersQuery = lettersOnlyQuery.replace(/\s+/g, '');
+  const queryTokens = lettersOnlyQuery ? lettersOnlyQuery.split(' ') : [];
+  const patientIndex = getXRayPatientSearchIndex(patient);
+
+  if (!compactQuery) {
+    return null;
+  }
+
+  if (queryBirthDate && patientIndex.birthDate !== queryBirthDate) {
+    return null;
+  }
+
+  if (patientIndex.keys.has(compactQuery)) {
+    return 120;
+  }
+
+  if (
+    compactLettersQuery &&
+    patientIndex.fullNameCompact === compactLettersQuery &&
+    (!queryBirthDate || patientIndex.birthDate === queryBirthDate)
+  ) {
+    return 110;
+  }
+
+  if (
+    compactLettersQuery &&
+    patientIndex.fullNameCompact.startsWith(compactLettersQuery) &&
+    (!queryBirthDate || patientIndex.birthDate === queryBirthDate)
+  ) {
+    return 98;
+  }
+
+  if (
+    compactLettersQuery &&
+    patientIndex.fullNameCompact.includes(compactLettersQuery) &&
+    (!queryBirthDate || patientIndex.birthDate === queryBirthDate)
+  ) {
+    return 92;
+  }
+
+  if (
+    queryTokens.length > 0 &&
+    queryTokens.every((token) => patientIndex.fullName.includes(token))
+  ) {
+    return queryBirthDate ? 90 : 72;
+  }
+
+  if (!queryBirthDate && patientIndex.lastName.startsWith(compactQuery)) {
+    return 68;
+  }
+
+  if (!queryBirthDate && compactQuery.length >= 2 && patientIndex.fullNameCompact.includes(compactQuery)) {
+    return 60;
+  }
+
+  return null;
+}
+
+function searchXRayPatients(query) {
+  const trimmedQuery = String(query ?? '').trim();
+  if (!trimmedQuery) {
+    return [];
+  }
+
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT id, last_name, first_name, patronymic, birth_date, address, rmis_url, created_at
+    FROM xray_patients
+    ORDER BY created_at DESC, id DESC
+  `).all();
+
+  return rows
+    .map((row) => {
+      const score = scoreXRayPatientMatch(row, trimmedQuery);
+
+      if (score === null) {
+        return null;
+      }
+
+      return {
+        ...mapXRayPatient(row),
+        matchLabel: getXRayMatchLabel(row),
+        score,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.score - left.score || right.id - left.id)
+    .slice(0, 8)
+    .map(({ score, ...patient }) => patient);
+}
+
+function addXRayPatient({ lastName, firstName, patronymic, birthDate, address, rmisUrl }) {
+  const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
+  const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
+  const normalizedPatronymic = normalizeRequiredText(patronymic, 'XRAY_PATRONYMIC_REQUIRED');
+  const normalizedBirthDate = normalizeDateDigits(birthDate);
+  const normalizedAddress = normalizeRequiredText(address, 'XRAY_ADDRESS_REQUIRED');
+  const normalizedRmisUrl = normalizeText(rmisUrl) || null;
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const result = db.prepare(`
+    INSERT INTO xray_patients (
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      address,
+      rmis_url,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate,
+    normalizedAddress,
+    normalizedRmisUrl,
+    createdAt
+  );
+
+  return {
+    id: Number(result.lastInsertRowid),
+    lastName: normalizedLastName,
+    firstName: normalizedFirstName,
+    patronymic: normalizedPatronymic,
+    birthDate: normalizedBirthDate,
+    address: normalizedAddress,
+    rmisUrl: normalizedRmisUrl,
+    createdAt,
+  };
+}
+
+function updateXRayPatient({ id, lastName, firstName, patronymic, birthDate, address, rmisUrl }) {
+  const normalizedId = normalizePositiveInteger(id, 'XRAY_PATIENT_ID_INVALID');
+  const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
+  const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
+  const normalizedPatronymic = normalizeRequiredText(patronymic, 'XRAY_PATRONYMIC_REQUIRED');
+  const normalizedBirthDate = normalizeDateDigits(birthDate);
+  const normalizedAddress = normalizeRequiredText(address, 'XRAY_ADDRESS_REQUIRED');
+  const normalizedRmisUrl = normalizeText(rmisUrl) || null;
+  const db = getDatabase();
+  const result = db.prepare(`
+    UPDATE xray_patients
+    SET
+      last_name = ?,
+      first_name = ?,
+      patronymic = ?,
+      birth_date = ?,
+      address = ?,
+      rmis_url = ?
+    WHERE id = ?
+  `).run(
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate,
+    normalizedAddress,
+    normalizedRmisUrl,
+    normalizedId
+  );
+
+  if (result.changes === 0) {
+    throw new Error('XRAY_PATIENT_NOT_FOUND');
+  }
+
+  const row = db.prepare(`
+    SELECT id, last_name, first_name, patronymic, birth_date, address, rmis_url, created_at
+    FROM xray_patients
+    WHERE id = ?
+  `).get(normalizedId);
+
+  return mapXRayPatient(row);
+}
+
+function deleteXRayPatient(id) {
+  const numericId = Number(id);
+
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new Error('XRAY_PATIENT_ID_INVALID');
+  }
+
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM xray_patients
+    WHERE id = ?
+  `).run(numericId);
+
+  return result.changes > 0;
+}
+
+async function openXRayLink(url) {
+  const normalizedUrl = normalizeRequiredText(url, 'XRAY_LINK_URL_REQUIRED');
+  const urlWithProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(normalizedUrl)
+    ? normalizedUrl
+    : `https://${normalizedUrl}`;
+
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(urlWithProtocol);
+  } catch {
+    throw new Error('XRAY_LINK_URL_INVALID');
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error('XRAY_LINK_URL_INVALID');
+  }
+
+  await shell.openExternal(parsedUrl.toString());
+  return true;
+}
+
+function listXRayStudies(patientId) {
+  const normalizedPatientId = normalizePositiveInteger(
+    patientId,
+    'XRAY_PATIENT_ID_INVALID'
+  );
+  const db = getDatabase();
+  const statement = db.prepare(`
+    SELECT
+      id,
+      patient_id,
+      study_date,
+      referral_diagnosis,
+      study_area,
+      study_type,
+      cassette,
+      study_count,
+      radiation_dose,
+      referred_by,
+      created_at
+    FROM xray_studies
+    WHERE patient_id = ?
+    ORDER BY study_date DESC, created_at DESC, id DESC
+  `);
+
+  return statement.all(normalizedPatientId).map(mapXRayStudy);
+}
+
+function addXRayStudy(payload) {
+  const normalizedPayload = normalizeXRayStudyPayload(payload);
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const result = db.prepare(`
+    INSERT INTO xray_studies (
+      patient_id,
+      study_date,
+      referral_diagnosis,
+      study_area,
+      study_type,
+      cassette,
+      study_count,
+      radiation_dose,
+      referred_by,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    normalizedPayload.patientId,
+    normalizedPayload.studyDate,
+    normalizedPayload.referralDiagnosis,
+    normalizedPayload.studyArea,
+    normalizedPayload.studyType,
+    normalizedPayload.cassette,
+    normalizedPayload.studyCount,
+    normalizedPayload.radiationDose,
+    normalizedPayload.referredBy,
+    createdAt
+  );
+
+  return {
+    id: Number(result.lastInsertRowid),
+    patientId: normalizedPayload.patientId,
+    studyDate: normalizedPayload.studyDate,
+    referralDiagnosis: normalizedPayload.referralDiagnosis,
+    studyArea: normalizedPayload.studyArea,
+    studyType: normalizedPayload.studyType,
+    cassette: normalizedPayload.cassette,
+    studyCount: normalizedPayload.studyCount,
+    radiationDose: normalizedPayload.radiationDose,
+    referredBy: normalizedPayload.referredBy,
+    createdAt,
+  };
+}
+
+function updateXRayStudy(payload) {
+  const normalizedStudyId = normalizePositiveInteger(payload.id, 'XRAY_STUDY_ID_INVALID');
+  const normalizedPayload = normalizeXRayStudyPayload(payload);
+  const db = getDatabase();
+  const result = db.prepare(`
+    UPDATE xray_studies
+    SET
+      patient_id = ?,
+      study_date = ?,
+      referral_diagnosis = ?,
+      study_area = ?,
+      study_type = ?,
+      cassette = ?,
+      study_count = ?,
+      radiation_dose = ?,
+      referred_by = ?
+    WHERE id = ?
+  `).run(
+    normalizedPayload.patientId,
+    normalizedPayload.studyDate,
+    normalizedPayload.referralDiagnosis,
+    normalizedPayload.studyArea,
+    normalizedPayload.studyType,
+    normalizedPayload.cassette,
+    normalizedPayload.studyCount,
+    normalizedPayload.radiationDose,
+    normalizedPayload.referredBy,
+    normalizedStudyId
+  );
+
+  if (result.changes === 0) {
+    throw new Error('XRAY_STUDY_NOT_FOUND');
+  }
+
+  const row = db.prepare(`
+    SELECT
+      id,
+      patient_id,
+      study_date,
+      referral_diagnosis,
+      study_area,
+      study_type,
+      cassette,
+      study_count,
+      radiation_dose,
+      referred_by,
+      created_at
+    FROM xray_studies
+    WHERE id = ?
+  `).get(normalizedStudyId);
+
+  return mapXRayStudy(row);
+}
+
+function deleteXRayStudy(id) {
+  const normalizedStudyId = normalizePositiveInteger(id, 'XRAY_STUDY_ID_INVALID');
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM xray_studies
+    WHERE id = ?
+  `).run(normalizedStudyId);
+
+  return result.changes > 0;
 }
 
 function listMedicalExamPatients(monthKey) {
@@ -976,6 +1570,42 @@ function registerIpcHandlers() {
   );
 
   ipcMain.handle('schools:delete-link', (_event, id) => deleteSchoolLink(id));
+
+  ipcMain.handle('xray:search-patients', (_event, query) =>
+    searchXRayPatients(query)
+  );
+
+  ipcMain.handle('xray:add-patient', (_event, payload) =>
+    addXRayPatient(payload)
+  );
+
+  ipcMain.handle('xray:update-patient', (_event, payload) =>
+    updateXRayPatient(payload)
+  );
+
+  ipcMain.handle('xray:delete-patient', (_event, id) =>
+    deleteXRayPatient(id)
+  );
+
+  ipcMain.handle('xray:open-link', (_event, url) =>
+    openXRayLink(url)
+  );
+
+  ipcMain.handle('xray:list-studies', (_event, patientId) =>
+    listXRayStudies(patientId)
+  );
+
+  ipcMain.handle('xray:add-study', (_event, payload) =>
+    addXRayStudy(payload)
+  );
+
+  ipcMain.handle('xray:update-study', (_event, payload) =>
+    updateXRayStudy(payload)
+  );
+
+  ipcMain.handle('xray:delete-study', (_event, id) =>
+    deleteXRayStudy(id)
+  );
 }
 
 function createWindow() {

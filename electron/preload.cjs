@@ -75,4 +75,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('schools:delete-link', id);
     },
   },
+  xray: {
+    searchPatients(query) {
+      return ipcRenderer.invoke('xray:search-patients', query);
+    },
+    addPatient(payload) {
+      return ipcRenderer.invoke('xray:add-patient', payload);
+    },
+    updatePatient(payload) {
+      return ipcRenderer.invoke('xray:update-patient', payload);
+    },
+    deletePatient(id) {
+      return ipcRenderer.invoke('xray:delete-patient', id);
+    },
+    openLink(url) {
+      return ipcRenderer.invoke('xray:open-link', url);
+    },
+    listStudies(patientId) {
+      return ipcRenderer.invoke('xray:list-studies', patientId);
+    },
+    addStudy(payload) {
+      return ipcRenderer.invoke('xray:add-study', payload);
+    },
+    updateStudy(payload) {
+      return ipcRenderer.invoke('xray:update-study', payload);
+    },
+    deleteStudy(id) {
+      return ipcRenderer.invoke('xray:delete-study', id);
+    },
+  },
 });

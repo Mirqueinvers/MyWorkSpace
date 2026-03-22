@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { SchoolInstitution } from '../../types/schools'
 
+const VIEWED_STUDENTS_STORAGE_KEY = 'schools-viewed-students'
+const VIEWED_STUDENTS_STORAGE_UNINITIALIZED = '__UNINITIALIZED__'
+
 interface SchoolsSectionProps {
   institutionName: string
   institutionType: 'school' | 'kindergarten'
@@ -53,6 +56,42 @@ export function SchoolsSection({
   const [expandedInstitutionId, setExpandedInstitutionId] = useState<number | null>(null)
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
   const [editingInstitutionIds, setEditingInstitutionIds] = useState<Record<number, boolean>>({})
+  const [viewedStudentIds, setViewedStudentIds] = useState<
+    Record<number, boolean> | typeof VIEWED_STUDENTS_STORAGE_UNINITIALIZED
+  >(VIEWED_STUDENTS_STORAGE_UNINITIALIZED)
+
+  useEffect(() => {
+    try {
+      const savedValue = window.sessionStorage.getItem(VIEWED_STUDENTS_STORAGE_KEY)
+      if (!savedValue) {
+        setViewedStudentIds({})
+        return
+      }
+
+      const parsedValue = JSON.parse(savedValue) as Record<string, boolean>
+      const normalizedValue = Object.fromEntries(
+        Object.entries(parsedValue).map(([key, value]) => [Number(key), Boolean(value)]),
+      ) as Record<number, boolean>
+      setViewedStudentIds(normalizedValue)
+    } catch {
+      setViewedStudentIds({})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (viewedStudentIds === VIEWED_STUDENTS_STORAGE_UNINITIALIZED) {
+      return
+    }
+
+    try {
+      window.sessionStorage.setItem(
+        VIEWED_STUDENTS_STORAGE_KEY,
+        JSON.stringify(viewedStudentIds),
+      )
+    } catch {
+      // Ignore session storage write errors.
+    }
+  }, [viewedStudentIds])
 
   useEffect(() => {
     if (institutions.length === 0) {
@@ -114,6 +153,20 @@ export function SchoolsSection({
     } catch {
       // Ignore link open errors silently in this workflow.
     }
+  }
+
+  function handleStudentClick(studentId: number, url: string | undefined) {
+    setViewedStudentIds((currentState) => {
+      const normalizedState =
+        currentState === VIEWED_STUDENTS_STORAGE_UNINITIALIZED ? {} : currentState
+
+      return {
+        ...normalizedState,
+        [studentId]: true,
+      }
+    })
+
+    void handleOpenStudentLink(url)
   }
 
   function getDisplayClassName(
@@ -438,9 +491,9 @@ export function SchoolsSection({
                     <div className="schools-student-head">
                       <button
                         type="button"
-                        className={`schools-student-button${student.links[0] ? ' is-copyable' : ''}`}
+                        className={`schools-student-button${student.links[0] ? ' is-copyable' : ''}${viewedStudentIds !== VIEWED_STUDENTS_STORAGE_UNINITIALIZED && viewedStudentIds[student.id] ? ' is-viewed' : ''}`}
                         onClick={() => {
-                          void handleOpenStudentLink(student.links[0]?.url)
+                          handleStudentClick(student.id, student.links[0]?.url)
                         }}
                         title={
                           student.links[0]

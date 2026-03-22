@@ -199,9 +199,6 @@ export function RemindersPanel({
 
                 <div className="patient-main">
                   <div className="patient-name">{reminder.text}</div>
-                  <div className="patient-meta reminder-meta">
-                    {formatReminderSchedule(reminder)}
-                  </div>
                 </div>
               </article>
             ))}
