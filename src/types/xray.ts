@@ -24,6 +24,11 @@ export interface XRayStudy {
   createdAt: string
 }
 
+export interface XRayJournalEntry {
+  patient: XRayPatient
+  studies: XRayStudy[]
+}
+
 export interface AddXRayPatientPayload {
   lastName: string
   firstName: string
@@ -64,6 +69,7 @@ export interface XRayApi {
   updatePatient: (payload: UpdateXRayPatientPayload) => Promise<XRayPatient>
   deletePatient: (id: number) => Promise<boolean>
   openLink: (url: string) => Promise<boolean>
+  listJournalByDate: (studyDate: string) => Promise<XRayJournalEntry[]>
   listStudies: (patientId: number) => Promise<XRayStudy[]>
   addStudy: (payload: AddXRayStudyPayload) => Promise<XRayStudy>
   updateStudy: (payload: UpdateXRayStudyPayload) => Promise<XRayStudy>

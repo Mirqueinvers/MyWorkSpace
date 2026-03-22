@@ -689,6 +689,81 @@ function listXRayStudies(patientId) {
   return statement.all(normalizedPatientId).map(mapXRayStudy);
 }
 
+function listXRayJournalByDate(studyDate) {
+  const normalizedStudyDate = String(studyDate ?? '').trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedStudyDate)) {
+    throw new Error('XRAY_STUDY_DATE_INVALID');
+  }
+
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT
+      p.id AS patient_id,
+      p.last_name,
+      p.first_name,
+      p.patronymic,
+      p.birth_date,
+      p.address,
+      p.rmis_url,
+      p.created_at AS patient_created_at,
+      s.id,
+      s.study_date,
+      s.description,
+      s.referral_diagnosis,
+      s.study_area,
+      s.study_type,
+      s.cassette,
+      s.study_count,
+      s.radiation_dose,
+      s.referred_by,
+      s.created_at
+    FROM xray_studies s
+    JOIN xray_patients p ON p.id = s.patient_id
+    WHERE s.study_date = ?
+    ORDER BY s.created_at DESC, s.id DESC
+  `).all(normalizedStudyDate);
+
+  const itemsMap = new Map();
+
+  rows.forEach((row) => {
+    if (!itemsMap.has(row.patient_id)) {
+      itemsMap.set(row.patient_id, {
+        patient: mapXRayPatient({
+          id: row.patient_id,
+          last_name: row.last_name,
+          first_name: row.first_name,
+          patronymic: row.patronymic,
+          birth_date: row.birth_date,
+          address: row.address,
+          rmis_url: row.rmis_url,
+          created_at: row.patient_created_at,
+        }),
+        studies: [],
+      });
+    }
+
+    itemsMap.get(row.patient_id).studies.push(
+      mapXRayStudy({
+        id: row.id,
+        patient_id: row.patient_id,
+        study_date: row.study_date,
+        description: row.description,
+        referral_diagnosis: row.referral_diagnosis,
+        study_area: row.study_area,
+        study_type: row.study_type,
+        cassette: row.cassette,
+        study_count: row.study_count,
+        radiation_dose: row.radiation_dose,
+        referred_by: row.referred_by,
+        created_at: row.created_at,
+      }),
+    );
+  });
+
+  return Array.from(itemsMap.values());
+}
+
 function addXRayStudy(payload) {
   const normalizedPayload = normalizeXRayStudyPayload(payload);
   const createdAt = new Date().toISOString();
@@ -1607,6 +1682,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:open-link', (_event, url) =>
     openXRayLink(url)
+  );
+
+  ipcMain.handle('xray:list-journal-by-date', (_event, studyDate) =>
+    listXRayJournalByDate(studyDate)
   );
 
   ipcMain.handle('xray:list-studies', (_event, patientId) =>

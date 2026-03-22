@@ -2,7 +2,7 @@
 import { XRAY_TABS } from './config'
 import type { XRayTab } from './config'
 import type { XRaySectionProps } from './types'
-import { XRayHome } from './components'
+import { XRayHome, XRayJournal } from './components'
 
 export function XRaySection(props: XRaySectionProps) {
   const [activeTab, setActiveTab] = useState<XRayTab>(XRAY_TABS[0])
@@ -25,14 +25,10 @@ export function XRaySection(props: XRaySectionProps) {
 
     if (activeTab === 'Журнал') {
       return (
-        <section className="content-card placeholder-card">
-          <p className="section-kicker">X-ray</p>
-          <h2>Журнал</h2>
-          <p className="section-copy">
-            Здесь можно будет собрать основной список исследований, статусы и историю
-            работы по пациентам.
-          </p>
-        </section>
+        <XRayJournal
+          onSelectPatient={props.onSelectPatient}
+          onOpenPatient={() => setActiveTab('Главная')}
+        />
       )
     }
 

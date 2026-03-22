@@ -91,6 +91,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openLink(url) {
       return ipcRenderer.invoke('xray:open-link', url);
     },
+    listJournalByDate(studyDate) {
+      return ipcRenderer.invoke('xray:list-journal-by-date', studyDate);
+    },
     listStudies(patientId) {
       return ipcRenderer.invoke('xray:list-studies', patientId);
     },
