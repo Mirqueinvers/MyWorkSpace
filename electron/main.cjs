@@ -165,6 +165,7 @@ function ensureXRaySchema(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       patient_id INTEGER NOT NULL,
       study_date TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
       referral_diagnosis TEXT NOT NULL,
       study_area TEXT NOT NULL,
       study_type TEXT NOT NULL,
@@ -207,6 +208,13 @@ function ensureXRaySchema(db) {
       UPDATE xray_studies
       SET study_date = substr(created_at, 1, 10)
       WHERE study_date = '';
+    `);
+  }
+
+  if (!studyColumns.includes('description')) {
+    db.exec(`
+      ALTER TABLE xray_studies
+      ADD COLUMN description TEXT NOT NULL DEFAULT '';
     `);
   }
 }
@@ -321,6 +329,7 @@ function mapXRayStudy(row) {
     id: row.id,
     patientId: row.patient_id,
     studyDate: row.study_date,
+    description: row.description ?? '',
     referralDiagnosis: row.referral_diagnosis,
     studyArea: row.study_area,
     studyType: row.study_type,
@@ -351,6 +360,7 @@ function normalizeXRayStudyPayload(payload) {
     payload.studyDate,
     'XRAY_STUDY_DATE_INVALID'
   );
+  const normalizedDescription = normalizeText(payload.description);
   const normalizedReferralDiagnosis = normalizeRequiredText(
     payload.referralDiagnosis,
     'XRAY_REFERRAL_DIAGNOSIS_REQUIRED'
@@ -382,6 +392,7 @@ function normalizeXRayStudyPayload(payload) {
   return {
     patientId: normalizedPatientId,
     studyDate: normalizedStudyDate,
+    description: normalizedDescription,
     referralDiagnosis: normalizedReferralDiagnosis,
     studyArea: normalizedStudyArea,
     studyType: normalizedStudyType,
@@ -661,6 +672,7 @@ function listXRayStudies(patientId) {
       id,
       patient_id,
       study_date,
+      description,
       referral_diagnosis,
       study_area,
       study_type,
@@ -685,6 +697,7 @@ function addXRayStudy(payload) {
     INSERT INTO xray_studies (
       patient_id,
       study_date,
+      description,
       referral_diagnosis,
       study_area,
       study_type,
@@ -698,6 +711,7 @@ function addXRayStudy(payload) {
   `).run(
     normalizedPayload.patientId,
     normalizedPayload.studyDate,
+    normalizedPayload.description,
     normalizedPayload.referralDiagnosis,
     normalizedPayload.studyArea,
     normalizedPayload.studyType,
@@ -712,6 +726,7 @@ function addXRayStudy(payload) {
     id: Number(result.lastInsertRowid),
     patientId: normalizedPayload.patientId,
     studyDate: normalizedPayload.studyDate,
+    description: normalizedPayload.description,
     referralDiagnosis: normalizedPayload.referralDiagnosis,
     studyArea: normalizedPayload.studyArea,
     studyType: normalizedPayload.studyType,
@@ -732,6 +747,7 @@ function updateXRayStudy(payload) {
     SET
       patient_id = ?,
       study_date = ?,
+      description = ?,
       referral_diagnosis = ?,
       study_area = ?,
       study_type = ?,
@@ -743,6 +759,7 @@ function updateXRayStudy(payload) {
   `).run(
     normalizedPayload.patientId,
     normalizedPayload.studyDate,
+    normalizedPayload.description,
     normalizedPayload.referralDiagnosis,
     normalizedPayload.studyArea,
     normalizedPayload.studyType,
@@ -762,6 +779,7 @@ function updateXRayStudy(payload) {
       id,
       patient_id,
       study_date,
+      description,
       referral_diagnosis,
       study_area,
       study_type,

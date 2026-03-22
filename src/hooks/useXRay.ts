@@ -219,6 +219,7 @@ export function useXRay() {
   async function handleAddStudy(payload: {
     patientId: number
     studyDate: string
+    description: string
     referralDiagnosis: string
     studyArea: string
     studyType: 'Рентген' | 'Урография'
@@ -251,6 +252,7 @@ export function useXRay() {
     id: number
     patientId: number
     studyDate: string
+    description: string
     referralDiagnosis: string
     studyArea: string
     studyType: 'Рентген' | 'Урография'

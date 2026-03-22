@@ -1043,6 +1043,70 @@
   color: #0f766e;
 }
 
+.reminders-modal.xray-study-description-modal {
+  position: relative;
+  width: min(1120px, calc(100vw - 64px));
+  max-width: none;
+  padding-top: 56px;
+}
+
+.reminders-modal.xray-study-description-modal .reminders-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.xray-study-description-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: 18px;
+}
+
+.xray-study-description-main {
+  display: grid;
+  gap: 16px;
+}
+
+.xray-study-description-input {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 24px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.96);
+  font: inherit;
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #0f172a;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.xray-study-description-input:focus {
+  outline: none;
+  border-color: rgba(20, 184, 166, 0.42);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.12);
+}
+
+.xray-study-description-input[readonly] {
+  background: rgba(248, 250, 252, 0.94);
+}
+
+.xray-study-description-side {
+  min-height: 420px;
+  border: 1px dashed rgba(148, 163, 184, 0.18);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.72));
+}
+
+.xray-study-description-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .xray-referred-by-field {
   position: relative;
 }
@@ -2319,6 +2383,20 @@
 
   .xray-template-grid {
     grid-template-columns: 1fr;
+  }
+
+  .xray-study-description-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .xray-study-description-input,
+  .xray-study-description-side {
+    min-height: 320px;
+  }
+
+  .xray-study-description-modal .reminders-modal-close {
+    top: 12px;
+    right: 12px;
   }
 
   .xray-search-submit {

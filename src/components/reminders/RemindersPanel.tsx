@@ -207,11 +207,7 @@ export function RemindersPanel({
       </section>
 
       {isArchiveOpen ? (
-        <div
-          className="reminders-modal-overlay"
-          onClick={() => setIsArchiveOpen(false)}
-          role="presentation"
-        >
+        <div className="reminders-modal-overlay" role="presentation">
           <div
             className="reminders-modal"
             onClick={(event) => event.stopPropagation()}

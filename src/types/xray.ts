@@ -13,6 +13,7 @@ export interface XRayStudy {
   id: number
   patientId: number
   studyDate: string
+  description: string
   referralDiagnosis: string
   studyArea: string
   studyType: 'Рентген' | 'Урография'
@@ -43,6 +44,7 @@ export interface XRaySearchResult extends XRayPatient {
 export interface AddXRayStudyPayload {
   patientId: number
   studyDate: string
+  description: string
   referralDiagnosis: string
   studyArea: string
   studyType: 'Рентген' | 'Урография'

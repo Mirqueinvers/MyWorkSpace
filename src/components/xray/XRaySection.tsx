@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { XRayPatient, XRaySearchResult, XRayStudy } from '../../types/xray'
 import { formatBirthDate, formatStoredDate } from '../../utils/date'
@@ -86,6 +86,7 @@ interface XRaySectionProps {
   onAddStudy: (payload: {
     patientId: number
     studyDate: string
+    description: string
     referralDiagnosis: string
     studyArea: string
     studyType: 'Рентген' | 'Урография'
@@ -98,6 +99,7 @@ interface XRaySectionProps {
     id: number
     patientId: number
     studyDate: string
+    description: string
     referralDiagnosis: string
     studyArea: string
     studyType: 'Рентген' | 'Урография'
@@ -121,6 +123,7 @@ interface PatientFormState {
 
 interface StudyFormState {
   studyDate: string
+  description: string
   referralDiagnosis: string
   studyArea: string
   studyType: 'Рентген' | 'Урография'
@@ -151,6 +154,7 @@ function getTodayIsoDate() {
 function createInitialStudyFormState(): StudyFormState {
   return {
     studyDate: getTodayIsoDate(),
+    description: '',
     referralDiagnosis: '',
     studyArea: XRAY_STUDY_AREAS[0],
     studyType: 'Рентген',
@@ -289,6 +293,11 @@ function XRayHome(props: XRaySectionProps) {
   const [isReferredByOpen, setIsReferredByOpen] = useState(false)
   const [templateStudy, setTemplateStudy] = useState<XRayStudy | null>(null)
   const [templateQuery, setTemplateQuery] = useState('')
+  const [descriptionStudy, setDescriptionStudy] = useState<XRayStudy | null>(null)
+  const [descriptionDraft, setDescriptionDraft] = useState('')
+  const [isDescriptionEditing, setIsDescriptionEditing] = useState(false)
+  const descriptionInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const pendingDescriptionRef = useRef<string | null>(null)
   const [lastName, setLastName] = useState('')
   const [firstName, setFirstName] = useState('')
   const [patronymic, setPatronymic] = useState('')
@@ -361,8 +370,52 @@ function XRayHome(props: XRaySectionProps) {
     }
   }, [templateStudy])
 
+  useEffect(() => {
+    if (!descriptionStudy) {
+      setDescriptionDraft('')
+      setIsDescriptionEditing(false)
+      return
+    }
+
+    const nextDescription = pendingDescriptionRef.current ?? descriptionStudy.description
+    pendingDescriptionRef.current = null
+    setDescriptionDraft(nextDescription)
+  }, [descriptionStudy])
+
+  useEffect(() => {
+    if (!descriptionStudy || !isDescriptionEditing) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      if (!descriptionInputRef.current) {
+        return
+      }
+
+      descriptionInputRef.current.focus()
+      const valueLength = descriptionInputRef.current.value.length
+      descriptionInputRef.current.setSelectionRange(valueLength, valueLength)
+    })
+  }, [descriptionStudy, isDescriptionEditing])
+
   function openStudyTemplatesModal(study: XRayStudy) {
+    if (study.description.trim()) {
+      openStudyDescriptionModal(study, false)
+      return
+    }
+
     setTemplateStudy(study)
+  }
+
+  function openStudyDescriptionModal(
+    study: XRayStudy,
+    isEditing = false,
+    initialDescription?: string,
+  ) {
+    setTemplateStudy(null)
+    pendingDescriptionRef.current = initialDescription ?? null
+    setDescriptionStudy(study)
+    setIsDescriptionEditing(isEditing)
   }
 
   function handleShowAddForm() {
@@ -386,6 +439,7 @@ function XRayHome(props: XRaySectionProps) {
     setEditingStudy(study)
     setStudyForm({
       studyDate: study.studyDate,
+      description: study.description,
       referralDiagnosis: study.referralDiagnosis,
       studyArea: study.studyArea,
       studyType: study.studyType,
@@ -525,6 +579,7 @@ function XRayHome(props: XRaySectionProps) {
     const payload = {
       patientId: selectedPatient.id,
       studyDate: studyForm.studyDate,
+      description: studyForm.description,
       referralDiagnosis: studyForm.referralDiagnosis.trim(),
       studyArea: studyForm.studyArea,
       studyType: studyForm.studyType,
@@ -586,7 +641,36 @@ function XRayHome(props: XRaySectionProps) {
     }
 
     await onDeleteStudy(deleteStudyCandidate.id)
+    if (descriptionStudy?.id === deleteStudyCandidate.id) {
+      setDescriptionStudy(null)
+    }
     setDeleteStudyCandidate(null)
+  }
+
+  async function handleSaveStudyDescription() {
+    if (!descriptionStudy) {
+      return
+    }
+
+    const updatedStudy = await onUpdateStudy({
+      id: descriptionStudy.id,
+      patientId: descriptionStudy.patientId,
+      studyDate: descriptionStudy.studyDate,
+      description: descriptionDraft.trim(),
+      referralDiagnosis: descriptionStudy.referralDiagnosis,
+      studyArea: descriptionStudy.studyArea,
+      studyType: descriptionStudy.studyType,
+      cassette: descriptionStudy.cassette,
+      studyCount: descriptionStudy.studyCount,
+      radiationDose: descriptionStudy.radiationDose,
+      referredBy: descriptionStudy.referredBy,
+    })
+
+    if (updatedStudy) {
+      setDescriptionStudy(updatedStudy)
+      setDescriptionDraft(updatedStudy.description)
+      setIsDescriptionEditing(false)
+    }
   }
 
   return (
@@ -919,14 +1003,7 @@ function XRayHome(props: XRaySectionProps) {
       ) : null}
 
       {selectedPatient && isDeleteConfirmOpen ? (
-        <div
-          className="reminders-modal-overlay"
-          onClick={() => {
-            if (!isDeleting) {
-              setIsDeleteConfirmOpen(false)
-            }
-          }}
-        >
+        <div className="reminders-modal-overlay">
           <section
             className="reminders-modal xray-confirm-modal"
             onClick={(event) => event.stopPropagation()}
@@ -981,14 +1058,7 @@ function XRayHome(props: XRaySectionProps) {
       ) : null}
 
       {selectedPatient && isPatientEditOpen && patientEditForm ? (
-        <div
-          className="reminders-modal-overlay"
-          onClick={() => {
-            if (!isSaving) {
-              setIsPatientEditOpen(false)
-            }
-          }}
-        >
+        <div className="reminders-modal-overlay">
           <section
             className="reminders-modal xray-confirm-modal"
             onClick={(event) => event.stopPropagation()}
@@ -1141,14 +1211,7 @@ function XRayHome(props: XRaySectionProps) {
       ) : null}
 
       {selectedPatient && isStudyModalOpen ? (
-        <div
-          className="reminders-modal-overlay"
-          onClick={() => {
-            if (!isSavingStudy) {
-              setIsStudyModalOpen(false)
-            }
-          }}
-        >
+        <div className="reminders-modal-overlay">
           <section
             className="reminders-modal xray-study-modal"
             onClick={(event) => event.stopPropagation()}
@@ -1362,15 +1425,77 @@ function XRayHome(props: XRaySectionProps) {
         </div>
       ) : null}
 
+      {descriptionStudy ? (
+        <div className="reminders-modal-overlay xray-top-overlay">
+          <section
+            className="reminders-modal xray-study-description-modal xray-top-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Описание исследования"
+          >
+            <button
+              type="button"
+              className="reminders-modal-close"
+              onClick={() => setDescriptionStudy(null)}
+              disabled={isSavingStudy}
+              aria-label="Закрыть окно описания"
+            >
+              ×
+            </button>
+
+            <div className="xray-study-description-layout">
+              <div className="xray-study-description-main">
+                <textarea
+                  ref={descriptionInputRef}
+                  className="xray-study-description-input"
+                  value={descriptionDraft}
+                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                  readOnly={!isDescriptionEditing}
+                  placeholder="Описание исследования"
+                />
+
+                <div className="xray-study-description-actions">
+                  {isDescriptionEditing ? (
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => void handleSaveStudyDescription()}
+                      disabled={isSavingStudy}
+                    >
+                      {isSavingStudy ? 'Сохраняю...' : 'Сохранить исследование'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setIsDescriptionEditing(true)}
+                    >
+                      Редактировать исследование
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="danger-button"
+                    onClick={() => setDeleteStudyCandidate(descriptionStudy)}
+                    disabled={deletingStudyId === descriptionStudy.id}
+                  >
+                    {deletingStudyId === descriptionStudy.id
+                      ? 'Удаляю...'
+                      : 'Удалить исследование'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="xray-study-description-side" />
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {deleteStudyCandidate ? (
-        <div
-          className="reminders-modal-overlay xray-top-overlay"
-          onClick={() => {
-            if (deletingStudyId === null) {
-              setDeleteStudyCandidate(null)
-            }
-          }}
-        >
+        <div className="reminders-modal-overlay xray-top-overlay">
           <section
             className="reminders-modal xray-confirm-modal xray-top-modal"
             onClick={(event) => event.stopPropagation()}
@@ -1425,10 +1550,7 @@ function XRayHome(props: XRaySectionProps) {
       ) : null}
 
       {templateStudy ? (
-        <div
-          className="reminders-modal-overlay xray-top-overlay"
-          onClick={() => setTemplateStudy(null)}
-        >
+        <div className="reminders-modal-overlay xray-top-overlay">
           <section
             className="reminders-modal xray-study-templates-modal xray-top-modal"
             onClick={(event) => event.stopPropagation()}
@@ -1467,7 +1589,18 @@ function XRayHome(props: XRaySectionProps) {
                   key={template}
                   type="button"
                   className="xray-template-chip"
-                  onClick={() => setTemplateQuery(template)}
+                  onClick={() => {
+                    if (template === XRAY_STUDY_TEMPLATES[0] && templateStudy) {
+                      openStudyDescriptionModal(
+                        templateStudy,
+                        true,
+                        templateStudy.description || 'Рентгенография ',
+                      )
+                      return
+                    }
+
+                    setTemplateQuery(template)
+                  }}
                 >
                   {template}
                 </button>
