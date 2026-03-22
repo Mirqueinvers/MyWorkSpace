@@ -1,6 +1,7 @@
 export { XRayAddPatientCard } from './XRayAddPatientCard'
 export { XRayConfirmModal } from './XRayConfirmModal'
 export { XRayHome } from './XRayHome'
+export { XRayJointSpaceModal } from './XRayJointSpaceModal'
 export { XRayPatientCard } from './XRayPatientCard'
 export { XRayPatientEditModal } from './XRayPatientEditModal'
 export { XRaySearchPanel } from './XRaySearchPanel'

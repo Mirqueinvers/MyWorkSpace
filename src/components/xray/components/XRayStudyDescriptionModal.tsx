@@ -4,26 +4,28 @@ interface XRayStudyDescriptionModalProps {
   descriptionDraft: string
   isDescriptionEditing: boolean
   isSavingStudy: boolean
-  isDeletingStudy: boolean
   descriptionInputRef: RefObject<HTMLTextAreaElement | null>
+  isJointSpaceOpen: boolean
   onDescriptionChange: (value: string) => void
   onClose: () => void
   onStartEdit: () => void
   onSave: () => void
   onDelete: () => void
+  onOpenJointSpace: () => void
 }
 
 export function XRayStudyDescriptionModal({
   descriptionDraft,
   isDescriptionEditing,
   isSavingStudy,
-  isDeletingStudy,
   descriptionInputRef,
+  isJointSpaceOpen,
   onDescriptionChange,
   onClose,
   onStartEdit,
   onSave,
   onDelete,
+  onOpenJointSpace,
 }: XRayStudyDescriptionModalProps) {
   return (
     <div className="reminders-modal-overlay xray-top-overlay">
@@ -75,14 +77,22 @@ export function XRayStudyDescriptionModal({
                 type="button"
                 className="danger-button"
                 onClick={onDelete}
-                disabled={isDeletingStudy}
+                disabled={isSavingStudy}
               >
-                {isDeletingStudy ? 'Удаляю...' : 'Удалить исследование'}
+                {isSavingStudy ? 'Удаляю...' : 'Удалить описание'}
               </button>
             </div>
           </div>
 
-          <div className="xray-study-description-side" />
+          <div className="xray-study-description-side">
+            <button
+              type="button"
+              className={`xray-side-tool-chip${isJointSpaceOpen ? ' is-active' : ''}`}
+              onClick={onOpenJointSpace}
+            >
+              Суставные щели
+            </button>
+          </div>
         </div>
       </section>
     </div>

@@ -7,6 +7,7 @@ import { useXRayHomeState } from '../hooks'
 import {
   XRayAddPatientCard,
   XRayConfirmModal,
+  XRayJointSpaceModal,
   XRayPatientCard,
   XRayPatientEditModal,
   XRaySearchPanel,
@@ -129,15 +130,24 @@ export function XRayHome(props: XRaySectionProps) {
           descriptionDraft={state.descriptionDraft}
           isDescriptionEditing={state.isDescriptionEditing}
           isSavingStudy={props.isSavingStudy}
-          isDeletingStudy={props.deletingStudyId === state.descriptionStudy.id}
           descriptionInputRef={state.descriptionInputRef}
+          isJointSpaceOpen={state.isJointSpaceModalOpen}
           onDescriptionChange={state.setDescriptionDraft}
           onClose={() => state.setDescriptionStudy(null)}
           onStartEdit={() => state.setIsDescriptionEditing(true)}
           onSave={() => void state.handleSaveStudyDescription()}
-          onDelete={() => state.setDeleteStudyCandidate(state.descriptionStudy)}
+          onDelete={() => void state.handleDeleteStudyDescription()}
+          onOpenJointSpace={() => state.setIsJointSpaceModalOpen(true)}
         />
       ) : null}
+
+      <XRayJointSpaceModal
+        isOpen={state.isJointSpaceModalOpen}
+        values={state.jointSpaceState}
+        onClose={() => state.setIsJointSpaceModalOpen(false)}
+        onChange={state.handleJointSpaceChange}
+        onAdd={state.handleAddJointSpaceDescription}
+      />
 
       {state.deleteStudyCandidate ? (
         <XRayConfirmModal

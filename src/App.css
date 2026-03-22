@@ -1098,6 +1098,11 @@
   border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.72));
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .xray-study-description-actions {
@@ -1105,6 +1110,139 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.xray-side-tool-chip {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 18px;
+  padding: 14px 16px;
+  font: inherit;
+  font-weight: 700;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.18),
+    0 12px 24px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.xray-side-tool-chip:hover,
+.xray-side-tool-chip.is-active {
+  transform: translateY(-1px);
+  color: #0f766e;
+  background: rgba(240, 253, 250, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.24),
+    0 14px 30px rgba(20, 184, 166, 0.12);
+}
+
+.xray-joint-space-modal {
+  width: min(1120px, calc(100vw - 64px));
+  max-width: none;
+  padding-top: 56px;
+}
+
+.xray-joint-space-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.xray-joint-space-column {
+  display: grid;
+  gap: 14px;
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.xray-joint-space-column-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.xray-joint-space-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.xray-joint-space-side {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.xray-joint-space-side-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.xray-joint-space-group {
+  display: grid;
+  gap: 8px;
+}
+
+.xray-joint-space-group-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.xray-joint-space-chips {
+  display: grid;
+  gap: 6px;
+}
+
+.xray-joint-space-chip {
+  min-height: 32px;
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  background: rgba(241, 245, 249, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.xray-joint-space-chip:hover,
+.xray-joint-space-chip.is-active {
+  transform: translateY(-1px);
+  color: #0f766e;
+  background: rgba(240, 253, 250, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(20, 184, 166, 0.22);
+}
+
+.xray-joint-space-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .xray-referred-by-field {
