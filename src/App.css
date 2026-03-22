@@ -1101,8 +1101,10 @@
   padding: 16px;
   box-sizing: border-box;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .xray-study-description-actions {
@@ -1131,6 +1133,64 @@
     box-shadow 0.2s ease,
     background-color 0.2s ease,
     color 0.2s ease;
+}
+
+.xray-knee-choice-modal {
+  width: min(720px, calc(100vw - 64px));
+  max-width: none;
+  padding-top: 56px;
+}
+
+.xray-knee-choice-title {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.xray-knee-choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.xray-knee-choice-chip {
+  min-height: 42px;
+  text-align: left;
+}
+
+.xray-diagnosis-input {
+  min-height: 220px;
+  margin-bottom: 18px;
+}
+
+.xray-study-diagnosis-input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 0 16px;
+  font: inherit;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.xray-study-diagnosis-input:focus {
+  outline: none;
+  border-color: rgba(20, 184, 166, 0.55);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.14);
+}
+
+.xray-knee-osteophytes-list {
+  display: grid;
+  gap: 8px;
+}
+
+.xray-knee-osteophytes-chip {
+  min-height: 44px;
+  text-align: left;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .xray-side-tool-chip:hover,
@@ -1237,6 +1297,13 @@
   color: #0f766e;
   background: rgba(240, 253, 250, 0.98);
   box-shadow: inset 0 0 0 1px rgba(20, 184, 166, 0.22);
+}
+
+.xray-joint-space-chip-secondary {
+  margin-top: 4px;
+  color: #0f766e;
+  background: rgba(240, 253, 250, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(20, 184, 166, 0.16);
 }
 
 .xray-joint-space-actions {

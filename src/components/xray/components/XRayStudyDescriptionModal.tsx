@@ -1,31 +1,39 @@
 import type { RefObject } from 'react'
 
+interface XRayStudyDescriptionTool {
+  label: string
+  isActive?: boolean
+  onClick: () => void
+}
+
 interface XRayStudyDescriptionModalProps {
   descriptionDraft: string
+  diagnosisDraft: string
   isDescriptionEditing: boolean
   isSavingStudy: boolean
   descriptionInputRef: RefObject<HTMLTextAreaElement | null>
-  isJointSpaceOpen: boolean
+  sideTools: XRayStudyDescriptionTool[]
   onDescriptionChange: (value: string) => void
+  onDiagnosisChange: (value: string) => void
   onClose: () => void
   onStartEdit: () => void
   onSave: () => void
   onDelete: () => void
-  onOpenJointSpace: () => void
 }
 
 export function XRayStudyDescriptionModal({
   descriptionDraft,
+  diagnosisDraft,
   isDescriptionEditing,
   isSavingStudy,
   descriptionInputRef,
-  isJointSpaceOpen,
+  sideTools,
   onDescriptionChange,
+  onDiagnosisChange,
   onClose,
   onStartEdit,
   onSave,
   onDelete,
-  onOpenJointSpace,
 }: XRayStudyDescriptionModalProps) {
   return (
     <div className="reminders-modal-overlay xray-top-overlay">
@@ -57,6 +65,15 @@ export function XRayStudyDescriptionModal({
               placeholder="Описание исследования"
             />
 
+            <input
+              type="text"
+              className="input xray-study-diagnosis-input"
+              value={diagnosisDraft}
+              onChange={(event) => onDiagnosisChange(event.target.value)}
+              readOnly={!isDescriptionEditing}
+              placeholder="Диагноз"
+            />
+
             <div className="xray-study-description-actions">
               {isDescriptionEditing ? (
                 <button
@@ -85,13 +102,16 @@ export function XRayStudyDescriptionModal({
           </div>
 
           <div className="xray-study-description-side">
-            <button
-              type="button"
-              className={`xray-side-tool-chip${isJointSpaceOpen ? ' is-active' : ''}`}
-              onClick={onOpenJointSpace}
-            >
-              Суставные щели
-            </button>
+            {sideTools.map((tool) => (
+              <button
+                key={tool.label}
+                type="button"
+                className={`xray-side-tool-chip${tool.isActive ? ' is-active' : ''}`}
+                onClick={tool.onClick}
+              >
+                {tool.label}
+              </button>
+            ))}
           </div>
         </div>
       </section>

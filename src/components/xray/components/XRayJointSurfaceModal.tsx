@@ -1,25 +1,25 @@
-import type { KneeJointSpaceState } from '../helpers/generateKneeJointSpaceDescription'
+import type { KneeJointSurfaceState } from '../helpers/generateKneeJointSpaceDescription'
 
-const JOINT_SPACE_OPTIONS = [
-  'Равномерной высоты',
-  'Незначительно сужены',
-  'Умеренно сужены',
-  'Выраженно сужены',
-  'Резко сужены',
+const JOINT_SURFACE_OPTIONS = [
+  'Поверхность гладкая',
+  'Незначительные изменения',
+  'Умеренные изменения',
+  'Выраженные изменения',
+  'Резкие изменения',
 ] as const
 
-type JointSpaceSectionKey = keyof KneeJointSpaceState
+type JointSurfaceSectionKey = keyof KneeJointSurfaceState
 
-interface XRayJointSpaceModalProps {
+interface XRayJointSurfaceModalProps {
   isOpen: boolean
-  values: KneeJointSpaceState
+  values: KneeJointSurfaceState
   onClose: () => void
-  onDegreeChange: (section: JointSpaceSectionKey, value: string) => void
-  onTogglePredominantly: (section: JointSpaceSectionKey) => void
+  onDegreeChange: (section: JointSurfaceSectionKey, value: string) => void
+  onTogglePredominantly: (section: JointSurfaceSectionKey) => void
   onAdd: () => void
 }
 
-function JointZoneCard({
+function JointSurfaceZoneCard({
   title,
   sectionKey,
   degree,
@@ -28,18 +28,18 @@ function JointZoneCard({
   onTogglePredominantly,
 }: {
   title: string
-  sectionKey: JointSpaceSectionKey
+  sectionKey: JointSurfaceSectionKey
   degree: string
   predominantly: boolean
-  onDegreeChange: (section: JointSpaceSectionKey, value: string) => void
-  onTogglePredominantly: (section: JointSpaceSectionKey) => void
+  onDegreeChange: (section: JointSurfaceSectionKey, value: string) => void
+  onTogglePredominantly: (section: JointSurfaceSectionKey) => void
 }) {
   return (
     <div className="xray-joint-space-side">
       <div className="xray-joint-space-side-title">{title}</div>
 
       <div className="xray-joint-space-chips">
-        {JOINT_SPACE_OPTIONS.map((option) => (
+        {JOINT_SURFACE_OPTIONS.map((option) => (
           <button
             key={option}
             type="button"
@@ -62,7 +62,7 @@ function JointZoneCard({
   )
 }
 
-function JointColumn({
+function JointSurfaceColumn({
   title,
   isRightJoint,
   values,
@@ -71,9 +71,9 @@ function JointColumn({
 }: {
   title: string
   isRightJoint: boolean
-  values: KneeJointSpaceState
-  onDegreeChange: (section: JointSpaceSectionKey, value: string) => void
-  onTogglePredominantly: (section: JointSpaceSectionKey) => void
+  values: KneeJointSurfaceState
+  onDegreeChange: (section: JointSurfaceSectionKey, value: string) => void
+  onTogglePredominantly: (section: JointSurfaceSectionKey) => void
 }) {
   const sections = isRightJoint
     ? [
@@ -91,7 +91,7 @@ function JointColumn({
 
       <div className="xray-joint-space-sides">
         {sections.map((section) => (
-          <JointZoneCard
+          <JointSurfaceZoneCard
             key={section.key}
             title={section.title}
             sectionKey={section.key}
@@ -106,14 +106,14 @@ function JointColumn({
   )
 }
 
-export function XRayJointSpaceModal({
+export function XRayJointSurfaceModal({
   isOpen,
   values,
   onClose,
   onDegreeChange,
   onTogglePredominantly,
   onAdd,
-}: XRayJointSpaceModalProps) {
+}: XRayJointSurfaceModalProps) {
   if (!isOpen) {
     return null
   }
@@ -125,26 +125,26 @@ export function XRayJointSpaceModal({
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Суставные щели"
+        aria-label="Суставные поверхности"
       >
         <button
           type="button"
           className="reminders-modal-close"
           onClick={onClose}
-          aria-label="Закрыть окно суставных щелей"
+          aria-label="Закрыть окно суставных поверхностей"
         >
           ×
         </button>
 
         <div className="xray-joint-space-layout">
-          <JointColumn
+          <JointSurfaceColumn
             title="Правый коленный сустав"
             isRightJoint
             values={values}
             onDegreeChange={onDegreeChange}
             onTogglePredominantly={onTogglePredominantly}
           />
-          <JointColumn
+          <JointSurfaceColumn
             title="Левый коленный сустав"
             isRightJoint={false}
             values={values}

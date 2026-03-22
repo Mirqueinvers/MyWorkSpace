@@ -1,13 +1,13 @@
-import {
-  formatStudyLabel,
-  getPatientFullName,
-} from '../helpers'
-import type { XRaySectionProps } from '../types'
+import { formatStudyLabel, getPatientFullName } from '../helpers'
 import { useXRayHomeState } from '../hooks'
+import type { XRaySectionProps } from '../types'
 import {
   XRayAddPatientCard,
   XRayConfirmModal,
   XRayJointSpaceModal,
+  XRayJointSurfaceModal,
+  XRayKneeChoiceModal,
+  XRayKneeOsteophytesModal,
   XRayPatientCard,
   XRayPatientEditModal,
   XRaySearchPanel,
@@ -15,6 +15,13 @@ import {
   XRayStudyFormModal,
   XRayStudyTemplatesModal,
 } from '.'
+import {
+  XRAY_KNEE_BUMPS_OPTIONS,
+  XRAY_KNEE_CONGRUENCY_OPTIONS,
+  XRAY_KNEE_ENDOPROSTHESIS_OPTIONS,
+  XRAY_KNEE_INTEGRITY_OPTIONS,
+  XRAY_KNEE_PARAARTICULAR_OPTIONS,
+} from '../config'
 
 export function XRayHome(props: XRaySectionProps) {
   const state = useXRayHomeState(props)
@@ -128,26 +135,138 @@ export function XRayHome(props: XRaySectionProps) {
       {state.descriptionStudy ? (
         <XRayStudyDescriptionModal
           descriptionDraft={state.descriptionDraft}
+          diagnosisDraft={state.diagnosisDraft}
           isDescriptionEditing={state.isDescriptionEditing}
           isSavingStudy={props.isSavingStudy}
           descriptionInputRef={state.descriptionInputRef}
-          isJointSpaceOpen={state.isJointSpaceModalOpen}
-          onDescriptionChange={state.setDescriptionDraft}
+          sideTools={
+            state.isKneeStudyContext
+              ? [
+                  {
+                    label: 'Эндопротезирование',
+                    isActive: state.isEndoprosthesisModalOpen,
+                    onClick: () => state.setIsEndoprosthesisModalOpen(true),
+                  },
+                  {
+                    label: 'Суставные щели',
+                    isActive: state.isJointSpaceModalOpen,
+                    onClick: () => state.setIsJointSpaceModalOpen(true),
+                  },
+                  {
+                    label: 'Суставные поверхности',
+                    isActive: state.isJointSurfaceModalOpen,
+                    onClick: () => state.setIsJointSurfaceModalOpen(true),
+                  },
+                  {
+                    label: 'Остеофиты',
+                    isActive: state.isOsteophytesModalOpen,
+                    onClick: () => state.setIsOsteophytesModalOpen(true),
+                  },
+                  {
+                    label: 'Бугорки',
+                    isActive: state.isBumpsModalOpen,
+                    onClick: () => state.setIsBumpsModalOpen(true),
+                  },
+                  {
+                    label: 'Конгруэнтность',
+                    isActive: state.isCongruencyModalOpen,
+                    onClick: () => state.setIsCongruencyModalOpen(true),
+                  },
+                  {
+                    label: 'Целостность',
+                    isActive: state.isIntegrityModalOpen,
+                    onClick: () => state.setIsIntegrityModalOpen(true),
+                  },
+                  {
+                    label: 'Параартикулярные ткани',
+                    isActive: state.isParaarticularModalOpen,
+                    onClick: () => state.setIsParaarticularModalOpen(true),
+                  },
+                  {
+                    label: 'Норма',
+                    onClick: state.handleInsertKneeNormal,
+                  },
+                ]
+              : []
+          }
+          onDescriptionChange={state.handleDescriptionDraftChange}
+          onDiagnosisChange={state.setDiagnosisDraft}
           onClose={() => state.setDescriptionStudy(null)}
           onStartEdit={() => state.setIsDescriptionEditing(true)}
           onSave={() => void state.handleSaveStudyDescription()}
           onDelete={() => void state.handleDeleteStudyDescription()}
-          onOpenJointSpace={() => state.setIsJointSpaceModalOpen(true)}
         />
       ) : null}
 
-      <XRayJointSpaceModal
-        isOpen={state.isJointSpaceModalOpen}
-        values={state.jointSpaceState}
-        onClose={() => state.setIsJointSpaceModalOpen(false)}
-        onChange={state.handleJointSpaceChange}
-        onAdd={state.handleAddJointSpaceDescription}
-      />
+      {state.isKneeStudyContext ? (
+        <>
+          <XRayJointSpaceModal
+            isOpen={state.isJointSpaceModalOpen}
+            values={state.jointSpaceState}
+            onClose={() => state.setIsJointSpaceModalOpen(false)}
+            onDegreeChange={state.handleJointSpaceDegreeChange}
+            onTogglePredominantly={state.handleJointSpacePredominantlyToggle}
+            onAdd={state.handleAddJointSpaceDescription}
+          />
+
+          <XRayJointSurfaceModal
+            isOpen={state.isJointSurfaceModalOpen}
+            values={state.jointSurfaceState}
+            onClose={() => state.setIsJointSurfaceModalOpen(false)}
+            onDegreeChange={state.handleJointSurfaceDegreeChange}
+            onTogglePredominantly={state.handleJointSurfacePredominantlyToggle}
+            onAdd={state.handleAddJointSurfaceDescription}
+          />
+
+          <XRayKneeOsteophytesModal
+            isOpen={state.isOsteophytesModalOpen}
+            values={state.osteophytesState}
+            onClose={() => state.setIsOsteophytesModalOpen(false)}
+            onToggle={state.handleOsteophyteToggle}
+            onAdd={state.handleAddOsteophytesDescription}
+          />
+
+          <XRayKneeChoiceModal
+            isOpen={state.isEndoprosthesisModalOpen}
+            title="Эндопротезирование"
+            options={XRAY_KNEE_ENDOPROSTHESIS_OPTIONS}
+            onClose={() => state.setIsEndoprosthesisModalOpen(false)}
+            onSelect={state.handleEndoprosthesisSelect}
+          />
+
+          <XRayKneeChoiceModal
+            isOpen={state.isBumpsModalOpen}
+            title="Бугорки"
+            options={XRAY_KNEE_BUMPS_OPTIONS}
+            onClose={() => state.setIsBumpsModalOpen(false)}
+            onSelect={state.handleBumpsSelect}
+          />
+
+          <XRayKneeChoiceModal
+            isOpen={state.isCongruencyModalOpen}
+            title="Конгруэнтность"
+            options={XRAY_KNEE_CONGRUENCY_OPTIONS}
+            onClose={() => state.setIsCongruencyModalOpen(false)}
+            onSelect={state.handleCongruencySelect}
+          />
+
+          <XRayKneeChoiceModal
+            isOpen={state.isIntegrityModalOpen}
+            title="Целостность"
+            options={XRAY_KNEE_INTEGRITY_OPTIONS}
+            onClose={() => state.setIsIntegrityModalOpen(false)}
+            onSelect={state.handleIntegritySelect}
+          />
+
+          <XRayKneeChoiceModal
+            isOpen={state.isParaarticularModalOpen}
+            title="Параартикулярные ткани"
+            options={XRAY_KNEE_PARAARTICULAR_OPTIONS}
+            onClose={() => state.setIsParaarticularModalOpen(false)}
+            onSelect={state.handleParaarticularSelect}
+          />
+        </>
+      ) : null}
 
       {state.deleteStudyCandidate ? (
         <XRayConfirmModal
