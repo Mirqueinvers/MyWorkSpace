@@ -4,6 +4,7 @@ import { ClockPanel } from './components/layout/ClockPanel'
 import { TopNav } from './components/layout/TopNav'
 import { MedicalExamsForm } from './components/medical/MedicalExamsForm'
 import { MedicalExamsSection } from './components/medical/MedicalExamsSection'
+import { NotesSection } from './components/notes/NotesSection'
 import { ReferencesSection } from './components/references/ReferencesSection'
 import { RemindersPanel } from './components/reminders/RemindersPanel'
 import { SchoolsSection } from './components/schools/SchoolsSection'
@@ -12,6 +13,7 @@ import { XRaySection } from './components/xray/XRaySection'
 import { NAV_ITEMS } from './constants/navigation'
 import type { AppSection } from './constants/navigation'
 import { useMedicalExams } from './hooks/useMedicalExams'
+import { useNotes } from './hooks/useNotes'
 import { useReminders } from './hooks/useReminders'
 import { useSchools } from './hooks/useSchools'
 import { useSickLeaves } from './hooks/useSickLeaves'
@@ -32,6 +34,7 @@ function App() {
   const medicalExams = useMedicalExams(currentMonthKey)
   const sickLeaves = useSickLeaves()
   const reminders = useReminders()
+  const notes = useNotes()
   const schools = useSchools()
   const xray = useXRay()
   const todayDateDigits = getCurrentDateDigits()
@@ -182,6 +185,22 @@ function App() {
     }
 
     if (activeSection === NAV_ITEMS[5]) {
+      return (
+        <NotesSection
+          text={notes.text}
+          notes={notes.notes}
+          loading={notes.loading}
+          error={notes.error}
+          isSaving={notes.isSaving}
+          deletingNoteId={notes.deletingNoteId}
+          onTextChange={notes.setText}
+          onAddNote={notes.handleAddNote}
+          onDeleteNote={notes.handleDeleteNote}
+        />
+      )
+    }
+
+    if (activeSection === NAV_ITEMS[6]) {
       return <ReferencesSection />
     }
 

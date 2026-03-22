@@ -4,6 +4,7 @@ export const NAV_ITEMS = [
   'Больничные листы',
   'Школы',
   'X-ray',
+  'Заметки',
   'Справки',
 ] as const
 

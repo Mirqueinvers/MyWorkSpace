@@ -107,6 +107,19 @@ function ensureRemindersSchema(db) {
   }
 }
 
+function ensureNotesSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notes_created_at
+    ON notes (created_at DESC, id DESC);
+  `);
+}
+
 function ensureSchoolsSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS school_institutions (
@@ -292,6 +305,7 @@ function getDatabase() {
   ensureMedicalExamPatientsSchema(database);
   ensureSickLeavesSchema(database);
   ensureRemindersSchema(database);
+  ensureNotesSchema(database);
   ensureSchoolsSchema(database);
   ensureXRaySchema(database);
 
@@ -1601,6 +1615,46 @@ function deleteSchoolLink(id) {
   return result.changes > 0;
 }
 
+function listNotes() {
+  const db = getDatabase();
+  return db.prepare(`
+    SELECT id, text, created_at
+    FROM notes
+    ORDER BY created_at DESC, id DESC
+  `).all().map((row) => ({
+    id: row.id,
+    text: row.text,
+    createdAt: row.created_at,
+  }));
+}
+
+function addNote({ text }) {
+  const normalizedText = normalizeRequiredText(text, 'NOTE_TEXT_REQUIRED');
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const result = db.prepare(`
+    INSERT INTO notes (text, created_at)
+    VALUES (?, ?)
+  `).run(normalizedText, createdAt);
+
+  return {
+    id: Number(result.lastInsertRowid),
+    text: normalizedText,
+    createdAt,
+  };
+}
+
+function deleteNote(id) {
+  const normalizedId = normalizePositiveInteger(id, 'NOTE_ID_INVALID');
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM notes
+    WHERE id = ?
+  `).run(normalizedId);
+
+  return result.changes > 0;
+}
+
 function registerIpcHandlers() {
   ipcMain.handle('medical-exams:list-patients', (_event, monthKey) =>
     listMedicalExamPatients(monthKey)
@@ -1635,6 +1689,12 @@ function registerIpcHandlers() {
   ipcMain.handle('reminders:add', (_event, payload) => addReminder(payload));
 
   ipcMain.handle('reminders:delete', (_event, id) => deleteReminder(id));
+
+  ipcMain.handle('notes:list', () => listNotes());
+
+  ipcMain.handle('notes:add', (_event, payload) => addNote(payload));
+
+  ipcMain.handle('notes:delete', (_event, id) => deleteNote(id));
 
   ipcMain.handle('schools:list', () => listSchoolInstitutions());
 

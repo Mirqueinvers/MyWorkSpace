@@ -43,6 +43,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('reminders:delete', id);
     },
   },
+  notes: {
+    list() {
+      return ipcRenderer.invoke('notes:list');
+    },
+    add(payload) {
+      return ipcRenderer.invoke('notes:add', payload);
+    },
+    delete(id) {
+      return ipcRenderer.invoke('notes:delete', id);
+    },
+  },
   schools: {
     list() {
       return ipcRenderer.invoke('schools:list');
