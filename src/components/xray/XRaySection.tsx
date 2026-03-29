@@ -2,10 +2,10 @@
 import { XRAY_TABS } from './config'
 import type { XRayTab } from './config'
 import type { XRaySectionProps } from './types'
-import { XRayFlJournal, XRayHome, XRayJournal, XRayStatistics } from './components'
+import { XRayDoses, XRayFlJournal, XRayHome, XRayJournal, XRayStatistics } from './components'
 
 export function XRaySection(props: XRaySectionProps) {
-  const [homeTab, journalTab, flJournalTab] = XRAY_TABS
+  const [homeTab, journalTab, flJournalTab, dosesTab] = XRAY_TABS
   const [activeTab, setActiveTab] = useState<XRayTab>(XRAY_TABS[0])
   const [homeResetKey, setHomeResetKey] = useState(0)
 
@@ -35,6 +35,10 @@ export function XRaySection(props: XRaySectionProps) {
 
     if (activeTab === flJournalTab) {
       return <XRayFlJournal />
+    }
+
+    if (activeTab === dosesTab) {
+      return <XRayDoses />
     }
 
     return <XRayStatistics />

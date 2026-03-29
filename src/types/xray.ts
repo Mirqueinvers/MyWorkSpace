@@ -41,6 +41,43 @@ export interface XRayFlJournalEntry {
   createdAt: string
 }
 
+export interface XRayDoseReference {
+  id: number
+  flag: string
+  title: string
+  constitution: string
+  detail: string
+  adultKv: string
+  adultMas: string
+  childKv: string
+  childMas: string
+  sortOrder: number
+  createdAt: string
+}
+
+export interface UpdateXRayDoseReferencePayload {
+  id: number
+  flag: string
+  title: string
+  constitution: string
+  detail: string
+  adultKv: string
+  adultMas: string
+  childKv: string
+  childMas: string
+}
+
+export interface AddXRayDoseReferencePayload {
+  flag: string
+  title: string
+  constitution: string
+  detail: string
+  adultKv: string
+  adultMas: string
+  childKv: string
+  childMas: string
+}
+
 export interface XRayStatisticsRangePayload {
   startDate: string
   endDate: string
@@ -157,6 +194,10 @@ export interface XRayApi {
   openLink: (url: string) => Promise<boolean>
   listJournalByDate: (studyDate: string) => Promise<XRayJournalEntry[]>
   getStatistics: (payload: XRayStatisticsRangePayload) => Promise<XRayStatistics>
+  listDoseReference: () => Promise<XRayDoseReference[]>
+  addDoseReference: (payload: AddXRayDoseReferencePayload) => Promise<XRayDoseReference>
+  updateDoseReference: (payload: UpdateXRayDoseReferencePayload) => Promise<XRayDoseReference>
+  deleteDoseReference: (id: number) => Promise<boolean>
   listFlJournalByDate: (shotDate: string) => Promise<XRayFlJournalEntry[]>
   listFlJournalByPatient: (
     payload: ListXRayFlJournalByPatientPayload,

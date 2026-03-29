@@ -1,4 +1,4 @@
-export const XRAY_TABS = ['Главная', 'Рентген журнал', 'Фл журнал', 'Статистика'] as const
+export const XRAY_TABS = ['Главная', 'Рентген журнал', 'Фл журнал', 'Дозы', 'Статистика'] as const
 
 export const XRAY_STUDY_AREAS = [
   'Органы грудной клетки',

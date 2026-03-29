@@ -56,8 +56,7 @@ export function SickLeavesForm({
     <div className="content-card form-card">
       <div className="section-head">
         <div>
-          <p className="section-kicker">Больничные листы</p>
-          <h2>Новый лист</h2>
+          <p className="section-kicker">Новый больничный лист</p>
         </div>
       </div>
 

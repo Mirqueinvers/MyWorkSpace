@@ -2,6 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
+const xrayDoseReferenceSeed = require('./xray-dose-reference-seed.json');
 
 const isDev = !app.isPackaged;
 
@@ -217,6 +218,23 @@ function ensureXRaySchema(db) {
       birth_date,
       dose
     );
+
+    CREATE TABLE IF NOT EXISTS xray_dose_reference (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      flag TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL DEFAULT '',
+      constitution TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL DEFAULT '',
+      adult_kv TEXT NOT NULL DEFAULT '',
+      adult_mas TEXT NOT NULL DEFAULT '',
+      child_kv TEXT NOT NULL DEFAULT '',
+      child_mas TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_xray_dose_reference_sort_order
+    ON xray_dose_reference (sort_order ASC, id ASC);
   `);
 
   const columns = db
@@ -254,6 +272,57 @@ function ensureXRaySchema(db) {
       ALTER TABLE xray_studies
       ADD COLUMN description TEXT NOT NULL DEFAULT '';
     `);
+  }
+
+  const doseReferenceCount = db
+    .prepare(`SELECT COUNT(*) as count FROM xray_dose_reference`)
+    .get().count;
+
+  const doseReferenceColumns = db
+    .prepare(`PRAGMA table_info('xray_dose_reference')`)
+    .all()
+    .map((column) => column.name);
+
+  if (!doseReferenceColumns.includes('constitution')) {
+    db.exec(`
+      ALTER TABLE xray_dose_reference
+      ADD COLUMN constitution TEXT NOT NULL DEFAULT '';
+    `);
+  }
+
+  if (doseReferenceCount === 0) {
+    const createdAt = new Date().toISOString();
+    const insertDoseReferenceStatement = db.prepare(`
+      INSERT INTO xray_dose_reference (
+        flag,
+        title,
+        constitution,
+        detail,
+        adult_kv,
+        adult_mas,
+        child_kv,
+        child_mas,
+        sort_order,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (let index = 0; index < xrayDoseReferenceSeed.length; index += 1) {
+      const entry = xrayDoseReferenceSeed[index];
+      insertDoseReferenceStatement.run(
+        normalizeText(entry.flag),
+        normalizeText(entry.title),
+        normalizeText(entry.constitution),
+        normalizeText(entry.detail),
+        normalizeText(entry.adultKv),
+        normalizeText(entry.adultMas),
+        normalizeText(entry.childKv),
+        normalizeText(entry.childMas),
+        index,
+        createdAt
+      );
+    }
   }
 }
 
@@ -376,6 +445,22 @@ function mapXRayStudy(row) {
     studyCount: Number(row.study_count),
     radiationDose: row.radiation_dose,
     referredBy: row.referred_by,
+    createdAt: row.created_at,
+  };
+}
+
+function mapXRayDoseReference(row) {
+  return {
+    id: row.id,
+    flag: row.flag,
+    title: row.title,
+    constitution: row.constitution,
+    detail: row.detail,
+    adultKv: row.adult_kv,
+    adultMas: row.adult_mas,
+    childKv: row.child_kv,
+    childMas: row.child_mas,
+    sortOrder: Number(row.sort_order),
     createdAt: row.created_at,
   };
 }
@@ -1435,6 +1520,168 @@ function listXRayFlJournalByPatient({ lastName, firstName, patronymic, birthDate
   ).map(mapXRayFlJournalEntry);
 }
 
+function listXRayDoseReference() {
+  const db = getDatabase();
+
+  return db.prepare(`
+    SELECT
+      id,
+      flag,
+      title,
+      constitution,
+      detail,
+      adult_kv,
+      adult_mas,
+      child_kv,
+      child_mas,
+      sort_order,
+      created_at
+    FROM xray_dose_reference
+    ORDER BY sort_order ASC, id ASC
+  `).all().map(mapXRayDoseReference);
+}
+
+function addXRayDoseReference(payload) {
+  const db = getDatabase();
+  const nextFlag = normalizeText(payload?.flag);
+  const nextTitle = normalizeText(payload?.title);
+  const nextConstitution = normalizeText(payload?.constitution);
+  const nextDetail = normalizeText(payload?.detail);
+  const nextAdultKv = normalizeText(payload?.adultKv);
+  const nextAdultMas = normalizeText(payload?.adultMas);
+  const nextChildKv = normalizeText(payload?.childKv);
+  const nextChildMas = normalizeText(payload?.childMas);
+  const createdAt = new Date().toISOString();
+  const nextSortOrder =
+    Number(
+      db.prepare(`SELECT COALESCE(MAX(sort_order), -1) as max_sort_order FROM xray_dose_reference`).get()
+        .max_sort_order
+    ) + 1;
+
+  const result = db.prepare(`
+    INSERT INTO xray_dose_reference (
+      flag,
+      title,
+      constitution,
+      detail,
+      adult_kv,
+      adult_mas,
+      child_kv,
+      child_mas,
+      sort_order,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    nextFlag,
+    nextTitle,
+    nextConstitution,
+    nextDetail,
+    nextAdultKv,
+    nextAdultMas,
+    nextChildKv,
+    nextChildMas,
+    nextSortOrder,
+    createdAt
+  );
+
+  const insertedRow = db.prepare(`
+    SELECT
+      id,
+      flag,
+      title,
+      constitution,
+      detail,
+      adult_kv,
+      adult_mas,
+      child_kv,
+      child_mas,
+      sort_order,
+      created_at
+    FROM xray_dose_reference
+    WHERE id = ?
+  `).get(result.lastInsertRowid);
+
+  return mapXRayDoseReference(insertedRow);
+}
+
+function updateXRayDoseReference(payload) {
+  const db = getDatabase();
+  const id = Number(payload?.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('XRAY_DOSE_REFERENCE_ID_INVALID');
+  }
+
+  const nextFlag = normalizeText(payload?.flag);
+  const nextTitle = normalizeText(payload?.title);
+  const nextConstitution = normalizeText(payload?.constitution);
+  const nextDetail = normalizeText(payload?.detail);
+  const nextAdultKv = normalizeText(payload?.adultKv);
+  const nextAdultMas = normalizeText(payload?.adultMas);
+  const nextChildKv = normalizeText(payload?.childKv);
+  const nextChildMas = normalizeText(payload?.childMas);
+
+  db.prepare(`
+    UPDATE xray_dose_reference
+    SET
+      flag = ?,
+      title = ?,
+      constitution = ?,
+      detail = ?,
+      adult_kv = ?,
+      adult_mas = ?,
+      child_kv = ?,
+      child_mas = ?
+    WHERE id = ?
+  `).run(
+    nextFlag,
+    nextTitle,
+    nextConstitution,
+    nextDetail,
+    nextAdultKv,
+    nextAdultMas,
+    nextChildKv,
+    nextChildMas,
+    id
+  );
+
+  const updatedRow = db.prepare(`
+    SELECT
+      id,
+      flag,
+      title,
+      constitution,
+      detail,
+      adult_kv,
+      adult_mas,
+      child_kv,
+      child_mas,
+      sort_order,
+      created_at
+    FROM xray_dose_reference
+    WHERE id = ?
+  `).get(id);
+
+  if (!updatedRow) {
+    throw new Error('XRAY_DOSE_REFERENCE_NOT_FOUND');
+  }
+
+  return mapXRayDoseReference(updatedRow);
+}
+
+function deleteXRayDoseReference(id) {
+  const db = getDatabase();
+  const normalizedId = Number(id);
+
+  if (!Number.isInteger(normalizedId) || normalizedId <= 0) {
+    throw new Error('XRAY_DOSE_REFERENCE_ID_INVALID');
+  }
+
+  const result = db.prepare(`DELETE FROM xray_dose_reference WHERE id = ?`).run(normalizedId);
+  return result.changes > 0;
+}
+
 function updateXRayFlJournalRmisUrl({ lastName, firstName, patronymic, birthDate, rmisUrl }) {
   const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
   const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
@@ -2459,6 +2706,22 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:get-statistics', (_event, payload) =>
     getXRayStatistics(payload)
+  );
+
+  ipcMain.handle('xray:list-dose-reference', () =>
+    listXRayDoseReference()
+  );
+
+  ipcMain.handle('xray:add-dose-reference', (_event, payload) =>
+    addXRayDoseReference(payload)
+  );
+
+  ipcMain.handle('xray:update-dose-reference', (_event, payload) =>
+    updateXRayDoseReference(payload)
+  );
+
+  ipcMain.handle('xray:delete-dose-reference', (_event, id) =>
+    deleteXRayDoseReference(id)
   );
 
   ipcMain.handle('xray:list-fl-journal-by-date', (_event, shotDate) =>

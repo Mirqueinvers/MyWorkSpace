@@ -150,8 +150,7 @@ export function SickLeavesSection({
       <div className="content-card list-card">
         <div className="list-head">
           <div>
-            <p className="section-kicker">Список</p>
-            <h3>Все больничные листы</h3>
+            <p className="section-kicker">Список больничных листов</p>
           </div>
           <div className="patient-count">{loading ? 'Загрузка...' : `${openSickLeavesCount} открыто`}</div>
         </div>

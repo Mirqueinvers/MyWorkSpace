@@ -303,7 +303,7 @@ export function XRayFlJournal() {
           onClick={() => void handleImport()}
           disabled={importLoading}
         >
-          {importLoading ? 'Импортирую...' : 'Выбрать и импортировать файл'}
+          {importLoading ? 'Импортирую...' : 'Импорт'}
         </button>
 
         {selectedFilePath ? (
@@ -319,9 +319,11 @@ export function XRayFlJournal() {
         </div>
       ) : null}
 
-      <div className="xray-journal-meta">
-        <span>{entries.length === 0 ? 'Записи не найдены' : `Записей: ${entries.length}`}</span>
-      </div>
+      {entries.length > 0 ? (
+        <div className="xray-journal-meta">
+          <span>{`Записей: ${entries.length}`}</span>
+        </div>
+      ) : null}
 
       {error ? <p className="xray-journal-empty">{error}</p> : null}
       {loading ? <p className="xray-journal-empty">Загружаю журнал...</p> : null}

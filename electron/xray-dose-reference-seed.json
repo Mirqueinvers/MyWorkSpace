@@ -1,0 +1,650 @@
+﻿[
+    {
+        "flag":  "",
+        "title":  "Череп",
+        "detail":  "Прямая",
+        "adultKv":  "99",
+        "adultMas":  "77",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "99",
+        "adultMas":  "50-56",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "ППН",
+        "detail":  "",
+        "adultKv":  "99",
+        "adultMas":  "63-71",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Средний",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "Шейный о\\п",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "90",
+        "adultMas":  "40",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Толстый",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "90",
+        "adultMas":  "50",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "Плечи",
+        "detail":  "",
+        "adultKv":  "90",
+        "adultMas":  "40",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Ключица",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "Плечевая кость",
+        "detail":  "",
+        "adultKv":  "87",
+        "adultMas":  "40",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "Локти",
+        "detail":  "Прямая",
+        "adultKv":  "68",
+        "adultMas":  "14",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "68",
+        "adultMas":  "12",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Предплечье",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Лучь",
+        "detail":  "Прямая",
+        "adultKv":  "66",
+        "adultMas":  "6.3",
+        "childKv":  "63",
+        "childMas":  "6.3"
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "66",
+        "adultMas":  "8",
+        "childKv":  "63",
+        "childMas":  "7.1"
+    },
+    {
+        "flag":  "",
+        "title":  "Кисть",
+        "detail":  "Прямая",
+        "adultKv":  "63",
+        "adultMas":  "6.3",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "ч\\к",
+        "title":  "Пальчик кисти",
+        "detail":  "Прямая",
+        "adultKv":  "63",
+        "adultMas":  "6.3",
+        "childKv":  "45",
+        "childMas":  "5"
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "63",
+        "adultMas":  "6.3",
+        "childKv":  "45",
+        "childMas":  "5"
+    },
+    {
+        "flag":  "",
+        "title":  "Худой",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "ч\\к",
+        "title":  "Грудной о\\п",
+        "detail":  "Прямая",
+        "adultKv":  "90",
+        "adultMas":  "40",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "125",
+        "adultMas":  "18-22",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Средний",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Выше среднего",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Толстый",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "ОГК",
+        "detail":  "Прямая",
+        "adultKv":  "125",
+        "adultMas":  "14",
+        "childKv":  "99",
+        "childMas":  "16"
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "125",
+        "adultMas":  "28-40",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Ребра",
+        "detail":  "",
+        "adultKv":  "125",
+        "adultMas":  "12.5",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Худой",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "ч\\к",
+        "title":  "Поясничный о\\п",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Средний",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "125",
+        "adultMas":  "28\\32",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "125",
+        "adultMas":  "56",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Выше среднего",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "125",
+        "adultMas":  "56",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "125",
+        "adultMas":  "80",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Толстый",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Крестец",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Худой",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "ск",
+        "title":  "Т\\б суставы",
+        "detail":  "",
+        "adultKv":  "125",
+        "adultMas":  "28",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Средний",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Толстый",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "ч\\к",
+        "title":  "",
+        "detail":  "",
+        "adultKv":  "125",
+        "adultMas":  "45",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "Бедренная кость",
+        "detail":  "",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Коленные суставы",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "32",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Голень",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "",
+        "adultMas":  "",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Голеностоп",
+        "detail":  "Прямая",
+        "adultKv":  "68",
+        "adultMas":  "12.5",
+        "childKv":  "63",
+        "childMas":  "6.3"
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "68",
+        "adultMas":  "14",
+        "childKv":  "63",
+        "childMas":  "6.3"
+    },
+    {
+        "flag":  "",
+        "title":  "Стопа",
+        "detail":  "Прямая",
+        "adultKv":  "",
+        "adultMas":  "6.3",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "63",
+        "adultMas":  "8",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "",
+        "title":  "Пальчик стопы",
+        "detail":  "Прямая",
+        "adultKv":  "63",
+        "adultMas":  "6.3",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "",
+        "detail":  "Боковая",
+        "adultKv":  "63",
+        "adultMas":  "6.3",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к 18х24",
+        "title":  "Пятка",
+        "detail":  "",
+        "adultKv":  "63",
+        "adultMas":  "8",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "ч\\к",
+        "title":  "Плоскостопие",
+        "detail":  "Боковая",
+        "adultKv":  "68",
+        "adultMas":  "14",
+        "childKv":  "63",
+        "childMas":  "10"
+    },
+    {
+        "flag":  "ч\\к",
+        "title":  "Брюшная полость",
+        "detail":  "Выше среднего",
+        "adultKv":  "125",
+        "adultMas":  "71",
+        "childKv":  "",
+        "childMas":  ""
+    },
+    {
+        "flag":  "с\\к",
+        "title":  "Пазухи",
+        "detail":  "",
+        "adultKv":  "99",
+        "adultMas":  "63",
+        "childKv":  "90",
+        "childMas":  "40-50"
+    },
+    {
+        "flag":  "",
+        "title":  "Плоскостопие",
+        "detail":  "",
+        "adultKv":  "66",
+        "adultMas":  "18",
+        "childKv":  "",
+        "childMas":  ""
+    }
+]

@@ -277,10 +277,10 @@ export function XRayStatistics() {
         <div className="xray-statistics-period">
           <span className="xray-statistics-period-copy">{PERIOD_FROM}</span>
 
-          <label className="xray-journal-date-field">
+          <label className="xray-journal-date-field xray-journal-date-field-centered">
             <input
               type="date"
-              className="input xray-journal-date-input"
+              className="input xray-journal-date-input xray-journal-date-input-centered"
               value={range.startDate}
               onChange={(event) =>
                 setRange((currentRange) => ({
@@ -293,10 +293,10 @@ export function XRayStatistics() {
 
           <span className="xray-statistics-period-copy">{PERIOD_TO}</span>
 
-          <label className="xray-journal-date-field">
+          <label className="xray-journal-date-field xray-journal-date-field-centered">
             <input
               type="date"
-              className="input xray-journal-date-input"
+              className="input xray-journal-date-input xray-journal-date-input-centered"
               value={range.endDate}
               onChange={(event) =>
                 setRange((currentRange) => ({

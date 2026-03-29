@@ -108,6 +108,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatistics(payload) {
       return ipcRenderer.invoke('xray:get-statistics', payload);
     },
+    listDoseReference() {
+      return ipcRenderer.invoke('xray:list-dose-reference');
+    },
+    addDoseReference(payload) {
+      return ipcRenderer.invoke('xray:add-dose-reference', payload);
+    },
+    updateDoseReference(payload) {
+      return ipcRenderer.invoke('xray:update-dose-reference', payload);
+    },
+    deleteDoseReference(id) {
+      return ipcRenderer.invoke('xray:delete-dose-reference', id);
+    },
     listFlJournalByDate(shotDate) {
       return ipcRenderer.invoke('xray:list-fl-journal-by-date', shotDate);
     },
