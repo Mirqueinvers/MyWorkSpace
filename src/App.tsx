@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PlaceholderSection } from './components/common/PlaceholderSection'
+import { HomeSection } from './components/home/HomeSection'
 import { ClockPanel } from './components/layout/ClockPanel'
 import { TopNav } from './components/layout/TopNav'
-import { MedicalExamsForm } from './components/medical/MedicalExamsForm'
 import { MedicalExamsSection } from './components/medical/MedicalExamsSection'
 import { NotesSection } from './components/notes/NotesSection'
 import { ReferencesSection } from './components/references/ReferencesSection'
@@ -12,6 +12,7 @@ import { SickLeavesSection } from './components/sickLeaves/SickLeavesSection'
 import { XRaySection } from './components/xray/XRaySection'
 import { NAV_ITEMS } from './constants/navigation'
 import type { AppSection } from './constants/navigation'
+import type { XRaySearchResult, XRayStatisticsRangePayload } from './types/xray'
 import { useMedicalExams } from './hooks/useMedicalExams'
 import { useNotes } from './hooks/useNotes'
 import { useReminders } from './hooks/useReminders'
@@ -27,9 +28,30 @@ import {
 } from './utils/date'
 import './App.css'
 
+function getTodayIsoDate() {
+  const now = new Date()
+  const timezoneOffset = now.getTimezoneOffset() * 60_000
+  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10)
+}
+
+function getMonthStartIsoDate() {
+  const today = getTodayIsoDate()
+  return `${today.slice(0, 8)}01`
+}
+
+function getYearStartIsoDate() {
+  const today = getTodayIsoDate()
+  return `${today.slice(0, 4)}-01-01`
+}
+
 function App() {
   const currentMonthKey = getCurrentMonthKey()
   const [activeSection, setActiveSection] = useState<AppSection>(NAV_ITEMS[0])
+  const [isHomeEditing, setIsHomeEditing] = useState(false)
+  const [fluorographyMonthCount, setFluorographyMonthCount] = useState(0)
+  const [fluorographyYearCount, setFluorographyYearCount] = useState(0)
+  const [xrayTodayPatientsCount, setXrayTodayPatientsCount] = useState(0)
+  const [xrayTodayStudiesCount, setXrayTodayStudiesCount] = useState(0)
   const weather = useWeather()
   const medicalExams = useMedicalExams(currentMonthKey)
   const sickLeaves = useSickLeaves()
@@ -51,27 +73,113 @@ function App() {
     isReminderVisibleOnDate(reminder, todayDateDigits, currentDayOfMonth),
   )
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadXRayDashboardSummary() {
+      if (!window.electronAPI?.xray?.getStatistics) {
+        if (!isCancelled) {
+          setFluorographyMonthCount(0)
+          setFluorographyYearCount(0)
+          setXrayTodayPatientsCount(0)
+          setXrayTodayStudiesCount(0)
+        }
+        return
+      }
+
+      const today = getTodayIsoDate()
+      const monthRange: XRayStatisticsRangePayload = {
+        startDate: getMonthStartIsoDate(),
+        endDate: today,
+      }
+      const yearRange: XRayStatisticsRangePayload = {
+        startDate: getYearStartIsoDate(),
+        endDate: today,
+      }
+      const todayRange: XRayStatisticsRangePayload = {
+        startDate: today,
+        endDate: today,
+      }
+
+      try {
+        const [monthStatistics, yearStatistics, todayStatistics] = await Promise.all([
+          window.electronAPI.xray.getStatistics(monthRange),
+          window.electronAPI.xray.getStatistics(yearRange),
+          window.electronAPI.xray.getStatistics(todayRange),
+        ])
+
+        if (!isCancelled) {
+          setFluorographyMonthCount(monthStatistics.totals.fluorographyCount)
+          setFluorographyYearCount(yearStatistics.totals.fluorographyCount)
+          setXrayTodayPatientsCount(todayStatistics.totals.uniquePatients)
+          setXrayTodayStudiesCount(todayStatistics.totals.researchCount)
+        }
+      } catch {
+        if (!isCancelled) {
+          setFluorographyMonthCount(0)
+          setFluorographyYearCount(0)
+          setXrayTodayPatientsCount(0)
+          setXrayTodayStudiesCount(0)
+        }
+      }
+    }
+
+    void loadXRayDashboardSummary()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  function handleHomeXRayPatientSelect(patient: XRaySearchResult) {
+    xray.handleSelectPatient(patient)
+    setActiveSection('X-ray')
+  }
+
   function renderContent() {
-    if (activeSection === NAV_ITEMS[0]) {
+    if (activeSection === 'Главная') {
       return (
-        <section className="home-form-wrap">
-          <MedicalExamsForm
-            currentMonthExamCount={medicalExams.currentMonthExamCount}
-            monthKey={medicalExams.monthKey}
-            onMonthChange={medicalExams.setMonthKey}
-            patientName={medicalExams.patientName}
-            birthDate={medicalExams.birthDate}
-            onPatientNameChange={medicalExams.setPatientName}
-            onBirthDateChange={medicalExams.setBirthDate}
-            onAddPatient={medicalExams.handleAddPatient}
-            isSaving={medicalExams.isSavingPatient}
-            patientNameFocusKey={medicalExams.patientNameFocusKey}
-          />
-        </section>
+        <HomeSection
+          isEditing={isHomeEditing}
+          medicalMonthKey={medicalExams.monthKey}
+          currentMonthExamCount={medicalExams.currentMonthExamCount}
+          medicalPatients={medicalExams.patients}
+          medicalPatientName={medicalExams.patientName}
+          medicalBirthDate={medicalExams.birthDate}
+          sickLeaves={sickLeaves.sickLeaves}
+          urgentSickLeavesCount={urgentSickLeaves.length}
+          schools={schools.institutions}
+          xraySelectedPatient={xray.selectedPatient}
+          xrayStudies={xray.studies}
+          xrayFlStudies={xray.flStudies}
+          fluorographyMonthCount={fluorographyMonthCount}
+          fluorographyYearCount={fluorographyYearCount}
+          xrayTodayPatientsCount={xrayTodayPatientsCount}
+          xrayTodayStudiesCount={xrayTodayStudiesCount}
+          xrayQuery={xray.query}
+          xrayResults={xray.results}
+          xrayLoading={xray.loading}
+          xrayError={xray.error}
+          notes={notes.notes}
+          notesText={notes.text}
+          onMedicalMonthChange={medicalExams.setMonthKey}
+          onMedicalPatientNameChange={medicalExams.setPatientName}
+          onMedicalBirthDateChange={medicalExams.setBirthDate}
+          onAddMedicalPatient={medicalExams.handleAddPatient}
+          onXRayQueryChange={xray.setQuery}
+          onXRaySearch={xray.handleSearch}
+          onSelectXRayPatient={handleHomeXRayPatientSelect}
+          medicalIsSaving={medicalExams.isSavingPatient}
+          medicalPatientNameFocusKey={medicalExams.patientNameFocusKey}
+          onNotesTextChange={notes.setText}
+          onAddNote={notes.handleAddNote}
+          notesIsSaving={notes.isSaving}
+          onOpenSection={setActiveSection}
+        />
       )
     }
 
-    if (activeSection === NAV_ITEMS[1]) {
+    if (activeSection === 'Мед осмотры') {
       return (
         <MedicalExamsSection
           currentMonthExamCount={medicalExams.currentMonthExamCount}
@@ -93,7 +201,7 @@ function App() {
       )
     }
 
-    if (activeSection === NAV_ITEMS[2]) {
+    if (activeSection === 'Больничные листы') {
       return (
         <SickLeavesSection
           lastName={sickLeaves.lastName}
@@ -127,7 +235,7 @@ function App() {
       )
     }
 
-    if (activeSection === NAV_ITEMS[3]) {
+    if (activeSection === 'Школы') {
       return (
         <SchoolsSection
           institutionName={schools.institutionName}
@@ -154,7 +262,7 @@ function App() {
       )
     }
 
-    if (activeSection === NAV_ITEMS[4]) {
+    if (activeSection === 'X-ray') {
       return (
         <XRaySection
           query={xray.query}
@@ -186,7 +294,7 @@ function App() {
       )
     }
 
-    if (activeSection === NAV_ITEMS[5]) {
+    if (activeSection === 'Заметки') {
       return (
         <NotesSection
           text={notes.text}
@@ -202,7 +310,7 @@ function App() {
       )
     }
 
-    if (activeSection === NAV_ITEMS[6]) {
+    if (activeSection === 'Справки') {
       return <ReferencesSection />
     }
 
@@ -211,7 +319,12 @@ function App() {
 
   return (
     <main className="app-shell">
-      <TopNav activeSection={activeSection} onSectionChange={setActiveSection} />
+      <TopNav
+        activeSection={activeSection}
+        isHomeEditing={isHomeEditing}
+        onSectionChange={setActiveSection}
+        onToggleHomeEditing={() => setIsHomeEditing((current) => !current)}
+      />
 
       <section className="content-area">{renderContent()}</section>
 

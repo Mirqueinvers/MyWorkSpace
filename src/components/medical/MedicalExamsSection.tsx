@@ -113,14 +113,14 @@ export function MedicalExamsSection({
                 </div>
                 <button
                   type="button"
-                  className="danger-button"
+                  className="notes-delete"
                   onClick={(event) => {
                     event.stopPropagation()
                     void onDeletePatient(patient.id)
                   }}
                   disabled={deletingPatientId === patient.id}
-                >
-                  {deletingPatientId === patient.id ? 'Удаление...' : 'Удалить'}
+                  aria-label="Удалить пациента">
+                  {deletingPatientId === patient.id ? '…' : '×'}
                 </button>
               </article>
             ))}
