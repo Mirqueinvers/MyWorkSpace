@@ -4,15 +4,19 @@ import { NAV_ITEMS } from '../../constants/navigation'
 interface TopNavProps {
   activeSection: AppSection
   isHomeEditing: boolean
+  isDarkTheme: boolean
   onSectionChange: (section: AppSection) => void
   onToggleHomeEditing: () => void
+  onToggleTheme: () => void
 }
 
 export function TopNav({
   activeSection,
   isHomeEditing,
+  isDarkTheme,
   onSectionChange,
   onToggleHomeEditing,
+  onToggleTheme,
 }: TopNavProps) {
   return (
     <nav
@@ -29,6 +33,28 @@ export function TopNav({
           <span>{item}</span>
         </button>
       ))}
+
+      <button
+        type="button"
+        className={`hud-theme-button${isDarkTheme ? ' is-active' : ''}`}
+        onClick={onToggleTheme}
+        aria-label={isDarkTheme ? 'Включить светлую тему' : 'Включить тёмную тему'}
+        title={isDarkTheme ? 'Включить светлую тему' : 'Включить тёмную тему'}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          {isDarkTheme ? (
+            <path
+              d="M12 4.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V5a.75.75 0 0 1 .75-.75Zm0 11a3.25 3.25 0 1 0 0-6.5a3.25 3.25 0 0 0 0 6.5Zm0 4a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V20a.75.75 0 0 1 .75-.75ZM4.25 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Zm13.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H18.25a.75.75 0 0 1-.75-.75ZM6.47 6.47a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 1 1-1.06 1.06L6.47 7.53a.75.75 0 0 1 0-1.06Zm8.94 8.94a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM6.47 17.53a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 1 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Zm8.94-8.94a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Z"
+              fill="currentColor"
+            />
+          ) : (
+            <path
+              d="M14.8 3.2a.75.75 0 0 1 .88.96a7.24 7.24 0 0 0 8.16 9.16a.75.75 0 0 1 .64 1.27A9.5 9.5 0 1 1 13.53 2.56a.75.75 0 0 1 1.27.64Zm-1.12 1.84a8 8 0 1 0 7.27 7.27a8.74 8.74 0 0 1-7.27-7.27Z"
+              fill="currentColor"
+            />
+          )}
+        </svg>
+      </button>
 
       <button
         type="button"

@@ -48,6 +48,13 @@ function App() {
   const currentMonthKey = getCurrentMonthKey()
   const [activeSection, setActiveSection] = useState<AppSection>(NAV_ITEMS[0])
   const [isHomeEditing, setIsHomeEditing] = useState(false)
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.localStorage.getItem('app-theme') === 'dark'
+  })
   const [fluorographyMonthCount, setFluorographyMonthCount] = useState(0)
   const [fluorographyYearCount, setFluorographyYearCount] = useState(0)
   const [xrayTodayPatientsCount, setXrayTodayPatientsCount] = useState(0)
@@ -72,6 +79,15 @@ function App() {
   const visibleReminders = reminders.reminders.filter((reminder) =>
     isReminderVisibleOnDate(reminder, todayDateDigits, currentDayOfMonth),
   )
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+
+    document.documentElement.dataset.theme = isDarkTheme ? 'dark' : 'light'
+    window.localStorage.setItem('app-theme', isDarkTheme ? 'dark' : 'light')
+  }, [isDarkTheme])
 
   useEffect(() => {
     let isCancelled = false
@@ -322,8 +338,10 @@ function App() {
       <TopNav
         activeSection={activeSection}
         isHomeEditing={isHomeEditing}
+        isDarkTheme={isDarkTheme}
         onSectionChange={setActiveSection}
         onToggleHomeEditing={() => setIsHomeEditing((current) => !current)}
+        onToggleTheme={() => setIsDarkTheme((current) => !current)}
       />
 
       <section className="content-area">{renderContent()}</section>
