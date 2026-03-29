@@ -817,6 +817,387 @@ function listXRayJournalByDate(studyDate) {
   return Array.from(itemsMap.values());
 }
 
+const XRAY_STATISTICS_AREA_ORDER = [
+  'Органы грудной клетки',
+  'Верхние конечности',
+  'Нижние конечности',
+  'Шейный отдел позвоночника',
+  'Грудной отдел позвоночника',
+  'Поясничный отдел позвоночника',
+  'Тазобедренные суставы',
+  'Ребра и грудина',
+  'Органы брюшной полости',
+  'Череп, гол. мозг, ЧЛО',
+  'Почки, мочевыводящая система',
+];
+
+const XRAY_FORM30_BONE_MUSCLE_PARTS = [
+  'Верхние конечности',
+  'Нижние конечности',
+  'Шейный отдел позвоночника',
+  'Грудной отдел позвоночника',
+  'Поясничный отдел позвоночника',
+  'Тазобедренные суставы',
+];
+
+const XRAY_FORM30_LIMBS_PARTS = ['Верхние конечности', 'Нижние конечности'];
+
+const XRAY_STATISTICS_MONTH_NAMES = [
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
+];
+
+function parseBirthDateDigitsToDate(value) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+
+  if (digits.length !== 8) {
+    return null;
+  }
+
+  const day = Number(digits.slice(0, 2));
+  const month = Number(digits.slice(2, 4));
+  const year = Number(digits.slice(4, 8));
+
+  if (!day || !month || !year) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function getAgeOnIsoDate(birthDateDigits, isoDate) {
+  const birthDate = parseBirthDateDigitsToDate(birthDateDigits);
+
+  if (!birthDate) {
+    return null;
+  }
+
+  const [year, month, day] = String(isoDate ?? '').split('-').map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  let age = year - birthDate.getFullYear();
+  const hasBirthdayPassed =
+    month > birthDate.getMonth() + 1 ||
+    (month === birthDate.getMonth() + 1 && day >= birthDate.getDate());
+
+  if (!hasBirthdayPassed) {
+    age -= 1;
+  }
+
+  return age;
+}
+
+function parseXRayDoseValue(value) {
+  const normalizedValue = String(value ?? '').replace(',', '.').trim();
+  const numericValue = Number.parseFloat(normalizedValue);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function getXRayStatisticsCareSetting(referredBy) {
+  const normalizedValue = normalizeText(referredBy).toLocaleLowerCase('ru-RU');
+
+  if (normalizedValue.includes('днев')) {
+    return 'dayHospital';
+  }
+
+  if (normalizedValue.includes('круглосу') || normalizedValue.includes('стационар')) {
+    return 'inpatient';
+  }
+
+  return 'ambulatory';
+}
+
+function formatXRayStatisticsMonthLabel(monthKey) {
+  const [year, month] = String(monthKey ?? '').split('-').map(Number);
+
+  if (!year || !month || month < 1 || month > 12) {
+    return monthKey;
+  }
+
+  return `${XRAY_STATISTICS_MONTH_NAMES[month - 1]} ${year}`;
+}
+
+function countWeekdaysInMonthRange(monthKey, startDate, endDate) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+  const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+  const rangeStart = new Date(startYear, startMonth - 1, startDay);
+  const rangeEnd = new Date(endYear, endMonth - 1, endDay);
+
+  const effectiveStart = firstDay > rangeStart ? firstDay : rangeStart;
+  const effectiveEnd = lastDay < rangeEnd ? lastDay : rangeEnd;
+
+  if (effectiveStart > effectiveEnd) {
+    return 0;
+  }
+
+  const cursor = new Date(effectiveStart);
+  let weekdays = 0;
+
+  while (cursor <= effectiveEnd) {
+    const weekDay = cursor.getDay();
+
+    if (weekDay !== 0 && weekDay !== 6) {
+      weekdays += 1;
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return weekdays;
+}
+
+function createEmptyXRayStatisticsArea(label) {
+  return {
+    label,
+    researchCount: 0,
+    procedureCount: 0,
+    adultDose: 0,
+    childDose: 0,
+    totalDose: 0,
+  };
+}
+
+function createEmptyXRayForm30Row(label) {
+  return {
+    label,
+    researchCount: 0,
+    procedureCount: 0,
+    ambulatoryCount: 0,
+    dayHospitalCount: 0,
+    inpatientCount: 0,
+  };
+}
+
+function roundXRayStatisticsDose(value) {
+  return Number(value.toFixed(3));
+}
+
+function getXRayStatistics({ startDate, endDate }) {
+  const normalizedStartDate = normalizeIsoDate(startDate, 'XRAY_STATISTICS_START_DATE_INVALID');
+  const normalizedEndDate = normalizeIsoDate(endDate, 'XRAY_STATISTICS_END_DATE_INVALID');
+
+  if (normalizedStartDate > normalizedEndDate) {
+    throw new Error('XRAY_STATISTICS_RANGE_INVALID');
+  }
+
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT
+      s.study_date,
+      s.study_area,
+      s.study_count,
+      s.radiation_dose,
+      s.referred_by,
+      p.id AS patient_id,
+      p.birth_date
+    FROM xray_studies s
+    JOIN xray_patients p ON p.id = s.patient_id
+    WHERE s.study_date >= ?
+      AND s.study_date <= ?
+    ORDER BY s.study_date ASC, s.id ASC
+  `).all(normalizedStartDate, normalizedEndDate);
+  const fluorographyCountRow = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM xray_flu_journal
+    WHERE shot_date >= ?
+      AND shot_date <= ?
+  `).get(normalizedStartDate, normalizedEndDate);
+
+  const uniquePatients = new Set();
+  const referralsMap = new Map();
+  const areaMap = new Map();
+  const monthlyMap = new Map();
+  let researchCount = 0;
+  let procedureCount = 0;
+  let totalDose = 0;
+
+  XRAY_STATISTICS_AREA_ORDER.forEach((label) => {
+    areaMap.set(label, createEmptyXRayStatisticsArea(label));
+  });
+
+  rows.forEach((row) => {
+    const studyArea = normalizeText(row.study_area);
+    const referredBy = normalizeText(row.referred_by) || 'Не указано';
+    const currentResearchCount = 1;
+    const currentProcedureCount = Number(row.study_count) || 0;
+    const currentDose = parseXRayDoseValue(row.radiation_dose);
+    const age = getAgeOnIsoDate(row.birth_date, row.study_date);
+    const isChild = age !== null && age < 18;
+    const monthKey = String(row.study_date).slice(0, 7);
+
+    uniquePatients.add(Number(row.patient_id));
+    researchCount += currentResearchCount;
+    procedureCount += currentProcedureCount;
+    totalDose += currentDose;
+
+    if (!areaMap.has(studyArea)) {
+      areaMap.set(studyArea, createEmptyXRayStatisticsArea(studyArea));
+    }
+
+    const areaEntry = areaMap.get(studyArea);
+    areaEntry.researchCount += currentResearchCount;
+    areaEntry.procedureCount += currentProcedureCount;
+    areaEntry.totalDose += currentDose;
+
+    if (isChild) {
+      areaEntry.childDose += currentDose;
+    } else {
+      areaEntry.adultDose += currentDose;
+    }
+
+    if (!referralsMap.has(referredBy)) {
+      referralsMap.set(referredBy, {
+        label: referredBy,
+        researchCount: 0,
+        procedureCount: 0,
+      });
+    }
+
+    const referralEntry = referralsMap.get(referredBy);
+    referralEntry.researchCount += currentResearchCount;
+    referralEntry.procedureCount += currentProcedureCount;
+
+    if (!monthlyMap.has(monthKey)) {
+      monthlyMap.set(monthKey, {
+        monthKey,
+        patientIds: new Set(),
+        studiesCount: 0,
+        procedureCount: 0,
+      });
+    }
+
+    const monthlyEntry = monthlyMap.get(monthKey);
+    monthlyEntry.patientIds.add(Number(row.patient_id));
+    monthlyEntry.studiesCount += currentResearchCount;
+    monthlyEntry.procedureCount += currentProcedureCount;
+  });
+
+  const studyAreas = Array.from(areaMap.values()).map((entry) => ({
+    ...entry,
+    adultDose: roundXRayStatisticsDose(entry.adultDose),
+    childDose: roundXRayStatisticsDose(entry.childDose),
+    totalDose: roundXRayStatisticsDose(entry.totalDose),
+  }));
+
+  const orderedStudyAreas = [
+    ...studyAreas.filter((entry) => XRAY_STATISTICS_AREA_ORDER.includes(entry.label)),
+    ...studyAreas.filter((entry) => !XRAY_STATISTICS_AREA_ORDER.includes(entry.label)),
+  ];
+
+  const monthlyPatients = Array.from(monthlyMap.values())
+    .sort((leftValue, rightValue) => leftValue.monthKey.localeCompare(rightValue.monthKey))
+    .map((entry) => ({
+      monthKey: entry.monthKey,
+      monthLabel: formatXRayStatisticsMonthLabel(entry.monthKey),
+      uniquePatients: entry.patientIds.size,
+      studiesCount: entry.studiesCount,
+      procedureCount: entry.procedureCount,
+      workingDays: countWeekdaysInMonthRange(
+        entry.monthKey,
+        normalizedStartDate,
+        normalizedEndDate
+      ),
+    }));
+
+  const form30Map = new Map();
+
+  XRAY_STATISTICS_AREA_ORDER.forEach((label) => {
+    form30Map.set(label, createEmptyXRayForm30Row(label));
+  });
+
+  rows.forEach((row) => {
+    const studyArea = normalizeText(row.study_area);
+    const currentProcedureCount = Number(row.study_count) || 0;
+    const careSetting = getXRayStatisticsCareSetting(row.referred_by);
+
+    if (!form30Map.has(studyArea)) {
+      form30Map.set(studyArea, createEmptyXRayForm30Row(studyArea));
+    }
+
+    const form30Entry = form30Map.get(studyArea);
+    form30Entry.researchCount += 1;
+    form30Entry.procedureCount += currentProcedureCount;
+
+    if (careSetting === 'dayHospital') {
+      form30Entry.dayHospitalCount += 1;
+    } else if (careSetting === 'inpatient') {
+      form30Entry.inpatientCount += 1;
+    } else {
+      form30Entry.ambulatoryCount += 1;
+    }
+  });
+
+  function sumForm30Rows(label, labels) {
+    return labels.reduce((accumulator, currentLabel) => {
+      const row = form30Map.get(currentLabel) ?? createEmptyXRayForm30Row(currentLabel);
+      accumulator.researchCount += row.researchCount;
+      accumulator.procedureCount += row.procedureCount;
+      accumulator.ambulatoryCount += row.ambulatoryCount;
+      accumulator.dayHospitalCount += row.dayHospitalCount;
+      accumulator.inpatientCount += row.inpatientCount;
+      return accumulator;
+    }, createEmptyXRayForm30Row(label));
+  }
+
+  const form30Rows = [
+    form30Map.get('Органы грудной клетки') ?? createEmptyXRayForm30Row('Органы грудной клетки'),
+    sumForm30Rows('Костно-мышечная система', XRAY_FORM30_BONE_MUSCLE_PARTS),
+    sumForm30Rows('Конечности', XRAY_FORM30_LIMBS_PARTS),
+    form30Map.get('Шейный отдел позвоночника') ?? createEmptyXRayForm30Row('Шейный отдел позвоночника'),
+    form30Map.get('Грудной отдел позвоночника') ?? createEmptyXRayForm30Row('Грудной отдел позвоночника'),
+    form30Map.get('Поясничный отдел позвоночника') ?? createEmptyXRayForm30Row('Поясничный отдел позвоночника'),
+    form30Map.get('Тазобедренные суставы') ?? createEmptyXRayForm30Row('Тазобедренные суставы'),
+    form30Map.get('Ребра и грудина') ?? createEmptyXRayForm30Row('Ребра и грудина'),
+    form30Map.get('Органы брюшной полости') ?? createEmptyXRayForm30Row('Органы брюшной полости'),
+    form30Map.get('Череп, гол. мозг, ЧЛО') ?? createEmptyXRayForm30Row('Череп, гол. мозг, ЧЛО'),
+    form30Map.get('Почки, мочевыводящая система') ?? createEmptyXRayForm30Row('Почки, мочевыводящая система'),
+  ];
+
+  form30Rows.push({
+    label: 'Всего',
+    researchCount: form30Rows.reduce((sum, row) => sum + row.researchCount, 0),
+    procedureCount: form30Rows.reduce((sum, row) => sum + row.procedureCount, 0),
+    ambulatoryCount: form30Rows.reduce((sum, row) => sum + row.ambulatoryCount, 0),
+    dayHospitalCount: form30Rows.reduce((sum, row) => sum + row.dayHospitalCount, 0),
+    inpatientCount: form30Rows.reduce((sum, row) => sum + row.inpatientCount, 0),
+  });
+
+  return {
+    totals: {
+      uniquePatients: uniquePatients.size,
+      researchCount,
+      fluorographyCount: Number(fluorographyCountRow?.total ?? 0),
+      procedureCount,
+      totalDose: roundXRayStatisticsDose(totalDose),
+    },
+    referrals: Array.from(referralsMap.values()).sort(
+      (leftValue, rightValue) =>
+        rightValue.researchCount - leftValue.researchCount ||
+        leftValue.label.localeCompare(rightValue.label, 'ru-RU')
+    ),
+    studyAreas: orderedStudyAreas,
+    monthlyPatients,
+    form30Rows,
+  };
+}
+
 function decodeHtmlEntities(value) {
   return String(value ?? '')
     .replace(/&nbsp;/g, ' ')
@@ -2074,6 +2455,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:list-journal-by-date', (_event, studyDate) =>
     listXRayJournalByDate(studyDate)
+  );
+
+  ipcMain.handle('xray:get-statistics', (_event, payload) =>
+    getXRayStatistics(payload)
   );
 
   ipcMain.handle('xray:list-fl-journal-by-date', (_event, shotDate) =>

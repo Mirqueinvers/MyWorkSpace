@@ -41,6 +41,60 @@ export interface XRayFlJournalEntry {
   createdAt: string
 }
 
+export interface XRayStatisticsRangePayload {
+  startDate: string
+  endDate: string
+}
+
+export interface XRayStatisticsTotals {
+  uniquePatients: number
+  researchCount: number
+  fluorographyCount: number
+  procedureCount: number
+  totalDose: number
+}
+
+export interface XRayStatisticsReferralSummary {
+  label: string
+  researchCount: number
+  procedureCount: number
+}
+
+export interface XRayStatisticsAreaSummary {
+  label: string
+  researchCount: number
+  procedureCount: number
+  adultDose: number
+  childDose: number
+  totalDose: number
+}
+
+export interface XRayStatisticsMonthlySummary {
+  monthKey: string
+  monthLabel: string
+  uniquePatients: number
+  studiesCount: number
+  procedureCount: number
+  workingDays: number
+}
+
+export interface XRayStatisticsForm30Row {
+  label: string
+  researchCount: number
+  procedureCount: number
+  ambulatoryCount: number
+  dayHospitalCount: number
+  inpatientCount: number
+}
+
+export interface XRayStatistics {
+  totals: XRayStatisticsTotals
+  referrals: XRayStatisticsReferralSummary[]
+  studyAreas: XRayStatisticsAreaSummary[]
+  monthlyPatients: XRayStatisticsMonthlySummary[]
+  form30Rows: XRayStatisticsForm30Row[]
+}
+
 export interface ListXRayFlJournalByPatientPayload {
   lastName: string
   firstName: string
@@ -102,6 +156,7 @@ export interface XRayApi {
   deletePatient: (id: number) => Promise<boolean>
   openLink: (url: string) => Promise<boolean>
   listJournalByDate: (studyDate: string) => Promise<XRayJournalEntry[]>
+  getStatistics: (payload: XRayStatisticsRangePayload) => Promise<XRayStatistics>
   listFlJournalByDate: (shotDate: string) => Promise<XRayFlJournalEntry[]>
   listFlJournalByPatient: (
     payload: ListXRayFlJournalByPatientPayload,

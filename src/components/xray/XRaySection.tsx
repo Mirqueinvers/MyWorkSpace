@@ -2,7 +2,7 @@
 import { XRAY_TABS } from './config'
 import type { XRayTab } from './config'
 import type { XRaySectionProps } from './types'
-import { XRayFlJournal, XRayHome, XRayJournal } from './components'
+import { XRayFlJournal, XRayHome, XRayJournal, XRayStatistics } from './components'
 
 export function XRaySection(props: XRaySectionProps) {
   const [homeTab, journalTab, flJournalTab] = XRAY_TABS
@@ -37,16 +37,7 @@ export function XRaySection(props: XRaySectionProps) {
       return <XRayFlJournal />
     }
 
-    return (
-      <section className="content-card placeholder-card">
-        <p className="section-kicker">X-ray</p>
-        <h2>Статистика</h2>
-        <p className="section-copy">
-          Здесь можно будет показать сводку по выполненным исследованиям и текущей
-          нагрузке.
-        </p>
-      </section>
-    )
+    return <XRayStatistics />
   }
 
   return (

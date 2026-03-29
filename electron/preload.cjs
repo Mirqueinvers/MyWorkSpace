@@ -105,6 +105,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listJournalByDate(studyDate) {
       return ipcRenderer.invoke('xray:list-journal-by-date', studyDate);
     },
+    getStatistics(payload) {
+      return ipcRenderer.invoke('xray:get-statistics', payload);
+    },
     listFlJournalByDate(shotDate) {
       return ipcRenderer.invoke('xray:list-fl-journal-by-date', shotDate);
     },
