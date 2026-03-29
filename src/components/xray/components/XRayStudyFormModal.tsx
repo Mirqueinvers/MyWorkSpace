@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import {
   XRAY_CASSETTES,
+  XRAY_STUDY_AREA_PRESETS,
   XRAY_STUDY_AREAS,
   XRAY_STUDY_COUNTS,
   XRAY_STUDY_TYPES,
@@ -105,9 +106,13 @@ export function XRayStudyFormModal({
             isOpen={openStudySelect === 'studyArea'}
             onToggle={() => onToggleSelect(openStudySelect === 'studyArea' ? null : 'studyArea')}
             onSelect={(value) => {
+              const preset = XRAY_STUDY_AREA_PRESETS[value as (typeof XRAY_STUDY_AREAS)[number]]
               onStudyFormChange((currentForm) => ({
                 ...currentForm,
                 studyArea: value,
+                cassette: preset?.cassette ?? currentForm.cassette,
+                studyCount: preset?.studyCount ?? currentForm.studyCount,
+                radiationDose: preset?.radiationDose ?? currentForm.radiationDose,
               }))
               onToggleSelect(null)
             }}
@@ -213,7 +218,7 @@ export function XRayStudyFormModal({
 
           {studyFormError ? <div className="state-banner error-banner">{studyFormError}</div> : null}
 
-          <div className="xray-confirm-actions">
+          <div className="xray-confirm-actions xray-study-form-actions">
             {editingStudy ? (
               <button
                 type="button"

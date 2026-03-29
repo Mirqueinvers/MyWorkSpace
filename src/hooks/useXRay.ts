@@ -1,31 +1,38 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type {
+  AddXRayStudyPayload,
+  UpdateXRayStudyPayload,
+  XRayFlJournalEntry,
   XRayPatient,
   XRaySearchResult,
   XRayStudy,
 } from '../types/xray'
 
 const ELECTRON_API_UNAVAILABLE =
-  'API Electron недоступно. Откройте приложение через dev:electron.'
-const SEARCH_ERROR = 'Не удалось выполнить поиск пациента в базе X-ray.'
-const SAVE_ERROR = 'Не удалось сохранить пациента в базе X-ray.'
-const UPDATE_ERROR = 'Не удалось обновить карточку пациента.'
-const DELETE_ERROR = 'Не удалось удалить пациента из базы X-ray.'
-const STUDIES_LOAD_ERROR = 'Не удалось загрузить исследования пациента.'
-const STUDY_SAVE_ERROR = 'Не удалось сохранить исследование.'
-const STUDY_DELETE_ERROR = 'Не удалось удалить исследование.'
+  'API Electron \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e. \u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 dev:electron.'
+const SEARCH_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043f\u043e\u0438\u0441\u043a \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u0432 \u0431\u0430\u0437\u0435 X-ray.'
+const SAVE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u0432 \u0431\u0430\u0437\u0435 X-ray.'
+const UPDATE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
+const DELETE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u0438\u0437 \u0431\u0430\u0437\u044b X-ray.'
+const STUDIES_LOAD_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
+const FL_STUDIES_LOAD_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u0438 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
+const STUDY_SAVE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435.'
+const STUDY_DELETE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435.'
+const OPEN_LINK_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443 \u0420\u041c\u0418\u0421.'
 
 export function useXRay() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<XRaySearchResult[]>([])
   const [selectedPatient, setSelectedPatient] = useState<XRayPatient | null>(null)
   const [studies, setStudies] = useState<XRayStudy[]>([])
+  const [flStudies, setFlStudies] = useState<XRayFlJournalEntry[]>([])
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [studiesLoading, setStudiesLoading] = useState(false)
+  const [flStudiesLoading, setFlStudiesLoading] = useState(false)
   const [isSavingStudy, setIsSavingStudy] = useState(false)
   const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null)
   const [error, setError] = useState('')
@@ -72,6 +79,59 @@ export function useXRay() {
     }
   }, [selectedPatient])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadFlStudies() {
+      if (!selectedPatient) {
+        setFlStudies([])
+        return
+      }
+
+      if (!window.electronAPI?.xray) {
+        setError(ELECTRON_API_UNAVAILABLE)
+        setFlStudies([])
+        return
+      }
+
+      if (!window.electronAPI.xray.listFlJournalByPatient) {
+        setError(ELECTRON_API_UNAVAILABLE)
+        setFlStudies([])
+        return
+      }
+
+      setFlStudiesLoading(true)
+
+      try {
+        const items = await window.electronAPI.xray.listFlJournalByPatient({
+          lastName: selectedPatient.lastName,
+          firstName: selectedPatient.firstName,
+          patronymic: selectedPatient.patronymic,
+          birthDate: selectedPatient.birthDate,
+        })
+
+        if (!isCancelled) {
+          setFlStudies(items)
+        }
+      } catch {
+        if (!isCancelled) {
+          setFlStudies([])
+          setError(FL_STUDIES_LOAD_ERROR)
+        }
+      } finally {
+        if (!isCancelled) {
+          setFlStudiesLoading(false)
+        }
+      }
+    }
+
+    void loadFlStudies()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [selectedPatient])
+
   async function handleSearch(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
 
@@ -79,6 +139,7 @@ export function useXRay() {
     setLastSubmittedQuery(trimmedQuery)
     setSelectedPatient(null)
     setStudies([])
+    setFlStudies([])
 
     if (!trimmedQuery) {
       setResults([])
@@ -126,6 +187,7 @@ export function useXRay() {
       const createdPatient = await window.electronAPI.xray.addPatient(payload)
       setSelectedPatient(createdPatient)
       setStudies([])
+      setFlStudies([])
       setResults([])
       setQuery(
         `${createdPatient.lastName} ${createdPatient.firstName} ${createdPatient.patronymic} ${createdPatient.birthDate}`.trim(),
@@ -164,6 +226,7 @@ export function useXRay() {
           currentPatient?.id === id ? null : currentPatient,
         )
         setStudies([])
+        setFlStudies([])
         setResults((currentResults) =>
           currentResults.filter((patient) => patient.id !== id),
         )
@@ -216,18 +279,7 @@ export function useXRay() {
     }
   }
 
-  async function handleAddStudy(payload: {
-    patientId: number
-    studyDate: string
-    description: string
-    referralDiagnosis: string
-    studyArea: string
-    studyType: 'Рентген' | 'Урография'
-    cassette: '13х18' | '18х24' | '24х30' | '30х40' | '35х35'
-    studyCount: 1 | 2 | 3 | 4 | 5 | 6
-    radiationDose: string
-    referredBy: string
-  }) {
+  async function handleAddStudy(payload: AddXRayStudyPayload) {
     if (!window.electronAPI?.xray) {
       setError(ELECTRON_API_UNAVAILABLE)
       return null
@@ -248,19 +300,7 @@ export function useXRay() {
     }
   }
 
-  async function handleUpdateStudy(payload: {
-    id: number
-    patientId: number
-    studyDate: string
-    description: string
-    referralDiagnosis: string
-    studyArea: string
-    studyType: 'Рентген' | 'Урография'
-    cassette: '13х18' | '18х24' | '24х30' | '30х40' | '35х35'
-    studyCount: 1 | 2 | 3 | 4 | 5 | 6
-    radiationDose: string
-    referredBy: string
-  }) {
+  async function handleUpdateStudy(payload: UpdateXRayStudyPayload) {
     if (!window.electronAPI?.xray) {
       setError(ELECTRON_API_UNAVAILABLE)
       return null
@@ -321,7 +361,7 @@ export function useXRay() {
     try {
       return await window.electronAPI.xray.openLink(url)
     } catch {
-      setError('Не удалось открыть ссылку РМИС.')
+      setError(OPEN_LINK_ERROR)
       return false
     }
   }
@@ -331,11 +371,13 @@ export function useXRay() {
     setResults([])
     setSelectedPatient(null)
     setStudies([])
+    setFlStudies([])
     setLastSubmittedQuery('')
     setLoading(false)
     setIsSaving(false)
     setIsDeleting(false)
     setStudiesLoading(false)
+    setFlStudiesLoading(false)
     setIsSavingStudy(false)
     setDeletingStudyId(null)
     setError('')
@@ -347,11 +389,13 @@ export function useXRay() {
     results,
     selectedPatient,
     studies,
+    flStudies,
     lastSubmittedQuery,
     loading,
     isSaving,
     isDeleting,
     studiesLoading,
+    flStudiesLoading,
     isSavingStudy,
     deletingStudyId,
     error,

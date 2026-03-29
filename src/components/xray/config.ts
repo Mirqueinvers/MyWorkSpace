@@ -1,4 +1,4 @@
-export const XRAY_TABS = ['Главная', 'Журнал', 'Статистика'] as const
+export const XRAY_TABS = ['Главная', 'Рентген журнал', 'Фл журнал', 'Статистика'] as const
 
 export const XRAY_STUDY_AREAS = [
   'Органы грудной клетки',
@@ -19,6 +19,54 @@ export const XRAY_STUDY_TYPES = ['Рентген', 'Урография'] as cons
 export const XRAY_CASSETTES = ['13х18', '18х24', '24х30', '30х40', '35х35'] as const
 
 export const XRAY_STUDY_COUNTS = [1, 2, 3, 4, 5, 6] as const
+
+export const XRAY_STUDY_AREA_PRESETS: Partial<
+  Record<
+    (typeof XRAY_STUDY_AREAS)[number],
+    {
+      cassette?: (typeof XRAY_CASSETTES)[number]
+      studyCount?: (typeof XRAY_STUDY_COUNTS)[number]
+      radiationDose?: string
+    }
+  >
+> = {
+  [XRAY_STUDY_AREAS[0]]: {
+    cassette: XRAY_CASSETTES[4],
+    studyCount: 1,
+    radiationDose: '0.15',
+  },
+  [XRAY_STUDY_AREAS[1]]: {
+    radiationDose: '0.02',
+  },
+  [XRAY_STUDY_AREAS[2]]: {
+    radiationDose: '0.02',
+  },
+  [XRAY_STUDY_AREAS[3]]: {
+    cassette: XRAY_CASSETTES[1],
+    studyCount: 2,
+    radiationDose: '0.33',
+  },
+  [XRAY_STUDY_AREAS[4]]: {
+    cassette: XRAY_CASSETTES[3],
+    studyCount: 2,
+    radiationDose: '0.45',
+  },
+  [XRAY_STUDY_AREAS[5]]: {
+    cassette: XRAY_CASSETTES[3],
+    studyCount: 2,
+    radiationDose: '3.3',
+  },
+  [XRAY_STUDY_AREAS[6]]: {
+    cassette: XRAY_CASSETTES[3],
+    studyCount: 1,
+    radiationDose: '1.5',
+  },
+  [XRAY_STUDY_AREAS[8]]: {
+    cassette: XRAY_CASSETTES[1],
+    studyCount: 1,
+    radiationDose: '0.11',
+  },
+}
 
 export const XRAY_REFERRED_BY_STORAGE_KEY = 'xray-referred-by-history'
 

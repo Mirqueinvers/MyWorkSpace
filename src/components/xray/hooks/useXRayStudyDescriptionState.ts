@@ -182,26 +182,11 @@ function splitStudyDescription(value: string) {
 }
 
 function normalizeStudyDescription(value: string) {
-  const trimmed = String(value ?? '').trim()
-  if (!trimmed) return ''
-  const [titleLine = '', ...restLines] = trimmed.split('\n')
-  const rest = restLines.join('\n').trim()
-  return rest ? `${titleLine.trim()}\n\n${rest}` : titleLine.trim()
+  return String(value ?? '').replace(/\r/g, '').trim()
 }
 
 function normalizeStudyDescriptionOnChange(value: string) {
-  const source = String(value ?? '')
-  if (!source.trim()) return ''
-  const lines = source.split('\n')
-  const titleLine = lines[0]?.trim() ?? ''
-  if (!titleLine) return source
-  const rest = lines.slice(1).join('\n')
-  return rest.trim() ? `${titleLine}\n\n${rest.replace(/^\n+/, '')}` : titleLine
-}
-
-function hasOnlyStudyTitle(value: string) {
-  const normalized = normalizeStudyDescription(value)
-  return Boolean(normalized) && !normalized.includes('\n\n')
+  return String(value ?? '').replace(/\r/g, '')
 }
 
 function composeStudyDescription(description: string, diagnosis: string) {
@@ -741,9 +726,6 @@ export function useXRayStudyDescriptionState({
     setDescriptionDraft((currentDraft) => {
       const trimmedDraft = currentDraft.trimEnd()
       if (!trimmedDraft) return normalizedText
-      if (mode === 'line' && hasOnlyStudyTitle(trimmedDraft)) {
-        return `${trimmedDraft}\n\n${normalizedText}`
-      }
       return `${trimmedDraft}${mode === 'paragraph' ? '\n\n' : '\n'}${normalizedText}`
     })
     setIsDescriptionEditing(true)
@@ -1973,31 +1955,31 @@ export function useXRayStudyDescriptionState({
       return
     }
     if (templateStep === 'root' && template === XRAY_HIP_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_HIP_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_HIP_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'root' && template === XRAY_FOOT_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_FOOT_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_FOOT_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'root' && template === XRAY_FLATFOOT_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_FLATFOOT_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_FLATFOOT_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'root' && template === XRAY_CALCANEUS_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_CALCANEUS_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_CALCANEUS_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'root' && template === XRAY_WRIST_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_WRIST_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_WRIST_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'root' && template === XRAY_HAND_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_HAND_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_HAND_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'root' && template === XRAY_PARANASAL_STUDY_TEMPLATE && templateStudy) {
-      openStudyDescriptionModal(templateStudy, true, `${XRAY_PARANASAL_STUDY_DESCRIPTION}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${XRAY_PARANASAL_STUDY_DESCRIPTION}\n`)
       return
     }
     if (templateStep === 'knees' && templateStudy) {
@@ -2005,7 +1987,7 @@ export function useXRayStudyDescriptionState({
         XRAY_KNEE_STUDY_OPTION_DESCRIPTIONS[
           template as keyof typeof XRAY_KNEE_STUDY_OPTION_DESCRIPTIONS
         ]
-      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n`)
       return
     }
     if (templateStep === 'ankles' && templateStudy) {
@@ -2013,7 +1995,7 @@ export function useXRayStudyDescriptionState({
         XRAY_ANKLE_STUDY_OPTION_DESCRIPTIONS[
           template as keyof typeof XRAY_ANKLE_STUDY_OPTION_DESCRIPTIONS
         ]
-      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n`)
       return
     }
     if (templateStep === 'spines' && templateStudy && spineTemplate) {
@@ -2021,7 +2003,7 @@ export function useXRayStudyDescriptionState({
         XRAY_SPINE_STUDY_OPTION_DESCRIPTIONS[spineTemplate][
           template as keyof (typeof XRAY_SPINE_STUDY_OPTION_DESCRIPTIONS)[typeof spineTemplate]
         ]
-      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n`)
       return
     }
     if (templateStep === 'shoulders' && templateStudy) {
@@ -2029,7 +2011,7 @@ export function useXRayStudyDescriptionState({
         XRAY_SHOULDER_STUDY_OPTION_DESCRIPTIONS[
           template as keyof typeof XRAY_SHOULDER_STUDY_OPTION_DESCRIPTIONS
         ]
-      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n\n`)
+      openStudyDescriptionModal(templateStudy, true, `${baseDescription}\n`)
       return
     }
     setTemplateQuery(template)

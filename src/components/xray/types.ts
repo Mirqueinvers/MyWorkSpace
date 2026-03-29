@@ -1,66 +1,39 @@
 import type { FormEvent } from 'react'
-import type { XRayPatient, XRaySearchResult, XRayStudy } from '../../types/xray'
+import type {
+  AddXRayPatientPayload,
+  AddXRayStudyPayload,
+  UpdateXRayPatientPayload,
+  UpdateXRayStudyPayload,
+  XRayFlJournalEntry,
+  XRayPatient,
+  XRaySearchResult,
+  XRayStudy,
+} from '../../types/xray'
 
 export interface XRaySectionProps {
   query: string
   results: XRaySearchResult[]
   selectedPatient: XRayPatient | null
   studies: XRayStudy[]
+  flStudies: XRayFlJournalEntry[]
   lastSubmittedQuery: string
   loading: boolean
   error: string
   isSaving: boolean
   isDeleting: boolean
   studiesLoading: boolean
+  flStudiesLoading: boolean
   isSavingStudy: boolean
   deletingStudyId: number | null
   onQueryChange: (value: string) => void
   onSearch: (event?: FormEvent<HTMLFormElement>) => Promise<void>
   onSelectPatient: (patient: XRayPatient) => void
-  onAddPatient: (payload: {
-    lastName: string
-    firstName: string
-    patronymic: string
-    birthDate: string
-    address: string
-    rmisUrl: string | null
-  }) => Promise<XRayPatient | null>
-  onUpdatePatient: (payload: {
-    id: number
-    lastName: string
-    firstName: string
-    patronymic: string
-    birthDate: string
-    address: string
-    rmisUrl: string | null
-  }) => Promise<XRayPatient | null>
+  onAddPatient: (payload: AddXRayPatientPayload) => Promise<XRayPatient | null>
+  onUpdatePatient: (payload: UpdateXRayPatientPayload) => Promise<XRayPatient | null>
   onDeletePatient: (id: number) => Promise<boolean>
   onOpenLink: (url: string) => Promise<boolean>
-  onAddStudy: (payload: {
-    patientId: number
-    studyDate: string
-    description: string
-    referralDiagnosis: string
-    studyArea: string
-    studyType: 'Рентген' | 'Урография'
-    cassette: '13х18' | '18х24' | '24х30' | '30х40' | '35х35'
-    studyCount: 1 | 2 | 3 | 4 | 5 | 6
-    radiationDose: string
-    referredBy: string
-  }) => Promise<XRayStudy | null>
-  onUpdateStudy: (payload: {
-    id: number
-    patientId: number
-    studyDate: string
-    description: string
-    referralDiagnosis: string
-    studyArea: string
-    studyType: 'Рентген' | 'Урография'
-    cassette: '13х18' | '18х24' | '24х30' | '30х40' | '35х35'
-    studyCount: 1 | 2 | 3 | 4 | 5 | 6
-    radiationDose: string
-    referredBy: string
-  }) => Promise<XRayStudy | null>
+  onAddStudy: (payload: AddXRayStudyPayload) => Promise<XRayStudy | null>
+  onUpdateStudy: (payload: UpdateXRayStudyPayload) => Promise<XRayStudy | null>
   onDeleteStudy: (id: number) => Promise<boolean>
   onReset: () => void
 }
@@ -79,8 +52,8 @@ export interface StudyFormState {
   description: string
   referralDiagnosis: string
   studyArea: string
-  studyType: 'Рентген' | 'Урография'
-  cassette: '13х18' | '18х24' | '24х30' | '30х40' | '35х35'
+  studyType: AddXRayStudyPayload['studyType']
+  cassette: AddXRayStudyPayload['cassette']
   studyCount: 1 | 2 | 3 | 4 | 5 | 6
   radiationDose: string
   referredBy: string

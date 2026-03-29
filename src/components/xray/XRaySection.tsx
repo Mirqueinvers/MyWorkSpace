@@ -2,14 +2,15 @@
 import { XRAY_TABS } from './config'
 import type { XRayTab } from './config'
 import type { XRaySectionProps } from './types'
-import { XRayHome, XRayJournal } from './components'
+import { XRayFlJournal, XRayHome, XRayJournal } from './components'
 
 export function XRaySection(props: XRaySectionProps) {
+  const [homeTab, journalTab, flJournalTab] = XRAY_TABS
   const [activeTab, setActiveTab] = useState<XRayTab>(XRAY_TABS[0])
   const [homeResetKey, setHomeResetKey] = useState(0)
 
   function handleTabClick(tab: XRayTab) {
-    if (tab === activeTab && tab === 'Главная') {
+    if (tab === activeTab && tab === homeTab) {
       props.onReset()
       setHomeResetKey((currentKey) => currentKey + 1)
       return
@@ -19,17 +20,21 @@ export function XRaySection(props: XRaySectionProps) {
   }
 
   function renderContent() {
-    if (activeTab === 'Главная') {
+    if (activeTab === homeTab) {
       return <XRayHome key={homeResetKey} {...props} />
     }
 
-    if (activeTab === 'Журнал') {
+    if (activeTab === journalTab) {
       return (
         <XRayJournal
           onSelectPatient={props.onSelectPatient}
-          onOpenPatient={() => setActiveTab('Главная')}
+          onOpenPatient={() => setActiveTab(homeTab)}
         />
       )
+    }
+
+    if (activeTab === flJournalTab) {
+      return <XRayFlJournal />
     }
 
     return (

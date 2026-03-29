@@ -112,14 +112,14 @@ export function XRayHome(props: XRaySectionProps) {
         <XRayPatientCard
           selectedPatient={props.selectedPatient}
           studies={props.studies}
+          flStudies={props.flStudies}
           studiesLoading={props.studiesLoading}
+          flStudiesLoading={props.flStudiesLoading}
           error={props.error}
-          isDeleting={props.isDeleting}
           copyFeedback={state.copyFeedback}
           onCopyPatientKey={state.handleCopyPatientKey}
           onOpenLink={props.onOpenLink}
           onOpenPatientEdit={state.handleOpenPatientEdit}
-          onOpenDeletePatient={() => state.setIsDeleteConfirmOpen(true)}
           onOpenCreateStudy={state.openCreateStudyModal}
           onOpenStudyTemplates={state.openStudyTemplatesModal}
           onOpenEditStudy={state.openEditStudyModal}
@@ -154,6 +154,10 @@ export function XRayHome(props: XRaySectionProps) {
           onFormChange={state.handlePatientEditFormChange}
           onClose={() => state.setIsPatientEditOpen(false)}
           onSubmit={state.handleSubmitPatientEdit}
+          onDelete={() => {
+            state.setIsPatientEditOpen(false)
+            state.setIsDeleteConfirmOpen(true)
+          }}
         />
       ) : null}
 

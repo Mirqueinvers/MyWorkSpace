@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { XRayJournalEntry, XRayPatient } from '../../../types/xray'
 import { getPatientFullName } from '../helpers'
 
@@ -15,6 +15,16 @@ function getTodayIsoDate() {
   const now = new Date()
   const timezoneOffset = now.getTimezoneOffset() * 60_000
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10)
+}
+
+function shiftIsoDate(value: string, days: number) {
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  date.setDate(date.getDate() + days)
+  const nextYear = String(date.getFullYear())
+  const nextMonth = String(date.getMonth() + 1).padStart(2, '0')
+  const nextDay = String(date.getDate()).padStart(2, '0')
+  return `${nextYear}-${nextMonth}-${nextDay}`
 }
 
 function formatBirthDate(value: string) {
@@ -40,6 +50,7 @@ export function XRayJournal({ onSelectPatient, onOpenPatient }: XRayJournalProps
   const [entries, setEntries] = useState<XRayJournalEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const studiesCount = entries.reduce((count, entry) => count + entry.studies.length, 0)
 
   useEffect(() => {
     let isCancelled = false
@@ -81,25 +92,40 @@ export function XRayJournal({ onSelectPatient, onOpenPatient }: XRayJournalProps
 
   return (
     <section className="content-card xray-journal-card">
-      <div className="xray-journal-header">
-        <div>
-          <p className="section-kicker">X-ray</p>
-          <h2>Журнал</h2>
-        </div>
+      <div className="xray-journal-header xray-journal-header-centered">
+        <div className="xray-journal-date-nav" aria-label="Навигация по датам рентген журнала">
+          <button
+            type="button"
+            className="xray-journal-date-arrow"
+            onClick={() => setJournalDate((currentDate) => shiftIsoDate(currentDate, -1))}
+            aria-label="Предыдущий день"
+          >
+            ‹
+          </button>
 
-        <label className="xray-journal-date-field">
-          <span>Дата</span>
-          <input
-            type="date"
-            className="input xray-journal-date-input"
-            value={journalDate}
-            onChange={(event) => setJournalDate(event.target.value)}
-          />
-        </label>
+          <label className="xray-journal-date-field xray-journal-date-field-centered">
+            <input
+              type="date"
+              className="input xray-journal-date-input xray-journal-date-input-centered"
+              value={journalDate}
+              onChange={(event) => setJournalDate(event.target.value)}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="xray-journal-date-arrow"
+            onClick={() => setJournalDate((currentDate) => shiftIsoDate(currentDate, 1))}
+            aria-label="Следующий день"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
-      <div className="xray-journal-meta">
+      <div className="xray-journal-meta xray-journal-meta-dual">
         <span>{entries.length === 0 ? 'Пациенты не найдены' : `Пациентов: ${entries.length}`}</span>
+        <span>{`Исследований: ${studiesCount}`}</span>
       </div>
 
       {error ? <p className="xray-journal-empty">{error}</p> : null}
@@ -121,12 +147,16 @@ export function XRayJournal({ onSelectPatient, onOpenPatient }: XRayJournalProps
               }}
             >
               <div className="xray-journal-item-head">
-                <strong>{getPatientFullName(entry.patient)}</strong>
+                <div className="xray-fl-journal-patient-line">
+                  <strong>{getPatientFullName(entry.patient)}</strong>
+                  <span className="xray-fl-journal-birth-date">
+                    {formatBirthDate(entry.patient.birthDate)}
+                  </span>
+                </div>
                 <span>{formatStudySummary(entry.studies.length)}</span>
               </div>
 
               <div className="xray-journal-item-meta">
-                <span>{formatBirthDate(entry.patient.birthDate)}</span>
                 <span>{entry.patient.address}</span>
               </div>
 

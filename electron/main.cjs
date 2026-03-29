@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
@@ -192,6 +192,31 @@ function ensureXRaySchema(db) {
 
     CREATE INDEX IF NOT EXISTS idx_xray_studies_patient_created_at
     ON xray_studies (patient_id, created_at DESC, id DESC);
+
+    CREATE TABLE IF NOT EXISTS xray_flu_journal (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shot_date TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      patronymic TEXT NOT NULL,
+      birth_date TEXT NOT NULL,
+      dose TEXT NOT NULL,
+      source_file TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_xray_flu_journal_shot_date
+    ON xray_flu_journal (shot_date, created_at DESC, id DESC);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_xray_flu_journal_unique_entry
+    ON xray_flu_journal (
+      shot_date,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      dose
+    );
   `);
 
   const columns = db
@@ -351,6 +376,20 @@ function mapXRayStudy(row) {
     studyCount: Number(row.study_count),
     radiationDose: row.radiation_dose,
     referredBy: row.referred_by,
+    createdAt: row.created_at,
+  };
+}
+
+function mapXRayFlJournalEntry(row) {
+  return {
+    id: row.id,
+    shotDate: row.shot_date,
+    lastName: row.last_name,
+    firstName: row.first_name,
+    patronymic: row.patronymic,
+    birthDate: row.birth_date,
+    dose: row.dose,
+    rmisUrl: row.rmis_url ?? null,
     createdAt: row.created_at,
   };
 }
@@ -778,6 +817,295 @@ function listXRayJournalByDate(studyDate) {
   return Array.from(itemsMap.values());
 }
 
+function decodeHtmlEntities(value) {
+  return String(value ?? '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#160;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function stripHtml(value) {
+  return decodeHtmlEntities(String(value ?? ''))
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeFlJournalShotDate(value) {
+  const normalizedValue = normalizeText(value).replace(/\u00a0/g, ' ');
+  const match = normalizedValue.match(/^(\d{2})\.(\d{2})\.(\d{2,4})$/);
+
+  if (!match) {
+    throw new Error('XRAY_FL_JOURNAL_DATE_INVALID');
+  }
+
+  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+  return `${year}-${match[2]}-${match[1]}`;
+}
+
+function normalizeFlJournalBirthDate(value) {
+  const normalizedValue = normalizeText(value).replace(/\u00a0/g, ' ');
+  const match = normalizedValue.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+
+  if (!match) {
+    return '';
+  }
+
+  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+  return `${match[1].padStart(2, '0')}${match[2].padStart(2, '0')}${year}`;
+}
+
+function parseFlJournalFile(filePath) {
+  const normalizedFilePath = normalizeRequiredText(filePath, 'XRAY_FL_JOURNAL_FILE_REQUIRED');
+
+  if (!fs.existsSync(normalizedFilePath)) {
+    throw new Error('XRAY_FL_JOURNAL_FILE_NOT_FOUND');
+  }
+
+  const source = fs.readFileSync(normalizedFilePath, 'utf8');
+  const rowMatches = source.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? [];
+  const entries = [];
+
+  rowMatches.forEach((rowMarkup) => {
+    const cells = Array.from(
+      rowMarkup.matchAll(/<(?:td|th)\b[^>]*>([\s\S]*?)<\/(?:td|th)>/gi),
+      (match) => stripHtml(match[1]),
+    );
+
+    if (cells.length < 8) {
+      return;
+    }
+
+    if (cells[0] === 'Дата съёмки' || !/^\d{1,2}\.\d{1,2}\.\d{2,4}$/.test(cells[0])) {
+      return;
+    }
+
+    const lastName = normalizeText(cells[1]);
+    const nameParts = normalizeText(cells[2]).split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] ?? '';
+    const patronymic = nameParts.slice(1).join(' ');
+    const birthDate = normalizeFlJournalBirthDate(cells[3]);
+    const dose = normalizeText(cells[7]).replace(',', '.');
+
+    if (!lastName || !firstName || !birthDate || !dose) {
+      return;
+    }
+
+    entries.push({
+      shotDate: normalizeFlJournalShotDate(cells[0]),
+      lastName,
+      firstName,
+      patronymic,
+      birthDate,
+      dose,
+    });
+  });
+
+  return {
+    sourceFile: path.basename(normalizedFilePath),
+    entries,
+  };
+}
+
+function importXRayFlJournalFile(filePath) {
+  const { sourceFile, entries } = parseFlJournalFile(filePath);
+  const db = getDatabase();
+  const createdAt = new Date().toISOString();
+  let imported = 0;
+  let skipped = 0;
+
+  const statement = db.prepare(`
+    INSERT OR IGNORE INTO xray_flu_journal (
+      shot_date,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      dose,
+      source_file,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec('BEGIN');
+
+  try {
+    entries.forEach((item) => {
+      const result = statement.run(
+        item.shotDate,
+        item.lastName,
+        item.firstName,
+        item.patronymic,
+        item.birthDate,
+        item.dose,
+        sourceFile,
+        createdAt
+      );
+
+      if (result.changes > 0) {
+        imported += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+
+  return {
+    imported,
+    skipped,
+  };
+}
+
+async function selectXRayFlJournalFile() {
+  const result = await dialog.showOpenDialog({
+    title: 'Выберите файл Фл журнала',
+    properties: ['openFile'],
+    filters: [
+      { name: 'XHTML files', extensions: ['xhtml', 'html', 'htm'] },
+      { name: 'All files', extensions: ['*'] },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+}
+
+function listXRayFlJournalByDate(shotDate) {
+  const normalizedShotDate = normalizeIsoDate(shotDate, 'XRAY_FL_JOURNAL_DATE_INVALID');
+  const db = getDatabase();
+
+  return db.prepare(`
+    SELECT
+      f.id,
+      f.shot_date,
+      f.last_name,
+      f.first_name,
+      f.patronymic,
+      f.birth_date,
+      f.dose,
+      (
+        SELECT p.rmis_url
+        FROM xray_patients p
+        WHERE p.last_name = f.last_name
+          AND p.first_name = f.first_name
+          AND p.patronymic = f.patronymic
+          AND p.birth_date = f.birth_date
+        ORDER BY p.created_at DESC, p.id DESC
+        LIMIT 1
+      ) AS rmis_url,
+      f.created_at
+    FROM xray_flu_journal f
+    WHERE f.shot_date = ?
+    ORDER BY created_at DESC, id DESC
+  `).all(normalizedShotDate).map(mapXRayFlJournalEntry);
+}
+
+function listXRayFlJournalByPatient({ lastName, firstName, patronymic, birthDate }) {
+  const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
+  const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
+  const normalizedPatronymic = normalizeText(patronymic);
+  const normalizedBirthDate = normalizeDateDigits(birthDate);
+  const db = getDatabase();
+
+  return db.prepare(`
+    SELECT
+      f.id,
+      f.shot_date,
+      f.last_name,
+      f.first_name,
+      f.patronymic,
+      f.birth_date,
+      f.dose,
+      (
+        SELECT p.rmis_url
+        FROM xray_patients p
+        WHERE p.last_name = f.last_name
+          AND p.first_name = f.first_name
+          AND p.patronymic = f.patronymic
+          AND p.birth_date = f.birth_date
+        ORDER BY p.created_at DESC, p.id DESC
+        LIMIT 1
+      ) AS rmis_url,
+      f.created_at
+    FROM xray_flu_journal f
+    WHERE f.last_name = ?
+      AND f.first_name = ?
+      AND f.patronymic = ?
+      AND f.birth_date = ?
+    ORDER BY f.shot_date DESC, f.created_at DESC, f.id DESC
+  `).all(
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate
+  ).map(mapXRayFlJournalEntry);
+}
+
+function updateXRayFlJournalRmisUrl({ lastName, firstName, patronymic, birthDate, rmisUrl }) {
+  const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
+  const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
+  const normalizedPatronymic = normalizeText(patronymic);
+  const normalizedBirthDate = normalizeDateDigits(birthDate);
+  const normalizedRmisUrl = normalizeText(rmisUrl) || null;
+  const db = getDatabase();
+  const createdAt = new Date().toISOString();
+
+  const updateResult = db.prepare(`
+    UPDATE xray_patients
+    SET rmis_url = ?
+    WHERE last_name = ?
+      AND first_name = ?
+      AND patronymic = ?
+      AND birth_date = ?
+  `).run(
+    normalizedRmisUrl,
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate
+  );
+
+  if (updateResult.changes > 0) {
+    return true;
+  }
+
+  const insertResult = db.prepare(`
+    INSERT INTO xray_patients (
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      address,
+      rmis_url,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate,
+    'Адрес не указан',
+    normalizedRmisUrl,
+    createdAt
+  );
+
+  return insertResult.changes > 0;
+}
+
 function addXRayStudy(payload) {
   const normalizedPayload = normalizeXRayStudyPayload(payload);
   const createdAt = new Date().toISOString();
@@ -796,7 +1124,7 @@ function addXRayStudy(payload) {
       referred_by,
       created_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     normalizedPayload.patientId,
     normalizedPayload.studyDate,
@@ -1746,6 +2074,26 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:list-journal-by-date', (_event, studyDate) =>
     listXRayJournalByDate(studyDate)
+  );
+
+  ipcMain.handle('xray:list-fl-journal-by-date', (_event, shotDate) =>
+    listXRayFlJournalByDate(shotDate)
+  );
+
+  ipcMain.handle('xray:list-fl-journal-by-patient', (_event, payload) =>
+    listXRayFlJournalByPatient(payload)
+  );
+
+  ipcMain.handle('xray:update-fl-journal-rmis-url', (_event, payload) =>
+    updateXRayFlJournalRmisUrl(payload)
+  );
+
+  ipcMain.handle('xray:select-fl-journal-file', () =>
+    selectXRayFlJournalFile()
+  );
+
+  ipcMain.handle('xray:import-fl-journal-file', (_event, filePath) =>
+    importXRayFlJournalFile(filePath)
   );
 
   ipcMain.handle('xray:list-studies', (_event, patientId) =>

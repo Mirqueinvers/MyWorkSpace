@@ -105,6 +105,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listJournalByDate(studyDate) {
       return ipcRenderer.invoke('xray:list-journal-by-date', studyDate);
     },
+    listFlJournalByDate(shotDate) {
+      return ipcRenderer.invoke('xray:list-fl-journal-by-date', shotDate);
+    },
+    listFlJournalByPatient(payload) {
+      return ipcRenderer.invoke('xray:list-fl-journal-by-patient', payload);
+    },
+    updateFlJournalRmisUrl(payload) {
+      return ipcRenderer.invoke('xray:update-fl-journal-rmis-url', payload);
+    },
+    selectFlJournalFile() {
+      return ipcRenderer.invoke('xray:select-fl-journal-file');
+    },
+    importFlJournalFile(filePath) {
+      return ipcRenderer.invoke('xray:import-fl-journal-file', filePath);
+    },
     listStudies(patientId) {
       return ipcRenderer.invoke('xray:list-studies', patientId);
     },

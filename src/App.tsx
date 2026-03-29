@@ -161,12 +161,14 @@ function App() {
           results={xray.results}
           selectedPatient={xray.selectedPatient}
           studies={xray.studies}
+          flStudies={xray.flStudies}
           lastSubmittedQuery={xray.lastSubmittedQuery}
           loading={xray.loading}
           error={xray.error}
           isSaving={xray.isSaving}
           isDeleting={xray.isDeleting}
           studiesLoading={xray.studiesLoading}
+          flStudiesLoading={xray.flStudiesLoading}
           isSavingStudy={xray.isSavingStudy}
           deletingStudyId={xray.deletingStudyId}
           onQueryChange={xray.setQuery}

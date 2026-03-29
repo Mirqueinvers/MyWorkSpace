@@ -29,6 +29,38 @@ export interface XRayJournalEntry {
   studies: XRayStudy[]
 }
 
+export interface XRayFlJournalEntry {
+  id: number
+  shotDate: string
+  lastName: string
+  firstName: string
+  patronymic: string
+  birthDate: string
+  dose: string
+  rmisUrl: string | null
+  createdAt: string
+}
+
+export interface ListXRayFlJournalByPatientPayload {
+  lastName: string
+  firstName: string
+  patronymic: string
+  birthDate: string
+}
+
+export interface ImportXRayFlJournalResult {
+  imported: number
+  skipped: number
+}
+
+export interface UpdateXRayFlJournalRmisUrlPayload {
+  lastName: string
+  firstName: string
+  patronymic: string
+  birthDate: string
+  rmisUrl: string | null
+}
+
 export interface AddXRayPatientPayload {
   lastName: string
   firstName: string
@@ -70,6 +102,13 @@ export interface XRayApi {
   deletePatient: (id: number) => Promise<boolean>
   openLink: (url: string) => Promise<boolean>
   listJournalByDate: (studyDate: string) => Promise<XRayJournalEntry[]>
+  listFlJournalByDate: (shotDate: string) => Promise<XRayFlJournalEntry[]>
+  listFlJournalByPatient: (
+    payload: ListXRayFlJournalByPatientPayload,
+  ) => Promise<XRayFlJournalEntry[]>
+  updateFlJournalRmisUrl: (payload: UpdateXRayFlJournalRmisUrlPayload) => Promise<boolean>
+  selectFlJournalFile: () => Promise<string | null>
+  importFlJournalFile: (filePath: string) => Promise<ImportXRayFlJournalResult>
   listStudies: (patientId: number) => Promise<XRayStudy[]>
   addStudy: (payload: AddXRayStudyPayload) => Promise<XRayStudy>
   updateStudy: (payload: UpdateXRayStudyPayload) => Promise<XRayStudy>

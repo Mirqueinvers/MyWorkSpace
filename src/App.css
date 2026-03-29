@@ -375,6 +375,10 @@
   flex-wrap: wrap;
 }
 
+.xray-journal-header-centered {
+  justify-content: center;
+}
+
 .xray-journal-date-field {
   display: grid;
   gap: 6px;
@@ -383,13 +387,95 @@
   font-weight: 600;
 }
 
+.xray-journal-date-field-centered {
+  display: flex;
+  align-items: center;
+}
+
 .xray-journal-date-input {
   min-width: 180px;
+}
+
+.xray-journal-date-input-centered {
+  min-width: 220px;
+  min-height: 44px;
+  padding-right: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 12px 28px rgba(15, 23, 42, 0.08);
+  text-align: center;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.xray-journal-date-input-centered::-webkit-calendar-picker-indicator {
+  margin-right: 8px;
+}
+
+.xray-journal-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.xray-journal-date-arrow {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.14),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+  color: #0f766e;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.xray-journal-date-arrow:hover,
+.xray-journal-date-arrow:focus-visible {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.2),
+    0 14px 28px rgba(15, 23, 42, 0.1);
+  outline: none;
 }
 
 .xray-journal-meta {
   color: #64748b;
   font-size: 0.92rem;
+}
+
+.xray-journal-meta-dual {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.xray-fl-journal-import {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.xray-fl-journal-path {
+  flex: 1 1 440px;
+}
+
+.xray-fl-journal-selected-file {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .xray-journal-empty {
@@ -411,6 +497,7 @@
   display: grid;
   gap: 10px;
   padding: 18px 20px;
+  box-sizing: border-box;
   border: 0;
   border-radius: 22px;
   text-align: left;
@@ -434,27 +521,156 @@
   outline: none;
 }
 
+.xray-fl-journal-item {
+  cursor: default;
+}
+
+.xray-fl-journal-item:hover,
+.xray-fl-journal-item:focus-visible {
+  transform: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.14),
+    0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
 .xray-journal-item-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
   color: #0f172a;
+}
+
+.xray-journal-item-head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.xray-fl-journal-patient-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+
+.xray-fl-journal-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.xray-fl-journal-name.has-link {
+  color: #0f766e;
+  cursor: pointer;
+}
+
+.xray-fl-journal-name.has-link:hover,
+.xray-fl-journal-name.has-link:focus-visible {
+  color: #0d9488;
+  outline: none;
+}
+
+.xray-fl-journal-name.is-viewed,
+.xray-fl-journal-birth-date.is-viewed {
+  text-decoration: line-through;
+}
+
+.xray-fl-journal-birth-date {
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.xray-fl-journal-copy-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.xray-fl-journal-copy-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.xray-fl-journal-copy-button:hover,
+.xray-fl-journal-copy-button:focus-visible {
+  color: #0f766e;
+  outline: none;
+}
+
+.xray-fl-journal-copy-button.is-copied {
+  color: #16a34a;
+}
+
+.xray-fl-journal-add-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.xray-fl-journal-add-button:hover,
+.xray-fl-journal-add-button:focus-visible {
+  color: #0f766e;
+  outline: none;
+}
+
+.xray-fl-journal-rmis-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .xray-journal-item-head span {
   color: #0f766e;
   font-size: 0.88rem;
   font-weight: 700;
+  flex-shrink: 0;
+}
+
+.xray-journal-item-head .xray-fl-journal-birth-date {
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 1;
 }
 
 .xray-journal-item-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 14px;
+  min-width: 0;
   color: #64748b;
   font-size: 0.92rem;
+}
+
+.xray-journal-item-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .xray-journal-study-list {
@@ -885,6 +1101,66 @@
   color: #0f172a;
 }
 
+.xray-patient-subsection {
+  margin-top: 24px;
+}
+
+.xray-patient-subsection-toggle {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  display: block;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.xray-patient-subsection-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.xray-patient-subsection-line .section-kicker {
+  margin: 0;
+}
+
+.xray-patient-subsection-meta {
+  color: #0f766e;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.xray-patient-subsection-chevron {
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  line-height: 0;
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+
+.xray-patient-subsection-chevron svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.xray-patient-subsection-toggle.is-open .xray-patient-subsection-chevron {
+  transform: rotate(180deg);
+}
+
+.xray-patient-subsection-content {
+  margin-top: 16px;
+}
+
 .xray-confirm-modal {
   width: min(560px, 100%);
 }
@@ -901,6 +1177,14 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.xray-patient-edit-actions {
+  justify-content: flex-start;
+}
+
+.xray-study-form-actions {
+  justify-content: flex-start;
 }
 
 .xray-studies-head {
@@ -1035,6 +1319,7 @@
 
 .xray-study-modal {
   width: min(760px, 100%);
+  overflow: visible;
 }
 
 .xray-study-modal-head {
@@ -1091,6 +1376,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  overflow: visible;
 }
 
 .xray-study-diagnosis-field {
@@ -1105,6 +1391,11 @@
 
 .xray-select-field {
   position: relative;
+  z-index: 1;
+}
+
+.xray-select-field.is-open {
+  z-index: 40;
 }
 
 .xray-select-trigger {
@@ -1139,7 +1430,7 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  z-index: 5;
+  z-index: 45;
   padding: 6px;
   border-radius: 16px;
   background: rgba(248, 250, 252, 0.98);
@@ -1831,6 +2122,11 @@
 
 .xray-referred-by-field {
   position: relative;
+  z-index: 1;
+}
+
+.xray-referred-by-field:focus-within {
+  z-index: 40;
 }
 
 .xray-referred-by-menu {
@@ -1838,7 +2134,7 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  z-index: 5;
+  z-index: 45;
   padding: 6px;
   border-radius: 16px;
   background: rgba(248, 250, 252, 0.98);
@@ -2764,6 +3060,10 @@
   box-shadow:
     0 26px 60px rgba(15, 23, 42, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.reminders-modal.xray-study-modal {
+  overflow: visible;
 }
 
 .reminders-modal-head {
