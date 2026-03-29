@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PlaceholderSection } from './components/common/PlaceholderSection'
+import AtlasPage from './atlas/pages/AtlasPage'
 import { HomeSection } from './components/home/HomeSection'
 import { ClockPanel } from './components/layout/ClockPanel'
 import { TopNav } from './components/layout/TopNav'
@@ -336,6 +337,10 @@ function App() {
 
     if (activeSection === 'Справки') {
       return <ReferencesSection />
+    }
+
+    if (activeSection === '\u0410\u043d\u0430\u0442\u043e\u043c\u0438\u044f') {
+      return <AtlasPage />
     }
 
     return <PlaceholderSection title={activeSection} />
