@@ -44,7 +44,7 @@ function getYearStartIsoDate() {
   return `${today.slice(0, 4)}-01-01`
 }
 
-type AppTheme = 'light' | 'dark' | 'cartoon'
+type AppTheme = 'light' | 'dark' | 'cartoon' | 'paper' | 'notebook'
 
 function App() {
   const currentMonthKey = getCurrentMonthKey()
@@ -56,7 +56,12 @@ function App() {
     }
 
     const savedTheme = window.localStorage.getItem('app-theme')
-    return savedTheme === 'dark' || savedTheme === 'cartoon' ? savedTheme : 'light'
+    return savedTheme === 'dark' ||
+      savedTheme === 'cartoon' ||
+      savedTheme === 'paper' ||
+      savedTheme === 'notebook'
+      ? savedTheme
+      : 'light'
   })
   const [fluorographyMonthCount, setFluorographyMonthCount] = useState(0)
   const [fluorographyYearCount, setFluorographyYearCount] = useState(0)
@@ -344,11 +349,7 @@ function App() {
         theme={theme}
         onSectionChange={setActiveSection}
         onToggleHomeEditing={() => setIsHomeEditing((current) => !current)}
-        onToggleTheme={() =>
-          setTheme((current) =>
-            current === 'light' ? 'dark' : current === 'dark' ? 'cartoon' : 'light',
-          )
-        }
+        onThemeChange={setTheme}
       />
 
       <section className="content-area">{renderContent()}</section>

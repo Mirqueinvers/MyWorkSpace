@@ -60,7 +60,6 @@
 }
 
 .hud-settings-button {
-  margin-left: auto;
   width: 48px;
   height: 48px;
   flex: 0 0 auto;
@@ -138,6 +137,82 @@
 .hud-theme-button.is-active {
   color: #0f766e;
 }
+
+.hud-theme-picker {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.hud-theme-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hud-theme-menu.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.hud-theme-option {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.hud-theme-option svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.hud-theme-option:hover {
+  transform: translateY(-1px);
+  color: #111827;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(94, 234, 212, 0.32),
+    0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.hud-theme-option.is-active {
+  color: #0f766e;
+  background: rgba(236, 253, 245, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.26),
+    0 8px 18px rgba(13, 148, 136, 0.12);
+}
+
 
 .content-area {
   padding-top: 128px;
@@ -4761,6 +4836,34 @@ html[data-theme='dark'] .hud-theme-button {
   color: #94a3b8;
 }
 
+html[data-theme='dark'] .hud-theme-menu {
+  background: rgba(15, 23, 42, 0.96);
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.42);
+}
+
+html[data-theme='dark'] .hud-theme-option {
+  color: #94a3b8;
+  background: rgba(30, 41, 59, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.56);
+}
+
+html[data-theme='dark'] .hud-theme-option:hover {
+  color: #f8fafc;
+  background: rgba(51, 65, 85, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(100, 116, 139, 0.74),
+    0 8px 18px rgba(2, 6, 23, 0.32);
+}
+
+html[data-theme='dark'] .hud-theme-option.is-active {
+  color: #5eead4;
+  background: rgba(15, 118, 110, 0.24);
+  box-shadow:
+    inset 0 0 0 1px rgba(45, 212, 191, 0.3),
+    0 8px 18px rgba(8, 145, 178, 0.18);
+}
+
 html[data-theme='dark'] .hud-settings-button:hover,
 html[data-theme='dark'] .hud-theme-button:hover {
   color: #f8fafc;
@@ -5235,6 +5338,754 @@ html[data-theme='dark'] .reference-page {
   color: #ca8a04;
 }
 
+.hud-theme-button.is-paper {
+  color: #7c5a34;
+}
+
+.hud-theme-button.is-notebook {
+  color: #1d4ed8;
+}
+
+html[data-theme='notebook'] {
+  color-scheme: light;
+}
+
+html[data-theme='notebook'] body {
+  background:
+    linear-gradient(to right, transparent 0, transparent 92px, rgba(244, 63, 94, 0.16) 92px, rgba(244, 63, 94, 0.16) 94px, transparent 94px),
+    repeating-linear-gradient(
+      180deg,
+      #fbfdff 0px,
+      #fbfdff 30px,
+      rgba(96, 165, 250, 0.14) 30px,
+      rgba(96, 165, 250, 0.14) 32px
+    ),
+    linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+}
+
+html[data-theme='notebook'] .app-shell {
+  color: #1e293b;
+  font-family:
+    'Segoe UI',
+    'Trebuchet MS',
+    system-ui,
+    sans-serif;
+}
+
+html[data-theme='notebook'] button,
+html[data-theme='notebook'] input,
+html[data-theme='notebook'] textarea,
+html[data-theme='notebook'] select {
+  font-family: inherit;
+}
+
+html[data-theme='notebook'] .top-hud,
+html[data-theme='notebook'] .clock-panel,
+html[data-theme='notebook'] .content-card,
+html[data-theme='notebook'] .xray-subnav,
+html[data-theme='notebook'] .notes-card,
+html[data-theme='notebook'] .reminders-modal,
+html[data-theme='notebook'] .xray-study-item,
+html[data-theme='notebook'] .xray-result-item,
+html[data-theme='notebook'] .patient-item,
+html[data-theme='notebook'] .xray-journal-item,
+html[data-theme='notebook'] .xray-study-meta-panel,
+html[data-theme='notebook'] .xray-statistics-panel,
+html[data-theme='notebook'] .xray-journal-card,
+html[data-theme='notebook'] .xray-search-card,
+html[data-theme='notebook'] .xray-patient-card,
+html[data-theme='notebook'] .xray-study-description-card,
+html[data-theme='notebook'] .reference-page {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  box-shadow:
+    0 14px 34px rgba(59, 130, 246, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+html[data-theme='notebook'] .top-hud {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+html[data-theme='notebook'] .section-head h2,
+html[data-theme='notebook'] .list-head h3,
+html[data-theme='notebook'] .placeholder-card h2,
+html[data-theme='notebook'] .home-widget-head h3,
+html[data-theme='notebook'] .xray-statistics-panel-head h3,
+html[data-theme='notebook'] .reminders-modal-title,
+html[data-theme='notebook'] .patient-name,
+html[data-theme='notebook'] .xray-patient-title,
+html[data-theme='notebook'] .xray-patient-title-birth,
+html[data-theme='notebook'] .xray-study-item-title,
+html[data-theme='notebook'] .xray-result-name,
+html[data-theme='notebook'] .clock-time {
+  color: #0f172a;
+}
+
+html[data-theme='notebook'] .section-kicker,
+html[data-theme='notebook'] .section-copy,
+html[data-theme='notebook'] .home-widget-copy,
+html[data-theme='notebook'] .home-widget-toolbar-copy,
+html[data-theme='notebook'] .patient-meta,
+html[data-theme='notebook'] .xray-patient-address,
+html[data-theme='notebook'] .xray-study-date,
+html[data-theme='notebook'] .xray-study-item-meta,
+html[data-theme='notebook'] .xray-study-field span,
+html[data-theme='notebook'] .xray-result-meta,
+html[data-theme='notebook'] .notes-empty,
+html[data-theme='notebook'] .notes-item-head span,
+html[data-theme='notebook'] .clock-date,
+html[data-theme='notebook'] .weather-description,
+html[data-theme='notebook'] .weather-city,
+html[data-theme='notebook'] .xray-journal-meta,
+html[data-theme='notebook'] .xray-statistics-period-copy,
+html[data-theme='notebook'] .xray-statistics-panel-head span,
+html[data-theme='notebook'] .home-widget-stat-label,
+html[data-theme='notebook'] .schools-tree-type,
+html[data-theme='notebook'] .xray-joint-space-group-title,
+html[data-theme='notebook'] .month-picker span,
+html[data-theme='notebook'] .field span,
+html[data-theme='notebook'] .reminder-repeat-label {
+  color: #64748b;
+}
+
+html[data-theme='notebook'] .hud-button,
+html[data-theme='notebook'] .primary-button,
+html[data-theme='notebook'] .secondary-button,
+html[data-theme='notebook'] .danger-button,
+html[data-theme='notebook'] .ghost-danger-button,
+html[data-theme='notebook'] .home-widget-add-button,
+html[data-theme='notebook'] .home-widget-hidden-chip,
+html[data-theme='notebook'] .home-widget-size-button,
+html[data-theme='notebook'] .references-nav-button,
+html[data-theme='notebook'] .reference-gender-button,
+html[data-theme='notebook'] .xray-side-tool-chip,
+html[data-theme='notebook'] .xray-template-chip,
+html[data-theme='notebook'] .xray-joint-space-chip,
+html[data-theme='notebook'] .xray-knee-choice-chip,
+html[data-theme='notebook'] .xray-knee-osteophytes-chip,
+html[data-theme='notebook'] .xray-doses-edit-button,
+html[data-theme='notebook'] .xray-rmis-button,
+html[data-theme='notebook'] .xray-study-edit,
+html[data-theme='notebook'] .xray-patient-copy,
+html[data-theme='notebook'] .xray-journal-date-arrow {
+  color: #1e40af;
+  background: rgba(239, 246, 255, 0.96);
+  border-color: rgba(96, 165, 250, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.84),
+    0 8px 20px rgba(96, 165, 250, 0.08);
+}
+
+html[data-theme='notebook'] .hud-button:hover,
+html[data-theme='notebook'] .primary-button:hover:not(:disabled),
+html[data-theme='notebook'] .secondary-button:hover:not(:disabled),
+html[data-theme='notebook'] .danger-button:hover:not(:disabled),
+html[data-theme='notebook'] .ghost-danger-button:hover:not(:disabled),
+html[data-theme='notebook'] .home-widget-add-button:hover,
+html[data-theme='notebook'] .home-widget-hidden-chip:hover,
+html[data-theme='notebook'] .home-widget-size-button:hover,
+html[data-theme='notebook'] .references-nav-button:hover,
+html[data-theme='notebook'] .reference-gender-button:hover,
+html[data-theme='notebook'] .xray-journal-date-arrow:hover,
+html[data-theme='notebook'] .xray-journal-date-arrow:focus-visible {
+  color: #1d4ed8;
+  background: rgba(219, 234, 254, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.88),
+    0 10px 24px rgba(96, 165, 250, 0.1);
+}
+
+html[data-theme='notebook'] .hud-button.is-active,
+html[data-theme='notebook'] .hud-settings-button.is-active,
+html[data-theme='notebook'] .hud-theme-button.is-active,
+html[data-theme='notebook'] .references-nav-button.is-active,
+html[data-theme='notebook'] .home-widget-link,
+html[data-theme='notebook'] .xray-subnav-button,
+html[data-theme='notebook'] .xray-study-chip,
+html[data-theme='notebook'] .xray-search-submit,
+html[data-theme='notebook'] .patient-count,
+html[data-theme='notebook'] .panel-counter,
+html[data-theme='notebook'] .reference-gender-button.is-active,
+html[data-theme='notebook'] .home-widget-size-button.is-active,
+html[data-theme='notebook'] .home-widget-add-button.is-open {
+  color: #0f172a;
+  background: #dbeafe;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.76),
+    0 10px 24px rgba(96, 165, 250, 0.12);
+}
+
+html[data-theme='notebook'] .hud-settings-button,
+html[data-theme='notebook'] .hud-theme-button {
+  color: #1d4ed8;
+}
+
+html[data-theme='notebook'] .hud-theme-menu {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(96, 165, 250, 0.18);
+  box-shadow: 0 16px 36px rgba(96, 165, 250, 0.12);
+}
+
+html[data-theme='notebook'] .hud-theme-option {
+  color: #1e40af;
+  background: rgba(239, 246, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18);
+}
+
+html[data-theme='notebook'] .hud-theme-option:hover {
+  color: #1d4ed8;
+  background: rgba(219, 234, 254, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 165, 250, 0.24),
+    0 8px 18px rgba(96, 165, 250, 0.1);
+}
+
+html[data-theme='notebook'] .hud-theme-option.is-active {
+  color: #0f172a;
+  background: #dbeafe;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+    0 8px 18px rgba(96, 165, 250, 0.12);
+}
+
+html[data-theme='notebook'] .hud-settings-button:hover,
+html[data-theme='notebook'] .hud-theme-button:hover {
+  color: #0f172a;
+}
+
+html[data-theme='notebook'] .hud-settings-gear-outline {
+  fill: #ffffff;
+  stroke: #1d4ed8;
+  stroke-width: 0.7px;
+}
+
+html[data-theme='notebook'] .month-picker input,
+html[data-theme='notebook'] .field input,
+html[data-theme='notebook'] .field textarea,
+html[data-theme='notebook'] .schools-select,
+html[data-theme='notebook'] .notes-textarea,
+html[data-theme='notebook'] .xray-journal-date-input-centered,
+html[data-theme='notebook'] .xray-search-shell,
+html[data-theme='notebook'] .xray-study-date-picker input,
+html[data-theme='notebook'] .xray-study-diagnosis,
+html[data-theme='notebook'] .xray-select-trigger,
+html[data-theme='notebook'] .xray-field,
+html[data-theme='notebook'] .xray-template-search,
+html[data-theme='notebook'] .xray-study-description-input,
+html[data-theme='notebook'] .xray-study-diagnosis-input,
+html[data-theme='notebook'] .xray-dose-filter-button,
+html[data-theme='notebook'] .xray-doses-select,
+html[data-theme='notebook'] .xray-doses-form-field .input {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(96, 165, 250, 0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 18px rgba(96, 165, 250, 0.08);
+}
+
+html[data-theme='notebook'] .month-picker input:focus,
+html[data-theme='notebook'] .field input:focus,
+html[data-theme='notebook'] .field textarea:focus,
+html[data-theme='notebook'] .schools-select:focus,
+html[data-theme='notebook'] .notes-textarea:focus,
+html[data-theme='notebook'] .xray-study-date-picker input:focus,
+html[data-theme='notebook'] .xray-study-diagnosis:focus,
+html[data-theme='notebook'] .xray-field:focus,
+html[data-theme='notebook'] .xray-study-description-input:focus,
+html[data-theme='notebook'] .xray-study-diagnosis-input:focus,
+html[data-theme='notebook'] .xray-doses-select:focus,
+html[data-theme='notebook'] .xray-doses-form-field .input:focus,
+html[data-theme='notebook'] .xray-search-shell:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow:
+    0 0 0 4px rgba(191, 219, 254, 0.34),
+    0 12px 24px rgba(96, 165, 250, 0.12);
+}
+
+html[data-theme='notebook'] .month-picker input::placeholder,
+html[data-theme='notebook'] .field input::placeholder,
+html[data-theme='notebook'] .field textarea::placeholder,
+html[data-theme='notebook'] .notes-textarea::placeholder,
+html[data-theme='notebook'] .xray-study-description-input::placeholder,
+html[data-theme='notebook'] .xray-study-diagnosis-input::placeholder,
+html[data-theme='notebook'] .xray-study-diagnosis::placeholder,
+html[data-theme='notebook'] .xray-search-shell input::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme='notebook'] .empty-state,
+html[data-theme='notebook'] .state-banner,
+html[data-theme='notebook'] .notes-item,
+html[data-theme='notebook'] .home-widget-footer,
+html[data-theme='notebook'] .home-widget-stat,
+html[data-theme='notebook'] .xray-confirm-panel,
+html[data-theme='notebook'] .xray-statistics-summary-card,
+html[data-theme='notebook'] .home-widget-available-item,
+html[data-theme='notebook'] .home-widget-add-panel,
+html[data-theme='notebook'] .xray-study-description-side,
+html[data-theme='notebook'] .xray-joint-space-column,
+html[data-theme='notebook'] .xray-joint-space-side,
+html[data-theme='notebook'] .xray-select-menu,
+html[data-theme='notebook'] .xray-referred-by-menu,
+html[data-theme='notebook'] .xray-joint-space-chip-secondary,
+html[data-theme='notebook'] .xray-spine-group,
+html[data-theme='notebook'] .xray-spine-shmorl-card,
+html[data-theme='notebook'] .xray-spine-vertebra-chip,
+html[data-theme='notebook'] .xray-spine-shmorl-chip,
+html[data-theme='notebook'] .xray-flatfoot-table-wrap,
+html[data-theme='notebook'] .schools-tree-item,
+html[data-theme='notebook'] .schools-item,
+html[data-theme='notebook'] .schools-class-card,
+html[data-theme='notebook'] .schools-student-card,
+html[data-theme='notebook'] .schools-class-select,
+html[data-theme='notebook'] .schools-link-chip {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(96, 165, 250, 0.14);
+  color: #0f172a;
+}
+
+html[data-theme='notebook'] .xray-select-option,
+html[data-theme='notebook'] .schools-tree-button,
+html[data-theme='notebook'] .schools-class-name,
+html[data-theme='notebook'] .schools-student-button,
+html[data-theme='notebook'] .schools-link-anchor,
+html[data-theme='notebook'] .notes-item-text,
+html[data-theme='notebook'] .xray-study-field strong {
+  color: #0f172a;
+}
+
+html[data-theme='notebook'] .xray-select-option:hover,
+html[data-theme='notebook'] .xray-template-chip:hover,
+html[data-theme='notebook'] .xray-side-tool-chip:hover,
+html[data-theme='notebook'] .xray-joint-space-chip:hover,
+html[data-theme='notebook'] .xray-knee-choice-chip:hover,
+html[data-theme='notebook'] .xray-knee-osteophytes-chip:hover,
+html[data-theme='notebook'] .xray-spine-vertebra-chip:hover,
+html[data-theme='notebook'] .xray-spine-shmorl-chip:hover {
+  background: rgba(239, 246, 255, 0.88);
+  color: #1d4ed8;
+  border-color: rgba(96, 165, 250, 0.24);
+}
+
+html[data-theme='notebook'] .xray-select-option.is-active,
+html[data-theme='notebook'] .xray-side-tool-chip.is-active,
+html[data-theme='notebook'] .xray-joint-space-chip.is-active,
+html[data-theme='notebook'] .xray-knee-choice-chip.is-active,
+html[data-theme='notebook'] .xray-knee-osteophytes-chip.is-active,
+html[data-theme='notebook'] .xray-spine-vertebra-chip.is-active,
+html[data-theme='notebook'] .xray-spine-shmorl-chip.is-active,
+html[data-theme='notebook'] .schools-class-select.is-active {
+  color: #0f172a;
+  background: #dbeafe;
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+    0 10px 24px rgba(96, 165, 250, 0.1);
+}
+
+html[data-theme='notebook'] .notes-delete,
+html[data-theme='notebook'] .reminder-close-button,
+html[data-theme='notebook'] .home-widget-hide-icon,
+html[data-theme='notebook'] .schools-tree-delete,
+html[data-theme='notebook'] .schools-link-delete,
+html[data-theme='notebook'] .reminders-modal-close,
+html[data-theme='notebook'] .reminders-modal-delete {
+  color: #dc2626;
+}
+
+html[data-theme='notebook'] .xray-statistics-table th,
+html[data-theme='notebook'] .xray-statistics-table td,
+html[data-theme='notebook'] .xray-doses-table th,
+html[data-theme='notebook'] .xray-doses-table td,
+html[data-theme='notebook'] .xray-flatfoot-table thead th,
+html[data-theme='notebook'] .xray-flatfoot-table tbody td {
+  border-color: rgba(96, 165, 250, 0.18);
+}
+
+html[data-theme='notebook'] .xray-statistics-table th,
+html[data-theme='notebook'] .xray-doses-table th,
+html[data-theme='notebook'] .xray-flatfoot-table thead th {
+  background: rgba(219, 234, 254, 0.8);
+  color: #1d4ed8;
+}
+
+html[data-theme='notebook'] .xray-statistics-bar-track {
+  background: rgba(219, 234, 254, 0.88);
+}
+
+html[data-theme='notebook'] .xray-statistics-bar-fill {
+  background: #60a5fa;
+}
+
+html[data-theme='paper'] {
+  color-scheme: light;
+}
+
+html[data-theme='paper'] body {
+  background:
+    radial-gradient(circle at top left, rgba(226, 232, 240, 0.22), transparent 28%),
+    radial-gradient(circle at top right, rgba(203, 213, 225, 0.18), transparent 22%),
+    linear-gradient(180deg, #f7f1e7 0%, #f1e7da 55%, #ece1d2 100%);
+}
+
+html[data-theme='paper'] .app-shell {
+  color: #1f2937;
+  font-family:
+    'Segoe UI',
+    'Trebuchet MS',
+    system-ui,
+    sans-serif;
+}
+
+html[data-theme='paper'] button,
+html[data-theme='paper'] input,
+html[data-theme='paper'] textarea,
+html[data-theme='paper'] select {
+  font-family: inherit;
+}
+
+html[data-theme='paper'] .top-hud,
+html[data-theme='paper'] .clock-panel,
+html[data-theme='paper'] .content-card,
+html[data-theme='paper'] .xray-subnav,
+html[data-theme='paper'] .notes-card,
+html[data-theme='paper'] .reminders-modal,
+html[data-theme='paper'] .xray-study-item,
+html[data-theme='paper'] .xray-result-item,
+html[data-theme='paper'] .patient-item,
+html[data-theme='paper'] .xray-journal-item,
+html[data-theme='paper'] .xray-study-meta-panel,
+html[data-theme='paper'] .xray-statistics-panel,
+html[data-theme='paper'] .xray-journal-card,
+html[data-theme='paper'] .xray-search-card,
+html[data-theme='paper'] .xray-patient-card,
+html[data-theme='paper'] .xray-study-description-card,
+html[data-theme='paper'] .reference-page {
+  background: rgba(255, 250, 244, 0.92);
+  border: 1px solid rgba(120, 113, 108, 0.16);
+  box-shadow:
+    0 14px 36px rgba(120, 113, 108, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+html[data-theme='paper'] .top-hud {
+  background: rgba(250, 245, 238, 0.88);
+}
+
+html[data-theme='paper'] .section-head h2,
+html[data-theme='paper'] .list-head h3,
+html[data-theme='paper'] .placeholder-card h2,
+html[data-theme='paper'] .home-widget-head h3,
+html[data-theme='paper'] .xray-statistics-panel-head h3,
+html[data-theme='paper'] .reminders-modal-title,
+html[data-theme='paper'] .patient-name,
+html[data-theme='paper'] .xray-patient-title,
+html[data-theme='paper'] .xray-patient-title-birth,
+html[data-theme='paper'] .xray-study-item-title,
+html[data-theme='paper'] .xray-result-name,
+html[data-theme='paper'] .clock-time {
+  color: #1f2937;
+}
+
+html[data-theme='paper'] .section-kicker,
+html[data-theme='paper'] .section-copy,
+html[data-theme='paper'] .home-widget-copy,
+html[data-theme='paper'] .home-widget-toolbar-copy,
+html[data-theme='paper'] .patient-meta,
+html[data-theme='paper'] .xray-patient-address,
+html[data-theme='paper'] .xray-study-date,
+html[data-theme='paper'] .xray-study-item-meta,
+html[data-theme='paper'] .xray-study-field span,
+html[data-theme='paper'] .xray-result-meta,
+html[data-theme='paper'] .notes-empty,
+html[data-theme='paper'] .notes-item-head span,
+html[data-theme='paper'] .clock-date,
+html[data-theme='paper'] .weather-description,
+html[data-theme='paper'] .weather-city,
+html[data-theme='paper'] .xray-journal-meta,
+html[data-theme='paper'] .xray-statistics-period-copy,
+html[data-theme='paper'] .xray-statistics-panel-head span,
+html[data-theme='paper'] .home-widget-stat-label,
+html[data-theme='paper'] .schools-tree-type,
+html[data-theme='paper'] .xray-joint-space-group-title,
+html[data-theme='paper'] .month-picker span,
+html[data-theme='paper'] .field span,
+html[data-theme='paper'] .reminder-repeat-label {
+  color: #6b7280;
+}
+
+html[data-theme='paper'] .hud-button,
+html[data-theme='paper'] .primary-button,
+html[data-theme='paper'] .secondary-button,
+html[data-theme='paper'] .danger-button,
+html[data-theme='paper'] .ghost-danger-button,
+html[data-theme='paper'] .home-widget-add-button,
+html[data-theme='paper'] .home-widget-hidden-chip,
+html[data-theme='paper'] .home-widget-size-button,
+html[data-theme='paper'] .references-nav-button,
+html[data-theme='paper'] .reference-gender-button,
+html[data-theme='paper'] .xray-side-tool-chip,
+html[data-theme='paper'] .xray-template-chip,
+html[data-theme='paper'] .xray-joint-space-chip,
+html[data-theme='paper'] .xray-knee-choice-chip,
+html[data-theme='paper'] .xray-knee-osteophytes-chip,
+html[data-theme='paper'] .xray-doses-edit-button,
+html[data-theme='paper'] .xray-rmis-button,
+html[data-theme='paper'] .xray-study-edit,
+html[data-theme='paper'] .xray-patient-copy,
+html[data-theme='paper'] .xray-journal-date-arrow {
+  color: #5b4631;
+  background: rgba(247, 240, 230, 0.96);
+  border-color: rgba(120, 113, 108, 0.14);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+    0 8px 20px rgba(120, 113, 108, 0.08);
+}
+
+html[data-theme='paper'] .hud-button:hover,
+html[data-theme='paper'] .primary-button:hover:not(:disabled),
+html[data-theme='paper'] .secondary-button:hover:not(:disabled),
+html[data-theme='paper'] .danger-button:hover:not(:disabled),
+html[data-theme='paper'] .ghost-danger-button:hover:not(:disabled),
+html[data-theme='paper'] .home-widget-add-button:hover,
+html[data-theme='paper'] .home-widget-hidden-chip:hover,
+html[data-theme='paper'] .home-widget-size-button:hover,
+html[data-theme='paper'] .references-nav-button:hover,
+html[data-theme='paper'] .reference-gender-button:hover,
+html[data-theme='paper'] .xray-journal-date-arrow:hover,
+html[data-theme='paper'] .xray-journal-date-arrow:focus-visible {
+  color: #3f3123;
+  background: rgba(239, 231, 220, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.82),
+    0 10px 24px rgba(120, 113, 108, 0.1);
+}
+
+html[data-theme='paper'] .hud-button.is-active,
+html[data-theme='paper'] .hud-settings-button.is-active,
+html[data-theme='paper'] .hud-theme-button.is-active,
+html[data-theme='paper'] .references-nav-button.is-active,
+html[data-theme='paper'] .home-widget-link,
+html[data-theme='paper'] .xray-subnav-button,
+html[data-theme='paper'] .xray-study-chip,
+html[data-theme='paper'] .xray-search-submit,
+html[data-theme='paper'] .patient-count,
+html[data-theme='paper'] .panel-counter,
+html[data-theme='paper'] .reference-gender-button.is-active,
+html[data-theme='paper'] .home-widget-size-button.is-active,
+html[data-theme='paper'] .home-widget-add-button.is-open {
+  color: #2f3e46;
+  background: #dbe5dd;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 10px 24px rgba(100, 116, 139, 0.12);
+}
+
+html[data-theme='paper'] .hud-settings-button,
+html[data-theme='paper'] .hud-theme-button {
+  color: #7c5a34;
+}
+
+html[data-theme='paper'] .hud-theme-menu {
+  background: rgba(255, 250, 244, 0.98);
+  border-color: rgba(120, 113, 108, 0.16);
+  box-shadow: 0 16px 36px rgba(120, 113, 108, 0.12);
+}
+
+html[data-theme='paper'] .hud-theme-option {
+  color: #5b4631;
+  background: rgba(247, 240, 230, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(120, 113, 108, 0.16);
+}
+
+html[data-theme='paper'] .hud-theme-option:hover {
+  color: #3f3123;
+  background: rgba(239, 231, 220, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(120, 113, 108, 0.2),
+    0 8px 18px rgba(120, 113, 108, 0.1);
+}
+
+html[data-theme='paper'] .hud-theme-option.is-active {
+  color: #2f3e46;
+  background: #dbe5dd;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 8px 18px rgba(100, 116, 139, 0.12);
+}
+
+html[data-theme='paper'] .hud-settings-button:hover,
+html[data-theme='paper'] .hud-theme-button:hover {
+  color: #3f3123;
+}
+
+html[data-theme='paper'] .hud-settings-gear-outline {
+  fill: #fffdf9;
+  stroke: #7c5a34;
+  stroke-width: 0.7px;
+}
+
+html[data-theme='paper'] .month-picker input,
+html[data-theme='paper'] .field input,
+html[data-theme='paper'] .field textarea,
+html[data-theme='paper'] .schools-select,
+html[data-theme='paper'] .notes-textarea,
+html[data-theme='paper'] .xray-journal-date-input-centered,
+html[data-theme='paper'] .xray-search-shell,
+html[data-theme='paper'] .xray-study-date-picker input,
+html[data-theme='paper'] .xray-study-diagnosis,
+html[data-theme='paper'] .xray-select-trigger,
+html[data-theme='paper'] .xray-field,
+html[data-theme='paper'] .xray-template-search,
+html[data-theme='paper'] .xray-study-description-input,
+html[data-theme='paper'] .xray-study-diagnosis-input,
+html[data-theme='paper'] .xray-dose-filter-button,
+html[data-theme='paper'] .xray-doses-select,
+html[data-theme='paper'] .xray-doses-form-field .input {
+  color: #1f2937;
+  background: rgba(255, 252, 247, 0.98);
+  border-color: rgba(148, 163, 184, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 18px rgba(148, 163, 184, 0.08);
+}
+
+html[data-theme='paper'] .month-picker input:focus,
+html[data-theme='paper'] .field input:focus,
+html[data-theme='paper'] .field textarea:focus,
+html[data-theme='paper'] .schools-select:focus,
+html[data-theme='paper'] .notes-textarea:focus,
+html[data-theme='paper'] .xray-study-date-picker input:focus,
+html[data-theme='paper'] .xray-study-diagnosis:focus,
+html[data-theme='paper'] .xray-field:focus,
+html[data-theme='paper'] .xray-study-description-input:focus,
+html[data-theme='paper'] .xray-study-diagnosis-input:focus,
+html[data-theme='paper'] .xray-doses-select:focus,
+html[data-theme='paper'] .xray-doses-form-field .input:focus,
+html[data-theme='paper'] .xray-search-shell:focus-within {
+  border-color: rgba(148, 163, 184, 0.54);
+  box-shadow:
+    0 0 0 4px rgba(203, 213, 225, 0.26),
+    0 12px 24px rgba(148, 163, 184, 0.12);
+}
+
+html[data-theme='paper'] .month-picker input::placeholder,
+html[data-theme='paper'] .field input::placeholder,
+html[data-theme='paper'] .field textarea::placeholder,
+html[data-theme='paper'] .notes-textarea::placeholder,
+html[data-theme='paper'] .xray-study-description-input::placeholder,
+html[data-theme='paper'] .xray-study-diagnosis-input::placeholder,
+html[data-theme='paper'] .xray-study-diagnosis::placeholder,
+html[data-theme='paper'] .xray-search-shell input::placeholder {
+  color: #9ca3af;
+}
+
+html[data-theme='paper'] .empty-state,
+html[data-theme='paper'] .state-banner,
+html[data-theme='paper'] .notes-item,
+html[data-theme='paper'] .home-widget-footer,
+html[data-theme='paper'] .home-widget-stat,
+html[data-theme='paper'] .xray-confirm-panel,
+html[data-theme='paper'] .xray-statistics-summary-card,
+html[data-theme='paper'] .home-widget-available-item,
+html[data-theme='paper'] .home-widget-add-panel,
+html[data-theme='paper'] .xray-study-description-side,
+html[data-theme='paper'] .xray-joint-space-column,
+html[data-theme='paper'] .xray-joint-space-side,
+html[data-theme='paper'] .xray-select-menu,
+html[data-theme='paper'] .xray-referred-by-menu,
+html[data-theme='paper'] .xray-joint-space-chip-secondary,
+html[data-theme='paper'] .xray-spine-group,
+html[data-theme='paper'] .xray-spine-shmorl-card,
+html[data-theme='paper'] .xray-spine-vertebra-chip,
+html[data-theme='paper'] .xray-spine-shmorl-chip,
+html[data-theme='paper'] .xray-flatfoot-table-wrap,
+html[data-theme='paper'] .schools-tree-item,
+html[data-theme='paper'] .schools-item,
+html[data-theme='paper'] .schools-class-card,
+html[data-theme='paper'] .schools-student-card,
+html[data-theme='paper'] .schools-class-select,
+html[data-theme='paper'] .schools-link-chip {
+  background: rgba(252, 248, 242, 0.96);
+  border-color: rgba(120, 113, 108, 0.14);
+  color: #1f2937;
+}
+
+html[data-theme='paper'] .xray-select-option,
+html[data-theme='paper'] .schools-tree-button,
+html[data-theme='paper'] .schools-class-name,
+html[data-theme='paper'] .schools-student-button,
+html[data-theme='paper'] .schools-link-anchor,
+html[data-theme='paper'] .notes-item-text,
+html[data-theme='paper'] .xray-study-field strong {
+  color: #1f2937;
+}
+
+html[data-theme='paper'] .xray-select-option:hover,
+html[data-theme='paper'] .xray-template-chip:hover,
+html[data-theme='paper'] .xray-side-tool-chip:hover,
+html[data-theme='paper'] .xray-joint-space-chip:hover,
+html[data-theme='paper'] .xray-knee-choice-chip:hover,
+html[data-theme='paper'] .xray-knee-osteophytes-chip:hover,
+html[data-theme='paper'] .xray-spine-vertebra-chip:hover,
+html[data-theme='paper'] .xray-spine-shmorl-chip:hover {
+  background: rgba(235, 229, 221, 0.76);
+  color: #4b5563;
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+html[data-theme='paper'] .xray-select-option.is-active,
+html[data-theme='paper'] .xray-side-tool-chip.is-active,
+html[data-theme='paper'] .xray-joint-space-chip.is-active,
+html[data-theme='paper'] .xray-knee-choice-chip.is-active,
+html[data-theme='paper'] .xray-knee-osteophytes-chip.is-active,
+html[data-theme='paper'] .xray-spine-vertebra-chip.is-active,
+html[data-theme='paper'] .xray-spine-shmorl-chip.is-active,
+html[data-theme='paper'] .schools-class-select.is-active {
+  color: #2f3e46;
+  background: #dbe5dd;
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.74),
+    0 10px 24px rgba(100, 116, 139, 0.1);
+}
+
+html[data-theme='paper'] .notes-delete,
+html[data-theme='paper'] .reminder-close-button,
+html[data-theme='paper'] .home-widget-hide-icon,
+html[data-theme='paper'] .schools-tree-delete,
+html[data-theme='paper'] .schools-link-delete,
+html[data-theme='paper'] .reminders-modal-close,
+html[data-theme='paper'] .reminders-modal-delete {
+  color: #9a3412;
+}
+
+html[data-theme='paper'] .xray-statistics-table th,
+html[data-theme='paper'] .xray-statistics-table td,
+html[data-theme='paper'] .xray-doses-table th,
+html[data-theme='paper'] .xray-doses-table td,
+html[data-theme='paper'] .xray-flatfoot-table thead th,
+html[data-theme='paper'] .xray-flatfoot-table tbody td {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+html[data-theme='paper'] .xray-statistics-table th,
+html[data-theme='paper'] .xray-doses-table th,
+html[data-theme='paper'] .xray-flatfoot-table thead th {
+  background: rgba(237, 233, 227, 0.9);
+  color: #4b5563;
+}
+
+html[data-theme='paper'] .xray-statistics-bar-track {
+  background: rgba(226, 232, 240, 0.86);
+}
+
+html[data-theme='paper'] .xray-statistics-bar-fill {
+  background: #94a3b8;
+}
+
 html[data-theme='cartoon'] {
   color-scheme: light;
 }
@@ -5360,6 +6211,36 @@ html[data-theme='cartoon'] .panel-counter {
 html[data-theme='cartoon'] .hud-settings-button,
 html[data-theme='cartoon'] .hud-theme-button {
   color: #713f12;
+}
+
+html[data-theme='cartoon'] .hud-theme-menu {
+  background: rgba(255, 250, 235, 0.98);
+  border-color: rgba(146, 64, 14, 0.14);
+  box-shadow: 0 18px 40px rgba(180, 83, 9, 0.12);
+}
+
+html[data-theme='cartoon'] .hud-theme-option {
+  color: #7c5a1b;
+  background: rgba(255, 247, 220, 0.96);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.78),
+    0 8px 18px rgba(202, 138, 4, 0.08);
+}
+
+html[data-theme='cartoon'] .hud-theme-option:hover {
+  color: #6b4f1d;
+  background: rgba(254, 240, 138, 0.9);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 10px 22px rgba(202, 138, 4, 0.12);
+}
+
+html[data-theme='cartoon'] .hud-theme-option.is-active {
+  color: #6b4f1d;
+  background: #f8e7a8;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 10px 22px rgba(202, 138, 4, 0.12);
 }
 
 html[data-theme='cartoon'] .hud-settings-button:hover,
@@ -5657,6 +6538,35 @@ html[data-theme='cartoon'] .reference-gender-button:hover {
   color: #6b4f1d;
   box-shadow:
     inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 10px 22px rgba(202, 138, 4, 0.12);
+}
+
+html[data-theme='cartoon'] .reminder-heading-button {
+  color: #8a6122;
+}
+
+html[data-theme='cartoon'] .reminder-heading-button:hover {
+  color: #6b4f1d;
+}
+
+html[data-theme='cartoon'] .reminder-heading-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 2px;
+  border-radius: 999px;
+  color: #8a6122;
+  background: rgba(255, 247, 220, 0.96);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 8px 18px rgba(202, 138, 4, 0.08);
+}
+
+html[data-theme='cartoon'] .reminder-heading-button:hover .reminder-heading-icon,
+html[data-theme='cartoon'] .reminder-heading-button.is-open .reminder-heading-icon {
+  color: #6b4f1d;
+  background: #f8e7a8;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.82),
     0 10px 22px rgba(202, 138, 4, 0.12);
 }
 
