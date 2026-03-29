@@ -44,16 +44,19 @@ function getYearStartIsoDate() {
   return `${today.slice(0, 4)}-01-01`
 }
 
+type AppTheme = 'light' | 'dark' | 'cartoon'
+
 function App() {
   const currentMonthKey = getCurrentMonthKey()
   const [activeSection, setActiveSection] = useState<AppSection>(NAV_ITEMS[0])
   const [isHomeEditing, setIsHomeEditing] = useState(false)
-  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+  const [theme, setTheme] = useState<AppTheme>(() => {
     if (typeof window === 'undefined') {
-      return false
+      return 'light'
     }
 
-    return window.localStorage.getItem('app-theme') === 'dark'
+    const savedTheme = window.localStorage.getItem('app-theme')
+    return savedTheme === 'dark' || savedTheme === 'cartoon' ? savedTheme : 'light'
   })
   const [fluorographyMonthCount, setFluorographyMonthCount] = useState(0)
   const [fluorographyYearCount, setFluorographyYearCount] = useState(0)
@@ -85,9 +88,9 @@ function App() {
       return
     }
 
-    document.documentElement.dataset.theme = isDarkTheme ? 'dark' : 'light'
-    window.localStorage.setItem('app-theme', isDarkTheme ? 'dark' : 'light')
-  }, [isDarkTheme])
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('app-theme', theme)
+  }, [theme])
 
   useEffect(() => {
     let isCancelled = false
@@ -338,10 +341,14 @@ function App() {
       <TopNav
         activeSection={activeSection}
         isHomeEditing={isHomeEditing}
-        isDarkTheme={isDarkTheme}
+        theme={theme}
         onSectionChange={setActiveSection}
         onToggleHomeEditing={() => setIsHomeEditing((current) => !current)}
-        onToggleTheme={() => setIsDarkTheme((current) => !current)}
+        onToggleTheme={() =>
+          setTheme((current) =>
+            current === 'light' ? 'dark' : current === 'dark' ? 'cartoon' : 'light',
+          )
+        }
       />
 
       <section className="content-area">{renderContent()}</section>

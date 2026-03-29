@@ -1,10 +1,12 @@
 import type { AppSection } from '../../constants/navigation'
 import { NAV_ITEMS } from '../../constants/navigation'
 
+type AppTheme = 'light' | 'dark' | 'cartoon'
+
 interface TopNavProps {
   activeSection: AppSection
   isHomeEditing: boolean
-  isDarkTheme: boolean
+  theme: AppTheme
   onSectionChange: (section: AppSection) => void
   onToggleHomeEditing: () => void
   onToggleTheme: () => void
@@ -13,16 +15,22 @@ interface TopNavProps {
 export function TopNav({
   activeSection,
   isHomeEditing,
-  isDarkTheme,
+  theme,
   onSectionChange,
   onToggleHomeEditing,
   onToggleTheme,
 }: TopNavProps) {
+  const isDarkTheme = theme === 'dark'
+  const isCartoonTheme = theme === 'cartoon'
+  const nextThemeLabel =
+    theme === 'light'
+      ? 'Включить тёмную тему'
+      : theme === 'dark'
+        ? 'Включить мультяшную тему'
+        : 'Включить светлую тему'
+
   return (
-    <nav
-      className="top-hud"
-      aria-label="\u041e\u0441\u043d\u043e\u0432\u043d\u044b\u0435 \u0440\u0430\u0437\u0434\u0435\u043b\u044b"
-    >
+    <nav className="top-hud" aria-label="Основные разделы">
       {NAV_ITEMS.map((item) => (
         <button
           key={item}
@@ -36,13 +44,18 @@ export function TopNav({
 
       <button
         type="button"
-        className={`hud-theme-button${isDarkTheme ? ' is-active' : ''}`}
+        className={`hud-theme-button${theme !== 'light' ? ' is-active' : ''}${isCartoonTheme ? ' is-cartoon' : ''}`}
         onClick={onToggleTheme}
-        aria-label={isDarkTheme ? 'Включить светлую тему' : 'Включить тёмную тему'}
-        title={isDarkTheme ? 'Включить светлую тему' : 'Включить тёмную тему'}
+        aria-label={nextThemeLabel}
+        title={nextThemeLabel}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          {isDarkTheme ? (
+          {isCartoonTheme ? (
+            <path
+              d="M12 3.25c1.16 0 2.1.94 2.1 2.1c0 .19-.03.38-.08.56l.87.24c.4-.48 1-.79 1.67-.79c1.21 0 2.19.98 2.19 2.19c0 .31-.07.62-.2.89l.7.55c.18-.08.37-.12.56-.12c1.16 0 2.1.94 2.1 2.1s-.94 2.1-2.1 2.1c-.19 0-.38-.03-.56-.08l-.25.87c.48.4.79 1 .79 1.67c0 1.21-.98 2.19-2.19 2.19c-.31 0-.62-.07-.89-.2l-.55.7c.08.18.12.37.12.56c0 1.16-.94 2.1-2.1 2.1s-2.1-.94-2.1-2.1c0-.19.03-.38.08-.56l-.87-.25c-.4.48-1 .79-1.67.79c-1.21 0-2.19-.98-2.19-2.19c0-.31.07-.62.2-.89l-.7-.55c-.18.08-.37.12-.56.12c-1.16 0-2.1-.94-2.1-2.1s.94-2.1 2.1-2.1c.19 0 .38.03.56.08l.24-.87c-.48-.4-.79-1-.79-1.67c0-1.21.98-2.19 2.19-2.19c.31 0 .62.07.89.2l.55-.7a2.08 2.08 0 0 1-.12-.56c0-1.16.94-2.1 2.1-2.1Zm0 5.25a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7Z"
+              fill="currentColor"
+            />
+          ) : isDarkTheme ? (
             <path
               d="M12 4.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V5a.75.75 0 0 1 .75-.75Zm0 11a3.25 3.25 0 1 0 0-6.5a3.25 3.25 0 0 0 0 6.5Zm0 4a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V20a.75.75 0 0 1 .75-.75ZM4.25 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Zm13.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H18.25a.75.75 0 0 1-.75-.75ZM6.47 6.47a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 1 1-1.06 1.06L6.47 7.53a.75.75 0 0 1 0-1.06Zm8.94 8.94a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM6.47 17.53a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 1 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Zm8.94-8.94a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Z"
               fill="currentColor"
@@ -60,8 +73,8 @@ export function TopNav({
         type="button"
         className={`hud-settings-button${isHomeEditing ? ' is-active' : ''}`}
         onClick={onToggleHomeEditing}
-        aria-label="\u041d\u0430\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0432\u0438\u0434\u0436\u0435\u0442\u044b"
-        title="\u041d\u0430\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0432\u0438\u0434\u0436\u0435\u0442\u044b"
+        aria-label="Настроить виджеты"
+        title="Настроить виджеты"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path

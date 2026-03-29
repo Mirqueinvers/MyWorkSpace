@@ -5230,3 +5230,471 @@ html[data-theme='dark'] .reference-page {
   color: #f8fafc;
   border-color: rgba(148, 163, 184, 0.18);
 }
+
+.hud-theme-button.is-cartoon {
+  color: #ca8a04;
+}
+
+html[data-theme='cartoon'] {
+  color-scheme: light;
+}
+
+html[data-theme='cartoon'] body {
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.28), transparent 30%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(234, 179, 8, 0.16), transparent 22%),
+    linear-gradient(180deg, #fff7df 0%, #fff1d0 52%, #f7ead2 100%);
+}
+
+html[data-theme='cartoon'] .app-shell {
+  color: #1f2937;
+  font-family:
+    'Comic Sans MS',
+    'Segoe Print',
+    'Bradley Hand',
+    'Marker Felt',
+    'Trebuchet MS',
+    sans-serif;
+}
+
+html[data-theme='cartoon'] button,
+html[data-theme='cartoon'] input,
+html[data-theme='cartoon'] textarea,
+html[data-theme='cartoon'] select {
+  font-family: inherit;
+}
+
+html[data-theme='cartoon'] .section-head h2,
+html[data-theme='cartoon'] .list-head h3,
+html[data-theme='cartoon'] .placeholder-card h2,
+html[data-theme='cartoon'] .home-widget-head h3,
+html[data-theme='cartoon'] .xray-statistics-panel-head h3,
+html[data-theme='cartoon'] .reminders-modal-title,
+html[data-theme='cartoon'] .patient-name,
+html[data-theme='cartoon'] .xray-patient-title,
+html[data-theme='cartoon'] .xray-patient-title-birth,
+html[data-theme='cartoon'] .xray-study-item-title,
+html[data-theme='cartoon'] .xray-result-name,
+html[data-theme='cartoon'] .clock-time {
+  font-weight: 600;
+}
+
+html[data-theme='cartoon'] .primary-button,
+html[data-theme='cartoon'] .secondary-button,
+html[data-theme='cartoon'] .danger-button,
+html[data-theme='cartoon'] .ghost-danger-button,
+html[data-theme='cartoon'] .hud-button,
+html[data-theme='cartoon'] .home-widget-add-button,
+html[data-theme='cartoon'] .home-widget-hidden-chip,
+html[data-theme='cartoon'] .home-widget-size-button,
+html[data-theme='cartoon'] .references-nav-button,
+html[data-theme='cartoon'] .reference-gender-button,
+html[data-theme='cartoon'] .xray-joint-space-chip,
+html[data-theme='cartoon'] .xray-knee-choice-chip,
+html[data-theme='cartoon'] .xray-knee-osteophytes-chip,
+html[data-theme='cartoon'] .xray-side-tool-chip,
+html[data-theme='cartoon'] .xray-template-chip {
+  font-weight: 600;
+}
+
+html[data-theme='cartoon'] .top-hud,
+html[data-theme='cartoon'] .clock-panel,
+html[data-theme='cartoon'] .content-card,
+html[data-theme='cartoon'] .xray-subnav,
+html[data-theme='cartoon'] .notes-card,
+html[data-theme='cartoon'] .reminders-modal,
+html[data-theme='cartoon'] .xray-study-item,
+html[data-theme='cartoon'] .xray-result-item,
+html[data-theme='cartoon'] .patient-item,
+html[data-theme='cartoon'] .xray-journal-item,
+html[data-theme='cartoon'] .xray-study-meta-panel,
+html[data-theme='cartoon'] .xray-statistics-panel,
+html[data-theme='cartoon'] .xray-journal-card,
+html[data-theme='cartoon'] .xray-search-card,
+html[data-theme='cartoon'] .xray-patient-card,
+html[data-theme='cartoon'] .xray-study-description-card,
+html[data-theme='cartoon'] .reference-page {
+  background: rgba(255, 251, 239, 0.94);
+  border: 2px solid rgba(146, 64, 14, 0.14);
+  box-shadow:
+    0 16px 0 rgba(217, 119, 6, 0.08),
+    0 28px 50px rgba(180, 83, 9, 0.12);
+}
+
+html[data-theme='cartoon'] .top-hud {
+  background: rgba(255, 250, 235, 0.9);
+}
+
+html[data-theme='cartoon'] .hud-button {
+  color: #92400e;
+  background: rgba(255, 247, 237, 0.98);
+  box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.22);
+}
+
+html[data-theme='cartoon'] .hud-button:hover {
+  color: #713f12;
+  background: rgba(254, 249, 195, 0.98);
+  box-shadow:
+    inset 0 0 0 2px rgba(234, 179, 8, 0.28),
+    0 10px 20px rgba(202, 138, 4, 0.1);
+}
+
+html[data-theme='cartoon'] .hud-button.is-active,
+html[data-theme='cartoon'] .hud-settings-button.is-active,
+html[data-theme='cartoon'] .hud-theme-button.is-active,
+html[data-theme='cartoon'] .references-nav-button.is-active,
+html[data-theme='cartoon'] .home-widget-link,
+html[data-theme='cartoon'] .xray-subnav-button,
+html[data-theme='cartoon'] .xray-study-chip,
+html[data-theme='cartoon'] .xray-search-submit,
+html[data-theme='cartoon'] .patient-count,
+html[data-theme='cartoon'] .panel-counter {
+  color: #6b4f1d;
+  background: #f8e7a8;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 12px 26px rgba(202, 138, 4, 0.12);
+}
+
+html[data-theme='cartoon'] .hud-settings-button,
+html[data-theme='cartoon'] .hud-theme-button {
+  color: #713f12;
+}
+
+html[data-theme='cartoon'] .hud-settings-button:hover,
+html[data-theme='cartoon'] .hud-theme-button:hover {
+  color: #0f172a;
+}
+
+html[data-theme='cartoon'] .hud-settings-gear-outline {
+  fill: #ffffff;
+  stroke: #92400e;
+  stroke-width: 0.6px;
+}
+
+html[data-theme='cartoon'] .section-head h2,
+html[data-theme='cartoon'] .list-head h3,
+html[data-theme='cartoon'] .placeholder-card h2,
+html[data-theme='cartoon'] .home-widget-head h3,
+html[data-theme='cartoon'] .xray-statistics-panel-head h3,
+html[data-theme='cartoon'] .reminders-modal-title,
+html[data-theme='cartoon'] .patient-name,
+html[data-theme='cartoon'] .xray-patient-title,
+html[data-theme='cartoon'] .xray-patient-title-birth,
+html[data-theme='cartoon'] .xray-study-item-title,
+html[data-theme='cartoon'] .xray-result-name,
+html[data-theme='cartoon'] .clock-time,
+html[data-theme='cartoon'] .notes-item-text,
+html[data-theme='cartoon'] .xray-study-field strong {
+  color: #111827;
+}
+
+html[data-theme='cartoon'] .section-kicker,
+html[data-theme='cartoon'] .section-copy,
+html[data-theme='cartoon'] .home-widget-copy,
+html[data-theme='cartoon'] .home-widget-toolbar-copy,
+html[data-theme='cartoon'] .patient-meta,
+html[data-theme='cartoon'] .xray-patient-address,
+html[data-theme='cartoon'] .xray-study-date,
+html[data-theme='cartoon'] .xray-study-item-meta,
+html[data-theme='cartoon'] .xray-study-field span,
+html[data-theme='cartoon'] .xray-result-meta,
+html[data-theme='cartoon'] .notes-empty,
+html[data-theme='cartoon'] .notes-item-head span,
+html[data-theme='cartoon'] .clock-date,
+html[data-theme='cartoon'] .weather-description,
+html[data-theme='cartoon'] .weather-city,
+html[data-theme='cartoon'] .xray-journal-meta,
+html[data-theme='cartoon'] .xray-statistics-period-copy,
+html[data-theme='cartoon'] .xray-statistics-panel-head span,
+html[data-theme='cartoon'] .home-widget-stat-label,
+html[data-theme='cartoon'] .schools-tree-type,
+html[data-theme='cartoon'] .xray-joint-space-group-title {
+  color: #8b6b3f;
+}
+
+html[data-theme='cartoon'] .month-picker span,
+html[data-theme='cartoon'] .field span,
+html[data-theme='cartoon'] .reminder-repeat-label {
+  color: #6b4f2a;
+}
+
+html[data-theme='cartoon'] .month-picker input,
+html[data-theme='cartoon'] .field input,
+html[data-theme='cartoon'] .field textarea,
+html[data-theme='cartoon'] .schools-select,
+html[data-theme='cartoon'] .notes-textarea,
+html[data-theme='cartoon'] .xray-journal-date-input-centered,
+html[data-theme='cartoon'] .xray-search-shell,
+html[data-theme='cartoon'] .xray-study-date-picker input,
+html[data-theme='cartoon'] .xray-study-diagnosis,
+html[data-theme='cartoon'] .xray-select-trigger,
+html[data-theme='cartoon'] .xray-field,
+html[data-theme='cartoon'] .xray-template-search,
+html[data-theme='cartoon'] .xray-study-description-input,
+html[data-theme='cartoon'] .xray-study-diagnosis-input,
+html[data-theme='cartoon'] .xray-dose-filter-button,
+html[data-theme='cartoon'] .xray-doses-select,
+html[data-theme='cartoon'] .xray-doses-form-field .input {
+  color: #111827;
+  background: rgba(255, 251, 239, 0.98);
+  border: 2px solid rgba(234, 179, 8, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 18px rgba(202, 138, 4, 0.08);
+}
+
+html[data-theme='cartoon'] .month-picker input:focus,
+html[data-theme='cartoon'] .field input:focus,
+html[data-theme='cartoon'] .field textarea:focus,
+html[data-theme='cartoon'] .schools-select:focus,
+html[data-theme='cartoon'] .notes-textarea:focus,
+html[data-theme='cartoon'] .xray-study-date-picker input:focus,
+html[data-theme='cartoon'] .xray-study-diagnosis:focus,
+html[data-theme='cartoon'] .xray-field:focus,
+html[data-theme='cartoon'] .xray-study-description-input:focus,
+html[data-theme='cartoon'] .xray-study-diagnosis-input:focus,
+html[data-theme='cartoon'] .xray-doses-select:focus,
+html[data-theme='cartoon'] .xray-doses-form-field .input:focus,
+html[data-theme='cartoon'] .xray-search-shell:focus-within {
+  border-color: rgba(234, 179, 8, 0.52);
+  box-shadow:
+    0 0 0 5px rgba(253, 224, 71, 0.24),
+    0 12px 24px rgba(202, 138, 4, 0.1);
+}
+
+html[data-theme='cartoon'] .month-picker input::placeholder,
+html[data-theme='cartoon'] .field input::placeholder,
+html[data-theme='cartoon'] .field textarea::placeholder,
+html[data-theme='cartoon'] .notes-textarea::placeholder,
+html[data-theme='cartoon'] .xray-study-description-input::placeholder,
+html[data-theme='cartoon'] .xray-study-diagnosis-input::placeholder,
+html[data-theme='cartoon'] .xray-study-diagnosis::placeholder,
+html[data-theme='cartoon'] .xray-search-shell input::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme='cartoon'] .empty-state,
+html[data-theme='cartoon'] .state-banner,
+html[data-theme='cartoon'] .notes-item,
+html[data-theme='cartoon'] .home-widget-footer,
+html[data-theme='cartoon'] .home-widget-stat,
+html[data-theme='cartoon'] .xray-confirm-panel,
+html[data-theme='cartoon'] .xray-statistics-summary-card,
+html[data-theme='cartoon'] .home-widget-available-item,
+html[data-theme='cartoon'] .home-widget-add-panel,
+html[data-theme='cartoon'] .xray-study-description-side,
+html[data-theme='cartoon'] .xray-joint-space-column,
+html[data-theme='cartoon'] .xray-joint-space-side,
+html[data-theme='cartoon'] .xray-select-menu,
+html[data-theme='cartoon'] .xray-referred-by-menu,
+html[data-theme='cartoon'] .xray-template-chip,
+html[data-theme='cartoon'] .xray-side-tool-chip,
+html[data-theme='cartoon'] .xray-joint-space-chip,
+html[data-theme='cartoon'] .xray-joint-space-chip-secondary,
+html[data-theme='cartoon'] .xray-knee-choice-chip,
+html[data-theme='cartoon'] .xray-knee-osteophytes-chip,
+html[data-theme='cartoon'] .xray-spine-group,
+html[data-theme='cartoon'] .xray-spine-shmorl-card,
+html[data-theme='cartoon'] .xray-spine-vertebra-chip,
+html[data-theme='cartoon'] .xray-spine-shmorl-chip,
+html[data-theme='cartoon'] .xray-flatfoot-table-wrap,
+html[data-theme='cartoon'] .schools-tree-item,
+html[data-theme='cartoon'] .schools-item,
+html[data-theme='cartoon'] .schools-class-card,
+html[data-theme='cartoon'] .schools-student-card,
+html[data-theme='cartoon'] .schools-class-select,
+html[data-theme='cartoon'] .schools-link-chip {
+  background: rgba(255, 249, 235, 0.96);
+  border: 2px solid rgba(234, 179, 8, 0.16);
+  color: #111827;
+}
+
+html[data-theme='cartoon'] .xray-select-option,
+html[data-theme='cartoon'] .schools-tree-button,
+html[data-theme='cartoon'] .schools-class-name,
+html[data-theme='cartoon'] .schools-student-button,
+html[data-theme='cartoon'] .schools-link-anchor {
+  color: #111827;
+}
+
+html[data-theme='cartoon'] .xray-select-option:hover,
+html[data-theme='cartoon'] .xray-template-chip:hover,
+html[data-theme='cartoon'] .xray-side-tool-chip:hover,
+html[data-theme='cartoon'] .xray-joint-space-chip:hover,
+html[data-theme='cartoon'] .xray-knee-choice-chip:hover,
+html[data-theme='cartoon'] .xray-knee-osteophytes-chip:hover,
+html[data-theme='cartoon'] .xray-spine-vertebra-chip:hover,
+html[data-theme='cartoon'] .xray-spine-shmorl-chip:hover {
+  background: rgba(254, 249, 195, 0.7);
+  color: #854d0e;
+  border-color: rgba(234, 179, 8, 0.24);
+}
+
+html[data-theme='cartoon'] .xray-select-option.is-active,
+html[data-theme='cartoon'] .xray-side-tool-chip.is-active,
+html[data-theme='cartoon'] .xray-joint-space-chip.is-active,
+html[data-theme='cartoon'] .xray-knee-choice-chip.is-active,
+html[data-theme='cartoon'] .xray-knee-osteophytes-chip.is-active,
+html[data-theme='cartoon'] .xray-spine-vertebra-chip.is-active,
+html[data-theme='cartoon'] .xray-spine-shmorl-chip.is-active,
+html[data-theme='cartoon'] .schools-class-select.is-active {
+  color: #6b4f1d;
+  background: #f8e7a8;
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 10px 24px rgba(202, 138, 4, 0.12);
+}
+
+html[data-theme='cartoon'] .notes-delete,
+html[data-theme='cartoon'] .reminder-close-button,
+html[data-theme='cartoon'] .home-widget-hide-icon,
+html[data-theme='cartoon'] .schools-tree-delete,
+html[data-theme='cartoon'] .schools-link-delete {
+  color: #ef4444;
+}
+
+html[data-theme='cartoon'] .primary-button,
+html[data-theme='cartoon'] .secondary-button,
+html[data-theme='cartoon'] .danger-button,
+html[data-theme='cartoon'] .ghost-danger-button,
+html[data-theme='cartoon'] .home-widget-add-button,
+html[data-theme='cartoon'] .home-widget-hidden-chip,
+html[data-theme='cartoon'] .home-widget-size-button,
+html[data-theme='cartoon'] .schools-edit-button,
+html[data-theme='cartoon'] .xray-doses-edit-button,
+html[data-theme='cartoon'] .xray-rmis-button,
+html[data-theme='cartoon'] .reminders-modal-close,
+html[data-theme='cartoon'] .reminders-modal-delete,
+html[data-theme='cartoon'] .xray-study-edit,
+html[data-theme='cartoon'] .xray-patient-copy,
+html[data-theme='cartoon'] .notes-delete,
+html[data-theme='cartoon'] .reminder-close-button,
+html[data-theme='cartoon'] .home-widget-hide-icon,
+html[data-theme='cartoon'] .schools-tree-delete,
+html[data-theme='cartoon'] .schools-link-delete,
+html[data-theme='cartoon'] .xray-journal-date-arrow {
+  background: rgba(255, 247, 220, 0.96);
+  color: #7c5a1b;
+  border-color: rgba(214, 158, 46, 0.2);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.78),
+    0 8px 18px rgba(202, 138, 4, 0.08);
+}
+
+html[data-theme='cartoon'] .primary-button:hover:not(:disabled),
+html[data-theme='cartoon'] .secondary-button:hover:not(:disabled),
+html[data-theme='cartoon'] .danger-button:hover:not(:disabled),
+html[data-theme='cartoon'] .ghost-danger-button:hover:not(:disabled),
+html[data-theme='cartoon'] .home-widget-add-button:hover,
+html[data-theme='cartoon'] .home-widget-hidden-chip:hover,
+html[data-theme='cartoon'] .home-widget-size-button:hover,
+html[data-theme='cartoon'] .schools-edit-button:hover,
+html[data-theme='cartoon'] .xray-rmis-button.is-active:hover,
+html[data-theme='cartoon'] .xray-study-edit:hover,
+html[data-theme='cartoon'] .xray-patient-copy:hover,
+html[data-theme='cartoon'] .notes-delete:hover:not(:disabled),
+html[data-theme='cartoon'] .reminder-close-button:hover:not(:disabled),
+html[data-theme='cartoon'] .schools-tree-delete:hover,
+html[data-theme='cartoon'] .schools-link-delete:hover,
+html[data-theme='cartoon'] .reminders-modal-close:hover,
+html[data-theme='cartoon'] .reminders-modal-delete:hover:not(:disabled),
+html[data-theme='cartoon'] .xray-journal-date-arrow:hover,
+html[data-theme='cartoon'] .xray-journal-date-arrow:focus-visible {
+  background: rgba(254, 240, 138, 0.9);
+  color: #6b4f1d;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 10px 22px rgba(202, 138, 4, 0.12);
+}
+
+html[data-theme='cartoon'] .primary-button:disabled,
+html[data-theme='cartoon'] .secondary-button:disabled,
+html[data-theme='cartoon'] .danger-button:disabled,
+html[data-theme='cartoon'] .ghost-danger-button:disabled,
+html[data-theme='cartoon'] .notes-delete:disabled,
+html[data-theme='cartoon'] .schools-student-icon-button:disabled {
+  background: rgba(245, 236, 205, 0.92);
+  color: #a8a29e;
+  box-shadow: inset 0 0 0 2px rgba(255, 251, 235, 0.72);
+}
+
+html[data-theme='cartoon'] .danger-button,
+html[data-theme='cartoon'] .ghost-danger-button,
+html[data-theme='cartoon'] .notes-delete,
+html[data-theme='cartoon'] .reminder-close-button,
+html[data-theme='cartoon'] .schools-tree-delete,
+html[data-theme='cartoon'] .schools-link-delete,
+html[data-theme='cartoon'] .reminders-modal-close,
+html[data-theme='cartoon'] .reminders-modal-delete {
+  color: #b45309;
+}
+
+html[data-theme='cartoon'] .xray-rmis-button.is-active,
+html[data-theme='cartoon'] .schools-edit-button.is-active,
+html[data-theme='cartoon'] .home-widget-add-button.is-open,
+html[data-theme='cartoon'] .home-widget-size-button.is-active,
+html[data-theme='cartoon'] .reference-gender-button.is-active {
+  background: #f8e7a8;
+  color: #6b4f1d;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 8px 18px rgba(202, 138, 4, 0.1);
+}
+
+html[data-theme='cartoon'] .reference-gender-button {
+  background: rgba(255, 247, 220, 0.96);
+  color: #7c5a1b;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.78),
+    0 8px 18px rgba(202, 138, 4, 0.08);
+}
+
+html[data-theme='cartoon'] .reference-gender-button:hover {
+  background: rgba(254, 240, 138, 0.9);
+  color: #6b4f1d;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 251, 235, 0.8),
+    0 10px 22px rgba(202, 138, 4, 0.12);
+}
+
+html[data-theme='cartoon'] .schools-student-icon-button {
+  background: rgba(254, 249, 195, 0.96);
+  color: #a16207;
+}
+
+html[data-theme='cartoon'] .schools-student-icon-button:hover:not(:disabled),
+html[data-theme='cartoon'] .schools-student-icon-button.is-active {
+  background: rgba(253, 224, 71, 0.42);
+}
+
+html[data-theme='cartoon'] .schools-student-icon-button-danger {
+  background: rgba(254, 226, 226, 0.96);
+  color: #dc2626;
+}
+
+html[data-theme='cartoon'] .xray-statistics-table th,
+html[data-theme='cartoon'] .xray-statistics-table td,
+html[data-theme='cartoon'] .xray-doses-table th,
+html[data-theme='cartoon'] .xray-doses-table td,
+html[data-theme='cartoon'] .xray-flatfoot-table thead th,
+html[data-theme='cartoon'] .xray-flatfoot-table tbody td {
+  border-color: rgba(217, 119, 6, 0.12);
+}
+
+html[data-theme='cartoon'] .xray-statistics-table th,
+html[data-theme='cartoon'] .xray-doses-table th,
+html[data-theme='cartoon'] .xray-flatfoot-table thead th {
+  background: rgba(254, 249, 195, 0.8);
+  color: #a16207;
+}
+
+html[data-theme='cartoon'] .xray-statistics-bar-track {
+  background: rgba(254, 249, 195, 0.9);
+}
+
+html[data-theme='cartoon'] .xray-statistics-bar-fill {
+  background: #e7c96a;
+}
