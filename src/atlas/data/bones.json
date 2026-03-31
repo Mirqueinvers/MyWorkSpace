@@ -20,16 +20,16 @@
     "name_ru": "Левая лопатка",
     "name_la": "Scapula sinistra",
     "group": "upper_limb",
-    "svg_group_ids": ["Scapula"],
-    "description": "Лопатка слева; в SVG представлена общей группой лопаток."
+    "svg_group_ids": ["path547", "path549", "path551", "path553", "path555"],
+    "description": "Лопатка слева."
   },
   {
     "id": "scapula_right",
     "name_ru": "Правая лопатка",
     "name_la": "Scapula dextra",
     "group": "upper_limb",
-    "svg_group_ids": ["Scapula"],
-    "description": "Лопатка справа; в SVG представлена общей группой лопаток."
+    "svg_group_ids": ["path559", "path561", "path563", "path565", "path567"],
+    "description": "Лопатка справа."
   },
   {
     "id": "sternum",
@@ -132,7 +132,7 @@
       "path849",
       "path871"
     ],
-    "description": "Рёбра грудной клетки; для MVP привязаны к ближайшим грудным структурам."
+    "description": "Рёбра грудной клетки."
   },
   {
     "id": "pelvis",
@@ -220,11 +220,11 @@
     "name_la": "Femur dexter",
     "group": "lower_limb",
     "svg_group_ids": ["g3760", "path479", "path481"],
-    "description": "Правая бедренная кость; в SVG привязана к ближайшему отдельному контуру."
+    "description": "Правая бедренная кость."
   },
   {
     "id": "patella_left",
-    "name_ru": "Левая надколенник",
+    "name_ru": "Левый надколенник",
     "name_la": "Patella sinistra",
     "group": "lower_limb",
     "svg_group_ids": ["PatellaLeft"],

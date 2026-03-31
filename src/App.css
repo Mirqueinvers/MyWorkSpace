@@ -257,9 +257,193 @@
   gap: 16px;
 }
 
+.atlas-group-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.atlas-group-filter__button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.atlas-group-filter__button:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.22),
+    0 10px 20px rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.atlas-group-filter__button.is-active {
+  background: rgba(236, 253, 245, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(13, 148, 136, 0.34),
+    0 10px 20px rgba(13, 148, 136, 0.1);
+  color: #0f766e;
+}
+
 .atlas-placeholder {
   border-radius: 20px;
   padding: 16px 18px;
+  color: #64748b;
+  background: rgba(241, 245, 249, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.14);
+}
+
+.atlas-bone-info {
+  border-radius: 24px;
+  padding: 20px 22px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.atlas-bone-info__empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.atlas-bone-info__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atlas-bone-info__label {
+  font-size: 12px;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.atlas-bone-info__title {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.atlas-bone-info__value {
+  font-size: 16px;
+  line-height: 1.45;
+  color: #1e293b;
+}
+
+.atlas-bone-info__value--latin {
+  font-style: italic;
+}
+
+.atlas-bone-info__description {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.atlas-bone-search {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.atlas-bone-search__input {
+  width: 100%;
+  border: none;
+  outline: none;
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.2),
+    0 10px 24px rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.atlas-bone-search__input::placeholder {
+  color: #94a3b8;
+}
+
+.atlas-bone-search__results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.atlas-bone-search__item {
+  border: none;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.atlas-bone-search__item:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.26),
+    0 12px 22px rgba(15, 23, 42, 0.08);
+}
+
+.atlas-bone-search__item.is-selected {
+  background: rgba(236, 253, 245, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(13, 148, 136, 0.34),
+    0 12px 22px rgba(13, 148, 136, 0.1);
+}
+
+.atlas-bone-search__item-title {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.atlas-bone-search__item-subtitle {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #64748b;
+  font-style: italic;
+}
+
+.atlas-bone-search__empty {
+  border-radius: 18px;
+  padding: 14px 16px;
   color: #64748b;
   background: rgba(241, 245, 249, 0.82);
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.14);
@@ -381,13 +565,73 @@
 }
 
 html[data-theme='dark'] .atlas-placeholder,
-html[data-theme='dark'] .atlas-skeleton-shell {
+html[data-theme='dark'] .atlas-skeleton-shell,
+html[data-theme='dark'] .atlas-bone-info {
   background: rgba(15, 23, 42, 0.86);
   box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.4);
 }
 
 html[data-theme='dark'] .atlas-placeholder {
   color: #94a3b8;
+}
+
+html[data-theme='dark'] .atlas-bone-info__empty,
+html[data-theme='dark'] .atlas-bone-info__description {
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .atlas-bone-info__title,
+html[data-theme='dark'] .atlas-bone-info__value {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .atlas-bone-search__input,
+html[data-theme='dark'] .atlas-bone-search__item,
+html[data-theme='dark'] .atlas-bone-search__empty {
+  background: rgba(15, 23, 42, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.4);
+}
+
+html[data-theme='dark'] .atlas-bone-search__input {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .atlas-bone-search__input::placeholder,
+html[data-theme='dark'] .atlas-bone-search__item-subtitle,
+html[data-theme='dark'] .atlas-bone-search__empty {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .atlas-bone-search__item-title {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .atlas-bone-search__item.is-selected {
+  background: rgba(20, 184, 166, 0.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(94, 234, 212, 0.42),
+    0 12px 22px rgba(15, 23, 42, 0.2);
+}
+
+html[data-theme='dark'] .atlas-group-filter__button {
+  background: rgba(15, 23, 42, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.4);
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .atlas-group-filter__button:hover {
+  color: #f8fafc;
+  box-shadow:
+    inset 0 0 0 1px rgba(94, 234, 212, 0.34),
+    0 10px 20px rgba(15, 23, 42, 0.24);
+}
+
+html[data-theme='dark'] .atlas-group-filter__button.is-active {
+  background: rgba(20, 184, 166, 0.14);
+  box-shadow:
+    inset 0 0 0 1px rgba(94, 234, 212, 0.46),
+    0 10px 20px rgba(15, 23, 42, 0.24);
+  color: #5eead4;
 }
 
 html[data-theme='dark'] .atlas-skeleton-hint {

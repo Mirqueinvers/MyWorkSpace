@@ -95,11 +95,18 @@ function applyBoneVisualState(elements, state) {
   for (const element of elements) {
     restoreOriginalVisualState(element)
 
+    if (state === 'muted') {
+      element.style.setProperty('opacity', '0.22', 'important')
+      element.style.setProperty('filter', 'saturate(0.35)', 'important')
+      continue
+    }
+
     if (state === 'selected') {
       element.style.setProperty('fill', '#fdba74', 'important')
       element.style.setProperty('stroke', '#c2410c', 'important')
       element.style.setProperty('stroke-width', '1.3', 'important')
       element.style.setProperty('filter', 'brightness(1.04)', 'important')
+      element.style.setProperty('opacity', '1', 'important')
       continue
     }
 
@@ -108,6 +115,7 @@ function applyBoneVisualState(elements, state) {
       element.style.setProperty('stroke', '#0f766e', 'important')
       element.style.setProperty('stroke-width', '1.15', 'important')
       element.style.setProperty('filter', 'brightness(1.03)', 'important')
+      element.style.setProperty('opacity', '1', 'important')
     }
   }
 }
@@ -159,6 +167,8 @@ function findBoneNode(startNode, stopNode) {
 
 export function SkeletonAtlas({
   svgMarkup,
+  activeGroup = 'all',
+  selectedBoneId: controlledSelectedBoneId = null,
   onBoneHover,
   onBoneLeave,
   onBoneSelect,
@@ -342,6 +352,8 @@ export function SkeletonAtlas({
         return
       }
 
+      hoveredBoneIdRef.current = nextBoneId
+      setHoveredBoneId(nextBoneId)
       setSelectedBoneId(nextBoneId)
 
       if (typeof onBoneSelect === 'function') {
@@ -375,6 +387,17 @@ export function SkeletonAtlas({
       applyBoneVisualState(elements, null)
     }
 
+    if (activeGroup !== 'all') {
+      for (const [boneId, elements] of boneElementsRef.current.entries()) {
+        const bone = boneMap.get(boneId)
+        if (!bone || bone.group === activeGroup) {
+          continue
+        }
+
+        applyBoneVisualState(elements, 'muted')
+      }
+    }
+
     if (selectedBoneId) {
       applyBoneVisualState(
         boneElementsRef.current.get(selectedBoneId) ?? [],
@@ -388,7 +411,17 @@ export function SkeletonAtlas({
         'hover',
       )
     }
-  }, [hoveredBoneId, selectedBoneId])
+  }, [activeGroup, boneMap, hoveredBoneId, selectedBoneId])
+
+  useEffect(() => {
+    if (controlledSelectedBoneId === undefined) {
+      return
+    }
+
+    hoveredBoneIdRef.current = null
+    setHoveredBoneId(null)
+    setSelectedBoneId(controlledSelectedBoneId ?? null)
+  }, [controlledSelectedBoneId])
 
   return (
     <div className="atlas-skeleton-shell">
