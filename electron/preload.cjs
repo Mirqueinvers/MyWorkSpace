@@ -148,4 +148,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('xray:delete-study', id);
     },
   },
+  ultrasoundJournal: {
+    listByDate(studyDate) {
+      return ipcRenderer.invoke('ultrasound-journal:list-by-date', studyDate);
+    },
+    listByPatient(payload) {
+      return ipcRenderer.invoke('ultrasound-journal:list-by-patient', payload);
+    },
+    getProtocol(id) {
+      return ipcRenderer.invoke('ultrasound-journal:get-protocol', id);
+    },
+    selectFile() {
+      return ipcRenderer.invoke('ultrasound-journal:select-file');
+    },
+    importFile(filePath) {
+      return ipcRenderer.invoke('ultrasound-journal:import-file', filePath);
+    },
+  },
 });

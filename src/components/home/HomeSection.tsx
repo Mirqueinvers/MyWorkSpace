@@ -188,11 +188,11 @@ const HOME_WIDGETS: HomeWidgetDefinition[] = [
   },
   {
     id: 'xray',
-    section: 'X-ray',
-    kicker: 'X-ray',
+    section: 'Пациенты',
+    kicker: 'Пациенты',
     title: '\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u0438 \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f',
     description:
-      '\u041d\u0430 \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u0432\u0438\u0434\u043d\u043e \u0442\u0435\u043a\u0443\u0449\u0435\u0435 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u043e\u0439 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438 X-ray.',
+      '\u041d\u0430 \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u0432\u0438\u0434\u043d\u043e \u0442\u0435\u043a\u0443\u0449\u0435\u0435 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u043e\u0439 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0438 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.',
     defaultSize: 'xl',
     availableSizes: ['xxs', 'xl'],
     renderStats: (props) => [
@@ -218,11 +218,11 @@ const HOME_WIDGETS: HomeWidgetDefinition[] = [
     renderFooter: (props) =>
       props.xraySelectedPatient
         ? `${props.xraySelectedPatient.lastName} ${props.xraySelectedPatient.firstName} ${props.xraySelectedPatient.patronymic}`.trim()
-        : '\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 X-ray \u043f\u043e\u043a\u0430 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u0430.',
+        : '\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u0430.',
   },
   {
     id: 'fluorography',
-    section: 'X-ray',
+    section: 'Журналы',
     kicker: '\u0424\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u044f',
     title: '\u0421\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0436\u0443\u0440\u043d\u0430\u043b\u0443',
     description:

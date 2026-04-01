@@ -10,6 +10,8 @@ import { ReferencesSection } from './components/references/ReferencesSection'
 import { RemindersPanel } from './components/reminders/RemindersPanel'
 import { SchoolsSection } from './components/schools/SchoolsSection'
 import { SickLeavesSection } from './components/sickLeaves/SickLeavesSection'
+import { XRayDoses, XRayStatistics } from './components/xray/components'
+import { XRayJournalsSection } from './components/xray/XRayJournalsSection'
 import { XRaySection } from './components/xray/XRaySection'
 import { NAV_ITEMS } from './constants/navigation'
 import type { AppSection } from './constants/navigation'
@@ -158,7 +160,7 @@ function App() {
 
   function handleHomeXRayPatientSelect(patient: XRaySearchResult) {
     xray.handleSelectPatient(patient)
-    setActiveSection('X-ray')
+    setActiveSection('Пациенты')
   }
 
   function renderContent() {
@@ -287,7 +289,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'X-ray') {
+    if (activeSection === 'Пациенты') {
       return (
         <XRaySection
           query={xray.query}
@@ -295,6 +297,7 @@ function App() {
           selectedPatient={xray.selectedPatient}
           studies={xray.studies}
           flStudies={xray.flStudies}
+          ultrasoundStudies={xray.ultrasoundStudies}
           lastSubmittedQuery={xray.lastSubmittedQuery}
           loading={xray.loading}
           error={xray.error}
@@ -302,6 +305,7 @@ function App() {
           isDeleting={xray.isDeleting}
           studiesLoading={xray.studiesLoading}
           flStudiesLoading={xray.flStudiesLoading}
+          ultrasoundStudiesLoading={xray.ultrasoundStudiesLoading}
           isSavingStudy={xray.isSavingStudy}
           deletingStudyId={xray.deletingStudyId}
           onQueryChange={xray.setQuery}
@@ -317,6 +321,23 @@ function App() {
           onReset={xray.resetState}
         />
       )
+    }
+
+    if (activeSection === 'Журналы') {
+      return (
+        <XRayJournalsSection
+          onSelectPatient={xray.handleSelectPatient}
+          onOpenPatient={() => setActiveSection('Пациенты')}
+        />
+      )
+    }
+
+    if (activeSection === 'Статистика') {
+      return <XRayStatistics />
+    }
+
+    if (activeSection === 'Дозы') {
+      return <XRayDoses />
     }
 
     if (activeSection === 'Заметки') {

@@ -1,4 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const crypto = require('node:crypto');
 const path = require('node:path');
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
@@ -326,6 +327,33 @@ function ensureXRaySchema(db) {
   }
 }
 
+function ensureUltrasoundJournalSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ultrasound_journal_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      study_date TEXT NOT NULL,
+      patient_full_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      patronymic TEXT NOT NULL,
+      birth_date TEXT NOT NULL,
+      study_title TEXT NOT NULL,
+      doctor_name TEXT NOT NULL,
+      conclusion TEXT NOT NULL DEFAULT '',
+      source_file TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      document_html TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ultrasound_journal_entries_study_date
+    ON ultrasound_journal_entries (study_date, created_at DESC, id DESC);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ultrasound_journal_entries_content_hash
+    ON ultrasound_journal_entries (content_hash);
+  `);
+}
+
 function normalizeText(value) {
   return String(value ?? '').trim();
 }
@@ -402,6 +430,7 @@ function getDatabase() {
   ensureNotesSchema(database);
   ensureSchoolsSchema(database);
   ensureXRaySchema(database);
+  ensureUltrasoundJournalSchema(database);
 
   return database;
 }
@@ -476,6 +505,42 @@ function mapXRayFlJournalEntry(row) {
     dose: row.dose,
     rmisUrl: row.rmis_url ?? null,
     createdAt: row.created_at,
+  };
+}
+
+function mapUltrasoundJournalStudy(row) {
+  return {
+    id: row.id,
+    studyDate: row.study_date,
+    studyTitle: row.study_title,
+    doctorName: row.doctor_name,
+    conclusion: row.conclusion ?? '',
+    rmisUrl: row.rmis_url ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+function mapUltrasoundProtocolEntry(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    studyDate: row.study_date,
+    studyTitle: row.study_title,
+    doctorName: row.doctor_name,
+    conclusion: row.conclusion ?? '',
+    createdAt: row.created_at,
+    sourceFile: row.source_file,
+    documentHtml: row.document_html,
+    patient: {
+      fullName: row.patient_full_name,
+      lastName: row.last_name,
+      firstName: row.first_name,
+      patronymic: row.patronymic,
+      birthDate: row.birth_date,
+    },
   };
 }
 
@@ -1302,6 +1367,186 @@ function stripHtml(value) {
     .trim();
 }
 
+function normalizeUltrasoundDisplayDate(value, errorCode) {
+  const normalizedValue = normalizeText(value).replace(/\u00a0/g, ' ');
+  const match = normalizedValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  if (!match) {
+    throw new Error(errorCode);
+  }
+
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function splitFullName(fullName) {
+  const parts = normalizeText(fullName).split(/\s+/).filter(Boolean);
+
+  return {
+    lastName: parts[0] ?? '',
+    firstName: parts[1] ?? '',
+    patronymic: parts.slice(2).join(' '),
+  };
+}
+
+function extractDivBlocksByClass(source, className) {
+  const blocks = [];
+  const marker = `<div class="${className}"`;
+  let searchIndex = 0;
+
+  while (searchIndex < source.length) {
+    const startIndex = source.indexOf(marker, searchIndex);
+
+    if (startIndex === -1) {
+      break;
+    }
+
+    let depth = 0;
+    let cursor = startIndex;
+
+    while (cursor < source.length) {
+      const nextOpenIndex = source.indexOf('<div', cursor);
+      const nextCloseIndex = source.indexOf('</div>', cursor);
+
+      if (nextCloseIndex === -1) {
+        break;
+      }
+
+      if (nextOpenIndex !== -1 && nextOpenIndex < nextCloseIndex) {
+        depth += 1;
+        const openTagEndIndex = source.indexOf('>', nextOpenIndex);
+
+        if (openTagEndIndex === -1) {
+          break;
+        }
+
+        cursor = openTagEndIndex + 1;
+        continue;
+      }
+
+      depth -= 1;
+      cursor = nextCloseIndex + '</div>'.length;
+
+      if (depth === 0) {
+        blocks.push(source.slice(startIndex, cursor));
+        searchIndex = cursor;
+        break;
+      }
+    }
+
+    if (depth !== 0) {
+      break;
+    }
+  }
+
+  return blocks;
+}
+
+function parseUltrasoundProtocolBlock(blockHtml, styleCss, sourceFile) {
+  const fullNameMatch = blockHtml.match(/ФИО пациента:\s*<span[^>]*>([\s\S]*?)<\/span>/i);
+  const studyDateMatch = blockHtml.match(/Дата исследования:\s*<span[^>]*>([\s\S]*?)<\/span>/i);
+  const birthDateMatch = blockHtml.match(/Дата рождения:\s*<span[^>]*>([\s\S]*?)<\/span>/i);
+
+  if (!fullNameMatch || !studyDateMatch) {
+    return null;
+  }
+
+  const patientFullName = stripHtml(fullNameMatch[1]);
+  const studyDateDisplay = stripHtml(studyDateMatch[1]);
+  const birthDateSource = birthDateMatch ? stripHtml(birthDateMatch[1]) : '';
+  const birthDate = normalizeUltrasoundBirthDate(birthDateSource);
+
+  if (!patientFullName || !studyDateDisplay) {
+    return null;
+  }
+
+  const titleMatches = Array.from(
+    blockHtml.matchAll(/<p[^>]*class="[^"]*font-semibold[^"]*"[^>]*>([\s\S]*?)<\/p>/gi),
+    (match) => stripHtml(match[1])
+  ).filter(Boolean);
+
+  const studyTitle = titleMatches.length > 0 ? titleMatches.join(' + ') : 'УЗИ протокол';
+  const doctorMatch = blockHtml.match(/Исследование проводил врач\s*([^<]+)/i);
+  const conclusionMatch = blockHtml.match(/Заключение:<\/span>\s*([^<]*)/i);
+  const { lastName, firstName, patronymic } = splitFullName(patientFullName);
+  const studyDate = normalizeUltrasoundDisplayDate(
+    studyDateDisplay,
+    'ULTRASOUND_JOURNAL_DATE_INVALID'
+  );
+
+  const documentHtml = `<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${studyTitle}</title>
+    <style>
+${styleCss}
+    </style>
+  </head>
+  <body>
+    <div class="export-shell">${blockHtml}</div>
+  </body>
+</html>`;
+
+  const contentHash = crypto
+    .createHash('sha1')
+    .update(documentHtml)
+    .digest('hex');
+
+  return {
+    studyDate,
+    patientFullName,
+    lastName,
+    firstName,
+    patronymic,
+    birthDate,
+    studyTitle,
+    doctorName: doctorMatch ? normalizeText(doctorMatch[1]) : '',
+    conclusion: conclusionMatch ? normalizeText(conclusionMatch[1]) : '',
+    sourceFile,
+    contentHash,
+    documentHtml,
+  };
+}
+
+function parseUltrasoundJournalFile(filePath) {
+  const normalizedFilePath = normalizeRequiredText(
+    filePath,
+    'ULTRASOUND_JOURNAL_FILE_REQUIRED'
+  );
+
+  if (!fs.existsSync(normalizedFilePath)) {
+    throw new Error('ULTRASOUND_JOURNAL_FILE_NOT_FOUND');
+  }
+
+  const source = fs.readFileSync(normalizedFilePath, 'utf8');
+  const styleMatch = source.match(/<style>([\s\S]*?)<\/style>/i);
+  const styleCss = styleMatch ? styleMatch[1] : '';
+  const blocks = extractDivBlocksByClass(source, 'export-protocol');
+  const entries = [];
+
+  blocks.forEach((blockHtml) => {
+    if (/Протокол исследования\s*#\d+\s*пропущен/i.test(blockHtml)) {
+      return;
+    }
+
+    const parsedEntry = parseUltrasoundProtocolBlock(
+      blockHtml,
+      styleCss,
+      path.basename(normalizedFilePath)
+    );
+
+    if (parsedEntry) {
+      entries.push(parsedEntry);
+    }
+  });
+
+  return {
+    sourceFile: path.basename(normalizedFilePath),
+    entries,
+  };
+}
+
 function normalizeFlJournalShotDate(value) {
   const normalizedValue = normalizeText(value).replace(/\u00a0/g, ' ');
   const match = normalizedValue.match(/^(\d{2})\.(\d{2})\.(\d{2,4})$/);
@@ -1324,6 +1569,42 @@ function normalizeFlJournalBirthDate(value) {
 
   const year = match[3].length === 2 ? `20${match[3]}` : match[3];
   return `${match[1].padStart(2, '0')}${match[2].padStart(2, '0')}${year}`;
+}
+
+function normalizeUltrasoundBirthDate(value) {
+  const normalizedValue = normalizeText(value).replace(/\u00a0/g, ' ');
+  const digits = normalizedValue.replace(/\D/g, '');
+
+  if (/^\d{8}$/.test(digits)) {
+    return digits;
+  }
+
+  const dottedMatch = normalizedValue.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if (dottedMatch) {
+    const year = dottedMatch[3].length === 2 ? `20${dottedMatch[3]}` : dottedMatch[3];
+    return `${dottedMatch[1].padStart(2, '0')}${dottedMatch[2].padStart(2, '0')}${year}`;
+  }
+
+  const isoMatch = normalizedValue.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) {
+    return `${isoMatch[3].padStart(2, '0')}${isoMatch[2].padStart(2, '0')}${isoMatch[1]}`;
+  }
+
+  return '';
+}
+
+function getBirthDateDigitsSql(fieldName) {
+  return `
+    CASE
+      WHEN ${fieldName} GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' THEN ${fieldName}
+      WHEN ${fieldName} GLOB '[0-9][0-9].[0-9][0-9].[0-9][0-9][0-9][0-9]' THEN substr(${fieldName}, 1, 2) || substr(${fieldName}, 4, 2) || substr(${fieldName}, 7, 4)
+      WHEN ${fieldName} GLOB '[0-9].[0-9].[0-9][0-9][0-9][0-9]' THEN '0' || substr(${fieldName}, 1, 1) || '0' || substr(${fieldName}, 3, 1) || substr(${fieldName}, 5, 4)
+      WHEN ${fieldName} GLOB '[0-9].[0-9][0-9].[0-9][0-9][0-9][0-9]' THEN '0' || substr(${fieldName}, 1, 1) || substr(${fieldName}, 3, 2) || substr(${fieldName}, 6, 4)
+      WHEN ${fieldName} GLOB '[0-9][0-9].[0-9].[0-9][0-9][0-9][0-9]' THEN substr(${fieldName}, 1, 2) || '0' || substr(${fieldName}, 4, 1) || substr(${fieldName}, 6, 4)
+      WHEN ${fieldName} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' THEN substr(${fieldName}, 9, 2) || substr(${fieldName}, 6, 2) || substr(${fieldName}, 1, 4)
+      ELSE replace(replace(replace(${fieldName}, '.', ''), '-', ''), '/', '')
+    END
+  `;
 }
 
 function parseFlJournalFile(filePath) {
@@ -1432,12 +1713,94 @@ function importXRayFlJournalFile(filePath) {
   };
 }
 
+function importUltrasoundJournalFile(filePath) {
+  const { entries } = parseUltrasoundJournalFile(filePath);
+  const db = getDatabase();
+  const createdAt = new Date().toISOString();
+  let imported = 0;
+  let skipped = 0;
+
+  const statement = db.prepare(`
+    INSERT OR IGNORE INTO ultrasound_journal_entries (
+      study_date,
+      patient_full_name,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      study_title,
+      doctor_name,
+      conclusion,
+      source_file,
+      content_hash,
+      document_html,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec('BEGIN');
+
+  try {
+    entries.forEach((entry) => {
+      const result = statement.run(
+        entry.studyDate,
+        entry.patientFullName,
+        entry.lastName,
+        entry.firstName,
+        entry.patronymic,
+        entry.birthDate,
+        entry.studyTitle,
+        entry.doctorName,
+        entry.conclusion,
+        entry.sourceFile,
+        entry.contentHash,
+        entry.documentHtml,
+        createdAt
+      );
+
+      if (result.changes > 0) {
+        imported += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+
+  return {
+    imported,
+    skipped,
+  };
+}
+
 async function selectXRayFlJournalFile() {
   const result = await dialog.showOpenDialog({
     title: 'Выберите файл Фл журнала',
     properties: ['openFile'],
     filters: [
       { name: 'XHTML files', extensions: ['xhtml', 'html', 'htm'] },
+      { name: 'All files', extensions: ['*'] },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+}
+
+async function selectUltrasoundJournalFile() {
+  const result = await dialog.showOpenDialog({
+    title: 'Выберите файл УЗИ журнала',
+    properties: ['openFile'],
+    filters: [
+      { name: 'HTML files', extensions: ['html', 'htm'] },
       { name: 'All files', extensions: ['*'] },
     ],
   });
@@ -1518,6 +1881,136 @@ function listXRayFlJournalByPatient({ lastName, firstName, patronymic, birthDate
     normalizedPatronymic,
     normalizedBirthDate
   ).map(mapXRayFlJournalEntry);
+}
+
+function listUltrasoundJournalByDate(studyDate) {
+  const normalizedStudyDate = normalizeIsoDate(
+    studyDate,
+    'ULTRASOUND_JOURNAL_DATE_INVALID'
+  );
+  const db = getDatabase();
+  const entryBirthDateDigitsSql = getBirthDateDigitsSql('ultrasound_journal_entries.birth_date');
+  const patientBirthDateDigitsSql = getBirthDateDigitsSql('p.birth_date');
+  const rows = db.prepare(`
+    SELECT
+      id,
+      study_date,
+      patient_full_name,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      study_title,
+      doctor_name,
+      conclusion,
+      (
+        SELECT p.rmis_url
+        FROM xray_patients p
+        WHERE p.last_name = ultrasound_journal_entries.last_name
+          AND p.first_name = ultrasound_journal_entries.first_name
+          AND p.patronymic = ultrasound_journal_entries.patronymic
+          AND ${patientBirthDateDigitsSql} = ${entryBirthDateDigitsSql}
+        ORDER BY p.created_at DESC, p.id DESC
+        LIMIT 1
+      ) AS rmis_url,
+      created_at
+    FROM ultrasound_journal_entries
+    WHERE study_date = ?
+    ORDER BY patient_full_name COLLATE NOCASE ASC, created_at DESC, id DESC
+  `).all(normalizedStudyDate);
+
+  const groupedEntries = new Map();
+
+  rows.forEach((row) => {
+    const key = `${row.patient_full_name}|${row.birth_date}`;
+
+    if (!groupedEntries.has(key)) {
+      groupedEntries.set(key, {
+        patient: {
+          fullName: row.patient_full_name,
+          lastName: row.last_name,
+          firstName: row.first_name,
+          patronymic: row.patronymic,
+          birthDate: row.birth_date,
+        },
+        studies: [],
+      });
+    }
+
+    groupedEntries.get(key).studies.push(mapUltrasoundJournalStudy(row));
+  });
+
+  return Array.from(groupedEntries.values());
+}
+
+function listUltrasoundJournalByPatient({ lastName, firstName, patronymic, birthDate }) {
+  const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
+  const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
+  const normalizedPatronymic = normalizeText(patronymic);
+  const normalizedBirthDate = normalizeDateDigits(birthDate);
+  const db = getDatabase();
+  const entryBirthDateDigitsSql = getBirthDateDigitsSql('ultrasound_journal_entries.birth_date');
+  const patientBirthDateDigitsSql = getBirthDateDigitsSql('p.birth_date');
+
+  return db.prepare(`
+    SELECT
+      id,
+      study_date,
+      study_title,
+      doctor_name,
+      conclusion,
+      (
+        SELECT p.rmis_url
+        FROM xray_patients p
+        WHERE p.last_name = ultrasound_journal_entries.last_name
+          AND p.first_name = ultrasound_journal_entries.first_name
+          AND p.patronymic = ultrasound_journal_entries.patronymic
+          AND ${patientBirthDateDigitsSql} = ${entryBirthDateDigitsSql}
+        ORDER BY p.created_at DESC, p.id DESC
+        LIMIT 1
+      ) AS rmis_url,
+      created_at
+    FROM ultrasound_journal_entries
+    WHERE last_name = ?
+      AND first_name = ?
+      AND patronymic = ?
+      AND ${entryBirthDateDigitsSql} = ?
+    ORDER BY study_date DESC, created_at DESC, id DESC
+  `).all(
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate
+  ).map(mapUltrasoundJournalStudy);
+}
+
+function getUltrasoundProtocolEntry(id) {
+  const normalizedId = normalizePositiveInteger(
+    id,
+    'ULTRASOUND_JOURNAL_PROTOCOL_ID_INVALID'
+  );
+  const db = getDatabase();
+  const row = db.prepare(`
+    SELECT
+      id,
+      study_date,
+      patient_full_name,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      study_title,
+      doctor_name,
+      conclusion,
+      source_file,
+      document_html,
+      created_at
+    FROM ultrasound_journal_entries
+    WHERE id = ?
+    LIMIT 1
+  `).get(normalizedId);
+
+  return mapUltrasoundProtocolEntry(row);
 }
 
 function listXRayDoseReference() {
@@ -2742,6 +3235,26 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:import-fl-journal-file', (_event, filePath) =>
     importXRayFlJournalFile(filePath)
+  );
+
+  ipcMain.handle('ultrasound-journal:list-by-date', (_event, studyDate) =>
+    listUltrasoundJournalByDate(studyDate)
+  );
+
+  ipcMain.handle('ultrasound-journal:list-by-patient', (_event, payload) =>
+    listUltrasoundJournalByPatient(payload)
+  );
+
+  ipcMain.handle('ultrasound-journal:get-protocol', (_event, id) =>
+    getUltrasoundProtocolEntry(id)
+  );
+
+  ipcMain.handle('ultrasound-journal:select-file', () =>
+    selectUltrasoundJournalFile()
+  );
+
+  ipcMain.handle('ultrasound-journal:import-file', (_event, filePath) =>
+    importUltrasoundJournalFile(filePath)
   );
 
   ipcMain.handle('xray:list-studies', (_event, patientId) =>

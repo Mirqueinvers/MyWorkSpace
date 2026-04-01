@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { XRayFlJournalEntry, XRayPatient, XRayStudy } from '../../../types/xray'
+import type { UltrasoundJournalStudy } from '../../../types/ultrasound'
 import { formatBirthDate, formatStoredDate } from '../../../utils/date'
 import { formatStudyLabel, getPatientFullName } from '../helpers'
 
@@ -7,8 +8,10 @@ interface XRayPatientCardProps {
   selectedPatient: XRayPatient
   studies: XRayStudy[]
   flStudies: XRayFlJournalEntry[]
+  ultrasoundStudies: UltrasoundJournalStudy[]
   studiesLoading: boolean
   flStudiesLoading: boolean
+  ultrasoundStudiesLoading: boolean
   error: string
   copyFeedback: string
   onCopyPatientKey: () => void
@@ -17,6 +20,7 @@ interface XRayPatientCardProps {
   onOpenCreateStudy: () => void
   onOpenStudyTemplates: (study: XRayStudy) => void
   onOpenEditStudy: (study: XRayStudy) => void
+  onOpenUltrasoundProtocol: (studyId: number) => void
 }
 
 const CARD_LABEL = '\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430'
@@ -24,6 +28,10 @@ const COPY_PATIENT_KEY = '\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430
 const RMIS_LABEL = '\u0420\u041c\u0418\u0421'
 const EDIT_PATIENT_LABEL = '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430'
 const FLUOROGRAPHY_LABEL = '\u0424\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u044f'
+const ULTRASOUND_LABEL = '\u0423\u0417\u0418'
+const ULTRASOUND_LOADING = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e \u0423\u0417\u0418-\u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f...'
+const ULTRASOUND_EMPTY =
+  '\u0423 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0438\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0445 \u0423\u0417\u0418-\u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0439.'
 const FLUOROGRAPHY_LOADING = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e \u0444\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u0438...'
 const FLUOROGRAPHY_EMPTY = '\u0423 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043d\u044b\u0445 \u0444\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u0439.'
 const DOSE_LABEL = '\u0414\u043e\u0437\u0430'
@@ -44,8 +52,10 @@ export function XRayPatientCard({
   selectedPatient,
   studies,
   flStudies,
+  ultrasoundStudies,
   studiesLoading,
   flStudiesLoading,
+  ultrasoundStudiesLoading,
   error,
   copyFeedback,
   onCopyPatientKey,
@@ -54,7 +64,9 @@ export function XRayPatientCard({
   onOpenCreateStudy,
   onOpenStudyTemplates,
   onOpenEditStudy,
+  onOpenUltrasoundProtocol,
 }: XRayPatientCardProps) {
+  const [isUltrasoundSectionOpen, setIsUltrasoundSectionOpen] = useState(false)
   const [isFlSectionOpen, setIsFlSectionOpen] = useState(false)
 
   return (
@@ -117,6 +129,72 @@ export function XRayPatientCard({
       {error ? <div className="state-banner error-banner">{error}</div> : null}
 
       <p className="xray-patient-address">{selectedPatient.address}</p>
+
+      <div className="xray-patient-subsection">
+        <button
+          type="button"
+          className={`xray-patient-subsection-toggle${isUltrasoundSectionOpen ? ' is-open' : ''}`}
+          onClick={() => setIsUltrasoundSectionOpen((currentValue) => !currentValue)}
+          aria-expanded={isUltrasoundSectionOpen}
+        >
+          <span className="xray-patient-subsection-line">
+            <span className="section-kicker">{ULTRASOUND_LABEL}</span>
+            <span className="xray-patient-subsection-meta">({ultrasoundStudies.length})</span>
+            <span className="xray-patient-subsection-chevron" aria-hidden="true">
+              <svg viewBox="0 0 12 12">
+                <path
+                  d="M3 4.5 6 7.5l3-3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </span>
+        </button>
+
+        {isUltrasoundSectionOpen ? (
+          <div className="xray-patient-subsection-content">
+            {ultrasoundStudiesLoading ? <div className="empty-state">{ULTRASOUND_LOADING}</div> : null}
+
+            {!ultrasoundStudiesLoading && ultrasoundStudies.length === 0 ? (
+              <div className="empty-state">{ULTRASOUND_EMPTY}</div>
+            ) : null}
+
+            {!ultrasoundStudiesLoading && ultrasoundStudies.length > 0 ? (
+              <div className="xray-studies-list">
+                {ultrasoundStudies.map((study) => (
+                  <article
+                    key={study.id}
+                    className="xray-study-item xray-fl-study-item xray-study-item-clickable"
+                    onClick={() => onOpenUltrasoundProtocol(study.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onOpenUltrasoundProtocol(study.id)
+                      }
+                    }}
+                  >
+                    <div className="xray-study-date">{formatStoredDate(study.studyDate)}</div>
+                    <div className="xray-study-item-head">
+                      <div>
+                        <div className="xray-study-item-title">{study.studyTitle}</div>
+                        <div className="xray-study-item-meta">
+                          {study.conclusion || study.doctorName || ULTRASOUND_LABEL}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <div className="xray-patient-subsection">
         <button

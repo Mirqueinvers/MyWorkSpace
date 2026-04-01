@@ -9,6 +9,7 @@ import type {
   XRaySearchResult,
   XRayStudy,
 } from '../../types/xray'
+import type { UltrasoundJournalStudy } from '../../types/ultrasound'
 
 export interface XRaySectionProps {
   query: string
@@ -16,6 +17,7 @@ export interface XRaySectionProps {
   selectedPatient: XRayPatient | null
   studies: XRayStudy[]
   flStudies: XRayFlJournalEntry[]
+  ultrasoundStudies: UltrasoundJournalStudy[]
   lastSubmittedQuery: string
   loading: boolean
   error: string
@@ -23,6 +25,7 @@ export interface XRaySectionProps {
   isDeleting: boolean
   studiesLoading: boolean
   flStudiesLoading: boolean
+  ultrasoundStudiesLoading: boolean
   isSavingStudy: boolean
   deletingStudyId: number | null
   onQueryChange: (value: string) => void

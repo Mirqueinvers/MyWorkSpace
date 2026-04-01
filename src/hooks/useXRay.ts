@@ -8,6 +8,7 @@ import type {
   XRaySearchResult,
   XRayStudy,
 } from '../types/xray'
+import type { UltrasoundJournalStudy } from '../types/ultrasound'
 
 const ELECTRON_API_UNAVAILABLE =
   'API Electron \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e. \u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 dev:electron.'
@@ -17,6 +18,8 @@ const UPDATE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u
 const DELETE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u0438\u0437 \u0431\u0430\u0437\u044b X-ray.'
 const STUDIES_LOAD_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
 const FL_STUDIES_LOAD_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u0438 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
+const ULTRASOUND_STUDIES_LOAD_ERROR =
+  '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0423\u0417\u0418-\u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
 const STUDY_SAVE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435.'
 const STUDY_DELETE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435.'
 const OPEN_LINK_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443 \u0420\u041c\u0418\u0421.'
@@ -27,12 +30,14 @@ export function useXRay() {
   const [selectedPatient, setSelectedPatient] = useState<XRayPatient | null>(null)
   const [studies, setStudies] = useState<XRayStudy[]>([])
   const [flStudies, setFlStudies] = useState<XRayFlJournalEntry[]>([])
+  const [ultrasoundStudies, setUltrasoundStudies] = useState<UltrasoundJournalStudy[]>([])
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [studiesLoading, setStudiesLoading] = useState(false)
   const [flStudiesLoading, setFlStudiesLoading] = useState(false)
+  const [ultrasoundStudiesLoading, setUltrasoundStudiesLoading] = useState(false)
   const [isSavingStudy, setIsSavingStudy] = useState(false)
   const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null)
   const [error, setError] = useState('')
@@ -132,6 +137,52 @@ export function useXRay() {
     }
   }, [selectedPatient])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadUltrasoundStudies() {
+      if (!selectedPatient) {
+        setUltrasoundStudies([])
+        return
+      }
+
+      if (!window.electronAPI?.ultrasoundJournal?.listByPatient) {
+        setUltrasoundStudies([])
+        return
+      }
+
+      setUltrasoundStudiesLoading(true)
+
+      try {
+        const items = await window.electronAPI.ultrasoundJournal.listByPatient({
+          lastName: selectedPatient.lastName,
+          firstName: selectedPatient.firstName,
+          patronymic: selectedPatient.patronymic,
+          birthDate: selectedPatient.birthDate,
+        })
+
+        if (!isCancelled) {
+          setUltrasoundStudies(items)
+        }
+      } catch {
+        if (!isCancelled) {
+          setUltrasoundStudies([])
+          setError(ULTRASOUND_STUDIES_LOAD_ERROR)
+        }
+      } finally {
+        if (!isCancelled) {
+          setUltrasoundStudiesLoading(false)
+        }
+      }
+    }
+
+    void loadUltrasoundStudies()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [selectedPatient])
+
   async function handleSearch(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
 
@@ -140,6 +191,7 @@ export function useXRay() {
     setSelectedPatient(null)
     setStudies([])
     setFlStudies([])
+    setUltrasoundStudies([])
 
     if (!trimmedQuery) {
       setResults([])
@@ -188,6 +240,7 @@ export function useXRay() {
       setSelectedPatient(createdPatient)
       setStudies([])
       setFlStudies([])
+      setUltrasoundStudies([])
       setResults([])
       setQuery(
         `${createdPatient.lastName} ${createdPatient.firstName} ${createdPatient.patronymic} ${createdPatient.birthDate}`.trim(),
@@ -227,6 +280,7 @@ export function useXRay() {
         )
         setStudies([])
         setFlStudies([])
+        setUltrasoundStudies([])
         setResults((currentResults) =>
           currentResults.filter((patient) => patient.id !== id),
         )
@@ -372,12 +426,14 @@ export function useXRay() {
     setSelectedPatient(null)
     setStudies([])
     setFlStudies([])
+    setUltrasoundStudies([])
     setLastSubmittedQuery('')
     setLoading(false)
     setIsSaving(false)
     setIsDeleting(false)
     setStudiesLoading(false)
     setFlStudiesLoading(false)
+    setUltrasoundStudiesLoading(false)
     setIsSavingStudy(false)
     setDeletingStudyId(null)
     setError('')
@@ -390,12 +446,14 @@ export function useXRay() {
     selectedPatient,
     studies,
     flStudies,
+    ultrasoundStudies,
     lastSubmittedQuery,
     loading,
     isSaving,
     isDeleting,
     studiesLoading,
     flStudiesLoading,
+    ultrasoundStudiesLoading,
     isSavingStudy,
     deletingStudyId,
     error,
