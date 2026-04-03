@@ -4,7 +4,9 @@ type ReferenceKey = 'infectious-diseases' | 'not-registered' | 'school-certifica
 type PatientGender = 'male' | 'female'
 
 interface InfectiousDiseasesForm {
-  fullName: string
+  lastName: string
+  firstName: string
+  patronymic: string
   birthDate: string
   address: string
   inspectionDate: string
@@ -24,6 +26,9 @@ const TEMPLATE_LABEL = '\u041e\u0431 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\
 const NOT_REGISTERED_LABEL = '\u041d\u0430 \u0443\u0447\u0435\u0442\u0435 \u043d\u0435 \u0441\u043e\u0441\u0442\u043e\u0438\u0442'
 const SCHOOL_CERTIFICATE_LABEL = '\u0421\u043f\u0440\u0430\u0432\u043a\u0430 \u0432 \u0448\u043a\u043e\u043b\u0443'
 const FULL_NAME_LABEL = '\u0424\u0418\u041e'
+const LAST_NAME_LABEL = '\u0424\u0430\u043c\u0438\u043b\u0438\u044f'
+const FIRST_NAME_LABEL = '\u0418\u043c\u044f'
+const PATRONYMIC_LABEL = '\u041e\u0442\u0447\u0435\u0441\u0442\u0432\u043e'
 const BIRTH_DATE_LABEL = '\u0414\u0430\u0442\u0430 \u0440\u043e\u0436\u0434\u0435\u043d\u0438\u044f'
 const ADDRESS_LABEL = '\u0410\u0434\u0440\u0435\u0441'
 const GENDER_LABEL = '\u041f\u043e\u043b'
@@ -33,7 +38,9 @@ const ILLNESS_END_LABEL = '\u041f\u043e'
 const DIAGNOSIS_FIELD_LABEL = '\u0414\u0438\u0430\u0433\u043d\u043e\u0437'
 const PE_START_LABEL = '\u0424\u0438\u0437\u043a\u0443\u043b\u044c\u0442\u0443\u0440\u0430 \u0441'
 const PE_END_LABEL = '\u041f\u043e'
-const FULL_NAME_PLACEHOLDER = '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0424\u0418\u041e'
+const LAST_NAME_PLACEHOLDER = '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0444\u0430\u043c\u0438\u043b\u0438\u044e'
+const FIRST_NAME_PLACEHOLDER = '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043c\u044f'
+const PATRONYMIC_PLACEHOLDER = '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043e\u0442\u0447\u0435\u0441\u0442\u0432\u043e'
 const BIRTH_DATE_PLACEHOLDER = '\u0434\u0434\u043c\u043c\u0433\u0433\u0433\u0433'
 const ADDRESS_PLACEHOLDER = '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0430\u0434\u0440\u0435\u0441'
 const MALE_LABEL = '\u041c\u0443\u0436\u0441\u043a\u043e\u0439'
@@ -91,7 +98,9 @@ function formatPrintDate(value: string) {
 export function ReferencesSection() {
   const [activeReference, setActiveReference] = useState<ReferenceKey>('infectious-diseases')
   const [infectiousDiseasesForm, setInfectiousDiseasesForm] = useState<InfectiousDiseasesForm>({
-      fullName: '',
+      lastName: '',
+      firstName: '',
+      patronymic: '',
       birthDate: '',
       address: '',
       inspectionDate: '',
@@ -102,6 +111,23 @@ export function ReferencesSection() {
       physicalEducationStartDate: '',
       physicalEducationEndDate: '',
     })
+
+  const fullName = useMemo(
+    () =>
+      [
+        infectiousDiseasesForm.lastName,
+        infectiousDiseasesForm.firstName,
+        infectiousDiseasesForm.patronymic,
+      ]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(' '),
+    [
+      infectiousDiseasesForm.firstName,
+      infectiousDiseasesForm.lastName,
+      infectiousDiseasesForm.patronymic,
+    ],
+  )
 
   const printableInspectionDate = useMemo(
     () => formatPrintDate(infectiousDiseasesForm.inspectionDate),
@@ -191,20 +217,52 @@ export function ReferencesSection() {
           <div className="references-workspace-body">
             <div className="references-form-panel">
               <div className="patient-form references-form">
-                <label className="field field-wide">
-                  <span>{FULL_NAME_LABEL}</span>
-                  <input
-                    type="text"
-                    value={infectiousDiseasesForm.fullName}
-                    onChange={(event) =>
-                      setInfectiousDiseasesForm((current) => ({
-                        ...current,
-                        fullName: capitalizeWords(event.target.value),
-                      }))
-                    }
-                    placeholder={FULL_NAME_PLACEHOLDER}
-                  />
-                </label>
+                <div className="references-name-grid">
+                  <label className="field field-wide">
+                    <span>{LAST_NAME_LABEL}</span>
+                    <input
+                      type="text"
+                      value={infectiousDiseasesForm.lastName}
+                      onChange={(event) =>
+                        setInfectiousDiseasesForm((current) => ({
+                          ...current,
+                          lastName: capitalizeWords(event.target.value),
+                        }))
+                      }
+                      placeholder={LAST_NAME_PLACEHOLDER}
+                    />
+                  </label>
+
+                  <label className="field field-wide">
+                    <span>{FIRST_NAME_LABEL}</span>
+                    <input
+                      type="text"
+                      value={infectiousDiseasesForm.firstName}
+                      onChange={(event) =>
+                        setInfectiousDiseasesForm((current) => ({
+                          ...current,
+                          firstName: capitalizeWords(event.target.value),
+                        }))
+                      }
+                      placeholder={FIRST_NAME_PLACEHOLDER}
+                    />
+                  </label>
+
+                  <label className="field field-wide">
+                    <span>{PATRONYMIC_LABEL}</span>
+                    <input
+                      type="text"
+                      value={infectiousDiseasesForm.patronymic}
+                      onChange={(event) =>
+                        setInfectiousDiseasesForm((current) => ({
+                          ...current,
+                          patronymic: capitalizeWords(event.target.value),
+                        }))
+                      }
+                      placeholder={PATRONYMIC_PLACEHOLDER}
+                    />
+                  </label>
+                </div>
 
                 <label className="field field-wide">
                   <span>{BIRTH_DATE_LABEL}</span>
@@ -374,7 +432,7 @@ export function ReferencesSection() {
                   <div className="reference-page__body">
                     <p className="reference-page__line reference-page__line-gap">
                       <span className="reference-page__label">{FULL_NAME_LABEL}:</span>{' '}
-                      {infectiousDiseasesForm.fullName}
+                      {fullName}
                     </p>
 
                     <p className="reference-page__line">

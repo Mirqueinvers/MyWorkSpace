@@ -36,7 +36,7 @@ const FLUOROGRAPHY_LOADING = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e \
 const FLUOROGRAPHY_EMPTY = '\u0423 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043d\u044b\u0445 \u0444\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u0439.'
 const DOSE_LABEL = '\u0414\u043e\u0437\u0430'
 const MZV_LABEL = '\u043c\u0417\u0432'
-const STUDIES_LABEL = '\u0418\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f'
+const STUDIES_LABEL = '\u0052\u0067 \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f'
 const ADD_STUDY_LABEL = '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435'
 const STUDIES_LOADING = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f...'
 const STUDIES_EMPTY = '\u0423 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043d\u044b\u0445 \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0439.'
@@ -68,6 +68,7 @@ export function XRayPatientCard({
 }: XRayPatientCardProps) {
   const [isUltrasoundSectionOpen, setIsUltrasoundSectionOpen] = useState(false)
   const [isFlSectionOpen, setIsFlSectionOpen] = useState(false)
+  const [isStudiesSectionOpen, setIsStudiesSectionOpen] = useState(true)
 
   return (
     <section className="content-card xray-patient-card">
@@ -248,85 +249,113 @@ export function XRayPatientCard({
         ) : null}
       </div>
 
-      <div className="xray-studies-head">
-        <div>
-          <div className="section-kicker">{STUDIES_LABEL}</div>
-        </div>
-
-        <button type="button" className="primary-button" onClick={onOpenCreateStudy}>
-          {ADD_STUDY_LABEL}
+      <div className="xray-patient-subsection">
+        <button
+          type="button"
+          className={`xray-patient-subsection-toggle${isStudiesSectionOpen ? ' is-open' : ''}`}
+          onClick={() => setIsStudiesSectionOpen((currentValue) => !currentValue)}
+          aria-expanded={isStudiesSectionOpen}
+        >
+          <span className="xray-patient-subsection-line">
+            <span className="section-kicker">{STUDIES_LABEL}</span>
+            <span className="xray-patient-subsection-meta">({studies.length})</span>
+            <span className="xray-patient-subsection-chevron" aria-hidden="true">
+              <svg viewBox="0 0 12 12">
+                <path
+                  d="M3 4.5 6 7.5l3-3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </span>
         </button>
-      </div>
 
-      {studiesLoading ? <div className="empty-state">{STUDIES_LOADING}</div> : null}
+        {isStudiesSectionOpen ? (
+          <div className="xray-patient-subsection-content">
+            <div className="xray-studies-head">
+              <div />
 
-      {!studiesLoading && studies.length === 0 ? <div className="empty-state">{STUDIES_EMPTY}</div> : null}
+              <button type="button" className="primary-button" onClick={onOpenCreateStudy}>
+                {ADD_STUDY_LABEL}
+              </button>
+            </div>
 
-      {!studiesLoading && studies.length > 0 ? (
-        <div className="xray-studies-list">
-          {studies.map((study) => (
-            <article
-              key={study.id}
-              className="xray-study-item xray-study-item-clickable"
-              onClick={() => onOpenStudyTemplates(study)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  onOpenStudyTemplates(study)
-                }
-              }}
-            >
-              <div className="xray-study-date">{formatStoredDate(study.studyDate)}</div>
-              <div className="xray-study-item-head">
-                <div>
-                  <div className="xray-study-item-title">{formatStudyLabel(study)}</div>
-                  <div className="xray-study-item-meta">{CASSETTE_LABEL} {study.cassette} {'\u2022'} {COUNT_LABEL} {study.studyCount}</div>
-                </div>
+            {studiesLoading ? <div className="empty-state">{STUDIES_LOADING}</div> : null}
 
-                <div className="xray-study-actions">
-                  <button
-                    type="button"
-                    className="xray-study-edit"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onOpenEditStudy(study)
+            {!studiesLoading && studies.length === 0 ? <div className="empty-state">{STUDIES_EMPTY}</div> : null}
+
+            {!studiesLoading && studies.length > 0 ? (
+              <div className="xray-studies-list">
+                {studies.map((study) => (
+                  <article
+                    key={study.id}
+                    className="xray-study-item xray-study-item-clickable"
+                    onClick={() => onOpenStudyTemplates(study)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onOpenStudyTemplates(study)
+                      }
                     }}
-                    aria-label={EDIT_STUDY_LABEL}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25Zm2.92 2.33H5v-.92l8.06-8.06.92.92L5.92 19.58ZM20.71 7.04a1 1 0 0 0 0-1.41L18.37 3.3a1 1 0 0 0-1.41 0l-1.5 1.5 3.75 3.75 1.5-1.51Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+                    <div className="xray-study-date">{formatStoredDate(study.studyDate)}</div>
+                    <div className="xray-study-item-head">
+                      <div>
+                        <div className="xray-study-item-title">{formatStudyLabel(study)}</div>
+                        <div className="xray-study-item-meta">{CASSETTE_LABEL} {study.cassette} {'\u2022'} {COUNT_LABEL} {study.studyCount}</div>
+                      </div>
 
-              <div className="xray-study-grid">
-                <div className="xray-study-field">
-                  <span>{REFERRAL_DIAGNOSIS_LABEL}</span>
-                  <strong>{study.referralDiagnosis}</strong>
-                </div>
-                <div className="xray-study-field">
-                  <span>{STUDY_TYPE_LABEL}</span>
-                  <strong>{study.studyType}</strong>
-                </div>
-                <div className="xray-study-field">
-                  <span>{RADIATION_DOSE_LABEL}</span>
-                  <strong>{study.radiationDose}</strong>
-                </div>
-                <div className="xray-study-field">
-                  <span>{REFERRED_BY_LABEL}</span>
-                  <strong>{study.referredBy}</strong>
-                </div>
+                      <div className="xray-study-actions">
+                        <button
+                          type="button"
+                          className="xray-study-edit"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onOpenEditStudy(study)
+                          }}
+                          aria-label={EDIT_STUDY_LABEL}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                              d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25Zm2.92 2.33H5v-.92l8.06-8.06.92.92L5.92 19.58ZM20.71 7.04a1 1 0 0 0 0-1.41L18.37 3.3a1 1 0 0 0-1.41 0l-1.5 1.5 3.75 3.75 1.5-1.51Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="xray-study-grid">
+                      <div className="xray-study-field">
+                        <span>{REFERRAL_DIAGNOSIS_LABEL}</span>
+                        <strong>{study.referralDiagnosis}</strong>
+                      </div>
+                      <div className="xray-study-field">
+                        <span>{STUDY_TYPE_LABEL}</span>
+                        <strong>{study.studyType}</strong>
+                      </div>
+                      <div className="xray-study-field">
+                        <span>{RADIATION_DOSE_LABEL}</span>
+                        <strong>{study.radiationDose}</strong>
+                      </div>
+                      <div className="xray-study-field">
+                        <span>{REFERRED_BY_LABEL}</span>
+                        <strong>{study.referredBy}</strong>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
-            </article>
-          ))}
-        </div>
-      ) : null}
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </section>
   )
 }

@@ -4,40 +4,73 @@
     "name_ru": "Левая ключица",
     "name_la": "Clavicula sinistra",
     "group": "upper_limb",
-    "svg_group_ids": ["ClavicleLeft"],
-    "description": "Ключица левого плечевого пояса."
+    "svg_group_ids": [
+      "ClavicleLeft"
+    ],
+    "description": "Ключица левого плечевого пояса.",
+    "svg_group_ids_back": [
+      "g921"
+    ]
   },
   {
     "id": "clavicle_right",
     "name_ru": "Правая ключица",
     "name_la": "Clavicula dextra",
     "group": "upper_limb",
-    "svg_group_ids": ["ClavicleRight"],
-    "description": "Ключица правого плечевого пояса."
+    "svg_group_ids": [
+      "ClavicleRight"
+    ],
+    "description": "Ключица правого плечевого пояса.",
+    "svg_group_ids_back": [
+      "g929"
+    ]
   },
   {
     "id": "scapula_left",
     "name_ru": "Левая лопатка",
     "name_la": "Scapula sinistra",
     "group": "upper_limb",
-    "svg_group_ids": ["path547", "path549", "path551", "path553", "path555"],
-    "description": "Лопатка слева."
+    "svg_group_ids": [
+      "path547",
+      "path549",
+      "path551",
+      "path553",
+      "path555"
+    ],
+    "description": "Лопатка слева.",
+    "svg_group_ids_back": [
+      "g1203"
+    ]
   },
   {
     "id": "scapula_right",
     "name_ru": "Правая лопатка",
     "name_la": "Scapula dextra",
     "group": "upper_limb",
-    "svg_group_ids": ["path559", "path561", "path563", "path565", "path567"],
-    "description": "Лопатка справа."
+    "svg_group_ids": [
+      "path559",
+      "path561",
+      "path563",
+      "path565",
+      "path567",
+      "path573"
+    ],
+    "description": "Лопатка справа.",
+    "svg_group_ids_back": [
+      "g1227"
+    ]
   },
   {
     "id": "sternum",
     "name_ru": "Грудина",
     "name_la": "Sternum",
     "group": "axial",
-    "svg_group_ids": ["Manubrium", "Sternum"],
-    "description": "Грудина и её рукоятка."
+    "svg_group_ids": [
+      "Manubrium",
+      "Sternum"
+    ],
+    "description": "Грудина и её рукоятка.",
+    "svg_group_ids_back": []
   },
   {
     "id": "ribs",
@@ -79,7 +112,6 @@
       "path1109",
       "path1111",
       "path1113",
-      "path1115",
       "path989",
       "path967",
       "path969",
@@ -130,177 +162,422 @@
       "path905",
       "path907",
       "path849",
-      "path871"
+      "path871",
+      "path1619",
+      "path1621",
+      "g877",
+      "g845",
+      "g1617"
     ],
-    "description": "Рёбра грудной клетки."
+    "description": "Рёбра грудной клетки.",
+    "svg_group_ids_back": [
+      "g939",
+      "path961",
+      "g963",
+      "g983",
+      "g995",
+      "g1005",
+      "g1021",
+      "path1037",
+      "g1039",
+      "g1059",
+      "g1075",
+      "g1085",
+      "g1101",
+      "g1117",
+      "g1131",
+      "g1145",
+      "g1159",
+      "g1173",
+      "g1187",
+      "g1243",
+      "g1257",
+      "g1271",
+      "g1277",
+      "g1285",
+      "g1291"
+    ]
+  },
+  {
+    "id": "illium_right_front",
+    "name_ru": "Правая подвздошная кость",
+    "name_la": "Os ilium dextrum",
+    "group": "axial",
+    "svg_group_ids": [
+      "ilium_right_front",
+      "path525",
+      "path531"
+    ],
+    "description": "Правая подвздошная кость.",
+    "svg_group_ids_back": [
+      "pelvic_right_back",
+      "path1969",
+      "path1975",
+      "path1993",
+      "path2001"
+    ]
+  },
+  {
+    "id": "illium_left_front",
+    "name_ru": "Левая подвздошная кость",
+    "name_la": "Os ilium sinistrum",
+    "group": "axial",
+    "svg_group_ids": [
+      "ilium_left_front",
+      "path527",
+      "path529"
+    ],
+    "description": "Левая подвздошная кость.",
+    "svg_group_ids_back": [
+      "pelvic_left_back",
+      "path1971",
+      "path1973",
+      "path1999"
+    ]
+  },
+  {
+    "id": "os_ishii_right",
+    "name_ru": "Правая седалищная кость",
+    "name_la": "Os ischii dextrum",
+    "group": "axial",
+    "svg_group_ids": [],
+    "description": "Правая седалищная кость.",
+    "svg_group_ids_back": [
+      "os_ischii_right"
+    ]
+  },
+  {
+    "id": "os_ishii_left",
+    "name_ru": "Левая седалищная кость",
+    "name_la": "Os ischii sinistrum",
+    "group": "axial",
+    "svg_group_ids": [],
+    "description": "Левая седалищная кость.",
+    "svg_group_ids_back": [
+      "os_ischii_left"
+    ]
+  },
+  {
+    "id": "os_pubis_right",
+    "name_ru": "Правая лобковая кость",
+    "name_la": "Os pubis dextrum",
+    "group": "axial",
+    "svg_group_ids": [],
+    "description": "Правая лобковая кость.",
+    "svg_group_ids_back": [
+      "os_pubis_right"
+    ]
+  },
+  {
+    "id": "os_pubis_left",
+    "name_ru": "Левая лобковая кость",
+    "name_la": "Os pubis sinistrum",
+    "group": "axial",
+    "svg_group_ids": [],
+    "description": "Левая лобковая кость.",
+    "svg_group_ids_back": [
+      "os_pubis_left"
+    ]
   },
   {
     "id": "pelvis",
     "name_ru": "Таз",
     "name_la": "Pelvis",
     "group": "axial",
-    "svg_group_ids": ["PelvicGirdle", "path521", "path523", "path525", "path527", "path529", "path531", "path533", "path535", "path537", "path539"],
-    "description": "Тазовый пояс."
+    "svg_group_ids": [],
+    "description": "Тазовый пояс.",
+    "svg_group_ids_back": []
   },
   {
     "id": "humerus_left",
     "name_ru": "Левая плечевая кость",
     "name_la": "Humerus sinister",
     "group": "upper_limb",
-    "svg_group_ids": ["HumerusLeft"],
-    "description": "Плечевая кость слева."
+    "svg_group_ids": [
+      "HumerusLeft"
+    ],
+    "description": "Плечевая кость слева.",
+    "svg_group_ids_back": [
+      "g71"
+    ]
   },
   {
     "id": "humerus_right",
     "name_ru": "Правая плечевая кость",
     "name_la": "Humerus dexter",
     "group": "upper_limb",
-    "svg_group_ids": ["HumerusRight"],
-    "description": "Плечевая кость справа."
+    "svg_group_ids": [
+      "HumerusRight"
+    ],
+    "description": "Плечевая кость справа.",
+    "svg_group_ids_back": [
+      "g453"
+    ]
   },
   {
     "id": "radius_left",
     "name_ru": "Левая лучевая кость",
     "name_la": "Radius sinister",
     "group": "upper_limb",
-    "svg_group_ids": ["RadiusLeft"],
-    "description": "Лучевая кость слева."
+    "svg_group_ids": [
+      "RadiusLeft"
+    ],
+    "description": "Лучевая кость слева.",
+    "svg_group_ids_back": [
+      "g413"
+    ]
   },
   {
     "id": "radius_right",
     "name_ru": "Правая лучевая кость",
     "name_la": "Radius dexter",
     "group": "upper_limb",
-    "svg_group_ids": ["RadiusRight"],
-    "description": "Лучевая кость справа."
+    "svg_group_ids": [
+      "RadiusRight"
+    ],
+    "description": "Лучевая кость справа.",
+    "svg_group_ids_back": [
+      "g477"
+    ]
   },
   {
     "id": "ulna_left",
     "name_ru": "Левая локтевая кость",
     "name_la": "Ulna sinistra",
     "group": "upper_limb",
-    "svg_group_ids": ["UlnaLeft"],
-    "description": "Локтевая кость слева."
+    "svg_group_ids": [
+      "UlnaLeft"
+    ],
+    "description": "Локтевая кость слева.",
+    "svg_group_ids_back": [
+      "g435"
+    ]
   },
   {
     "id": "ulna_right",
     "name_ru": "Правая локтевая кость",
     "name_la": "Ulna dextra",
     "group": "upper_limb",
-    "svg_group_ids": ["UlnaRight"],
-    "description": "Локтевая кость справа."
+    "svg_group_ids": [
+      "UlnaRight"
+    ],
+    "description": "Локтевая кость справа.",
+    "svg_group_ids_back": [
+      "g487"
+    ]
   },
   {
     "id": "hand_left",
     "name_ru": "Левая кисть",
     "name_la": "Manus sinistra",
     "group": "upper_limb",
-    "svg_group_ids": ["HandLeft"],
-    "description": "Кисть левой верхней конечности."
+    "svg_group_ids": [
+      "HandLeft"
+    ],
+    "description": "Кисть левой верхней конечности.",
+    "svg_group_ids_back": [
+      "g93"
+    ]
   },
   {
     "id": "hand_right",
     "name_ru": "Правая кисть",
     "name_la": "Manus dextra",
     "group": "upper_limb",
-    "svg_group_ids": ["HandRight"],
-    "description": "Кисть правой верхней конечности."
+    "svg_group_ids": [
+      "HandRight"
+    ],
+    "description": "Кисть правой верхней конечности.",
+    "svg_group_ids_back": [
+      "g509"
+    ]
   },
   {
     "id": "femur_left",
     "name_ru": "Левая бедренная кость",
     "name_la": "Femur sinister",
     "group": "lower_limb",
-    "svg_group_ids": ["FemurLeft", "path499", "path513"],
-    "description": "Бедренная кость слева."
+    "svg_group_ids": [
+      "FemurLeft",
+      "path499",
+      "path513"
+    ],
+    "description": "Бедренная кость слева.",
+    "svg_group_ids_back": [
+      "g751"
+    ]
   },
   {
     "id": "femur_right",
     "name_ru": "Правая бедренная кость",
     "name_la": "Femur dexter",
     "group": "lower_limb",
-    "svg_group_ids": ["g3760", "path479", "path481"],
-    "description": "Правая бедренная кость."
+    "svg_group_ids": [
+      "g3760",
+      "path479",
+      "path481"
+    ],
+    "description": "Правая бедренная кость.",
+    "svg_group_ids_back": [
+      "g787"
+    ]
   },
   {
     "id": "patella_left",
     "name_ru": "Левый надколенник",
     "name_la": "Patella sinistra",
     "group": "lower_limb",
-    "svg_group_ids": ["PatellaLeft"],
-    "description": "Надколенник слева."
+    "svg_group_ids": [
+      "PatellaLeft"
+    ],
+    "description": "Надколенник слева.",
+    "svg_group_ids_back": []
   },
   {
     "id": "patella_right",
     "name_ru": "Правый надколенник",
     "name_la": "Patella dextra",
     "group": "lower_limb",
-    "svg_group_ids": ["PatellaRight"],
-    "description": "Надколенник справа."
+    "svg_group_ids": [
+      "PatellaRight"
+    ],
+    "description": "Надколенник справа.",
+    "svg_group_ids_back": []
   },
   {
     "id": "tibia_left",
     "name_ru": "Левая большеберцовая кость",
     "name_la": "Tibia sinistra",
     "group": "lower_limb",
-    "svg_group_ids": ["TibiaLeft"],
-    "description": "Большеберцовая кость слева."
+    "svg_group_ids": [
+      "TibiaLeft"
+    ],
+    "description": "Большеберцовая кость слева.",
+    "svg_group_ids_back": [
+      "g2015",
+      "path2031",
+      "path2033",
+      "path2035",
+      "path2039",
+      "path2037"
+    ]
   },
   {
     "id": "tibia_right",
     "name_ru": "Правая большеберцовая кость",
     "name_la": "Tibia dextra",
     "group": "lower_limb",
-    "svg_group_ids": ["TibiaRight"],
-    "description": "Большеберцовая кость справа."
+    "svg_group_ids": [
+      "TibiaRight"
+    ],
+    "description": "Большеберцовая кость справа.",
+    "svg_group_ids_back": [
+      "g2053",
+      "path2067",
+      "path2069",
+      "path2071",
+      "path2073",
+      "path2075"
+    ]
   },
   {
     "id": "fibula_left",
     "name_ru": "Левая малоберцовая кость",
     "name_la": "Fibula sinistra",
     "group": "lower_limb",
-    "svg_group_ids": ["FibulaLeft"],
-    "description": "Малоберцовая кость слева."
+    "svg_group_ids": [
+      "FibulaLeft"
+    ],
+    "description": "Малоберцовая кость слева.",
+    "svg_group_ids_back": [
+      "g2041"
+    ]
   },
   {
     "id": "fibula_right",
     "name_ru": "Правая малоберцовая кость",
     "name_la": "Fibula dextra",
     "group": "lower_limb",
-    "svg_group_ids": ["FibulaRight"],
-    "description": "Малоберцовая кость справа."
+    "svg_group_ids": [
+      "FibulaRight"
+    ],
+    "description": "Малоберцовая кость справа.",
+    "svg_group_ids_back": [
+      "g2077"
+    ]
   },
   {
     "id": "foot_left",
     "name_ru": "Левая стопа",
     "name_la": "Pes sinister",
     "group": "lower_limb",
-    "svg_group_ids": ["FootLeft"],
-    "description": "Стопа левой нижней конечности."
+    "svg_group_ids": [
+      "FootLeft"
+    ],
+    "description": "Стопа левой нижней конечности.",
+    "svg_group_ids_back": [
+      "g2197"
+    ]
   },
   {
     "id": "foot_right",
     "name_ru": "Правая стопа",
     "name_la": "Pes dexter",
     "group": "lower_limb",
-    "svg_group_ids": ["FootRight"],
-    "description": "Стопа правой нижней конечности."
+    "svg_group_ids": [
+      "FootRight"
+    ],
+    "description": "Стопа правой нижней конечности.",
+    "svg_group_ids_back": [
+      "g2089",
+      "path2085",
+      "path2087"
+    ]
   },
   {
     "id": "skull",
     "name_ru": "Череп",
     "name_la": "Cranium",
     "group": "axial",
-    "svg_group_ids": ["Skull"],
-    "description": "Кости мозгового отдела черепа."
+    "svg_group_ids": [
+      "Skull"
+    ],
+    "description": "Кости мозгового отдела черепа.",
+    "svg_group_ids_back": [
+      "g847",
+      "g869",
+      "g875",
+      "g883",
+      "g899",
+      "path897"
+    ]
   },
   {
     "id": "mandible",
     "name_ru": "Нижняя челюсть",
     "name_la": "Mandibula",
     "group": "axial",
-    "svg_group_ids": ["Mandible"],
-    "description": "Нижняя челюсть."
+    "svg_group_ids": [
+      "Mandible"
+    ],
+    "description": "Нижняя челюсть.",
+    "svg_group_ids_back": [
+      "g849"
+    ]
+  },
+  {
+    "id": "cervical_spine",
+    "name_ru": "Шейный отдел позвоночника",
+    "name_la": "Vertebrae cervicales",
+    "group": "axial",
+    "svg_group_ids": [
+      "CervicalVertebrae"
+    ],
+    "description": "Шейный отдел позвоночника.",
+    "svg_group_ids_back": [
+      "g1887",
+      "g1865"
+    ]
   },
   {
     "id": "vertebral_column",
@@ -308,12 +585,98 @@
     "name_la": "Columna vertebralis",
     "group": "axial",
     "svg_group_ids": [
-      "CervicalVertebrae",
-      "ThoracicVertebrae",
-      "LumbarVertebrae",
-      "Sacrum",
+      "path417",
+      "path413",
+      "path407",
+      "path405",
+      "path403",
+      "path401",
+      "path399",
+      "path397",
+      "path395",
+      "path393",
+      "path391",
+      "path389",
+      "path387",
+      "path385",
+      "path639",
+      "path1115",
+      "path1607",
+      "path789",
+      "path797",
+      "g801"
+    ],
+    "description": "Позвоночный столб от шейного отдела до копчика.",
+    "svg_group_ids_back": [
+      "g1299",
+      "g825"
+    ]
+  },
+  {
+    "id": "thoracic_spine",
+    "name_ru": "Грудной отдел позвоночника",
+    "name_la": "Vertebrae thoracicae",
+    "group": "axial",
+    "svg_group_ids": [
+      "ThoracicVertebrae"
+    ],
+    "description": "Грудной отдел позвоночника.",
+    "svg_group_ids_back": [
+      "g1551",
+      "g1585",
+      "g1613",
+      "g1629",
+      "g1671",
+      "g1649",
+      "g1717",
+      "g1695",
+      "g1735",
+      "g1761",
+      "g1799",
+      "g1837"
+    ]
+  },
+  {
+    "id": "lumbar_spine",
+    "name_ru": "Поясничный отдел позвоночника",
+    "name_la": "Vertebrae lumbales",
+    "group": "axial",
+    "svg_group_ids": [
+      "LumbarVertebrae"
+    ],
+    "description": "Поясничный отдел позвоночника.",
+    "svg_group_ids_back": [
+      "g1361",
+      "g1401",
+      "g1431",
+      "g1479",
+      "g1517"
+    ]
+  },
+  {
+    "id": "sacrum",
+    "name_ru": "Крестец",
+    "name_la": "Os sacrum",
+    "group": "axial",
+    "svg_group_ids": [
+      "Sacrum"
+    ],
+    "description": "Крестец.",
+    "svg_group_ids_back": [
+      "g1305"
+    ]
+  },
+  {
+    "id": "coccyx",
+    "name_ru": "Копчик",
+    "name_la": "Os coccygis",
+    "group": "axial",
+    "svg_group_ids": [
       "Coccyx"
     ],
-    "description": "Позвоночный столб от шейного отдела до копчика."
+    "description": "Копчик.",
+    "svg_group_ids_back": [
+      "g827"
+    ]
   }
 ]

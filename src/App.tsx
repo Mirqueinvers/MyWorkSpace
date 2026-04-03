@@ -247,6 +247,8 @@ function App() {
           deletingLeaveId={sickLeaves.deletingLeaveId}
           openSickLeavesCount={sickLeaves.openSickLeavesCount}
           lastNameFocusKey={sickLeaves.lastNameFocusKey}
+          onSelectPatient={xray.handleSelectPatient}
+          onOpenPatient={() => setActiveSection('Пациенты')}
           onLastNameChange={sickLeaves.setLastName}
           onFirstNameChange={sickLeaves.setFirstName}
           onPatronymicChange={sickLeaves.setPatronymic}

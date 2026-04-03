@@ -37,7 +37,9 @@ export function XRayJournalsSection({
         <XRayJournal onSelectPatient={onSelectPatient} onOpenPatient={onOpenPatient} />
       ) : null}
 
-      {activeTab === 'ФЛ журнал' ? <XRayFlJournal /> : null}
+      {activeTab === 'ФЛ журнал' ? (
+        <XRayFlJournal onSelectPatient={onSelectPatient} onOpenPatient={onOpenPatient} />
+      ) : null}
 
       {activeTab === 'УЗИ журнал' ? (
         <UltrasoundJournal onSelectPatient={onSelectPatient} onOpenPatient={onOpenPatient} />

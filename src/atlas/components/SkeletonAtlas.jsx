@@ -1,11 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import bones from '../data/bones.json'
 
-function buildSvgGroupMap(items) {
-  const groupMap = new Map()
+function getSvgGroupIdsForView(bone, view) {
+  if (view === 'back') {
+    return bone.svg_group_ids_back ?? []
+  }
 
-  for (const bone of items) {
-    for (const svgGroupId of bone.svg_group_ids) {
+  return bone.svg_group_ids ?? []
+}
+
+function getBoneMappingPriority(bone) {
+  if (bone.id === 'vertebral_column') {
+    return 100
+  }
+
+  return 0
+}
+
+function buildSvgGroupMap(items, view) {
+  const groupMap = new Map()
+  const sortedItems = [...items].sort(
+    (left, right) => getBoneMappingPriority(left) - getBoneMappingPriority(right),
+  )
+
+  for (const bone of sortedItems) {
+    for (const svgGroupId of getSvgGroupIdsForView(bone, view)) {
       if (!svgGroupId) {
         continue
       }
@@ -49,16 +68,21 @@ function storeOriginalVisualState(element) {
     return
   }
 
+  const originalFillValue =
+    element.style.fill || element.getAttribute('fill') || ''
+
   if (!element.dataset.atlasOriginalFill) {
-    element.dataset.atlasOriginalFill = element.style.fill || ''
+    element.dataset.atlasOriginalFill = originalFillValue
   }
 
   if (!element.dataset.atlasOriginalStroke) {
-    element.dataset.atlasOriginalStroke = element.style.stroke || ''
+    element.dataset.atlasOriginalStroke =
+      element.style.stroke || element.getAttribute('stroke') || ''
   }
 
   if (!element.dataset.atlasOriginalStrokeWidth) {
-    element.dataset.atlasOriginalStrokeWidth = element.style.strokeWidth || ''
+    element.dataset.atlasOriginalStrokeWidth =
+      element.style.strokeWidth || element.getAttribute('stroke-width') || ''
   }
 
   if (!element.dataset.atlasOriginalFilter) {
@@ -94,6 +118,8 @@ function restoreOriginalVisualState(element) {
 function applyBoneVisualState(elements, state) {
   for (const element of elements) {
     restoreOriginalVisualState(element)
+    const hasFill =
+      (element.dataset.atlasOriginalFill || '').trim().toLowerCase() !== 'none'
 
     if (state === 'muted') {
       element.style.setProperty('opacity', '0.22', 'important')
@@ -102,7 +128,9 @@ function applyBoneVisualState(elements, state) {
     }
 
     if (state === 'selected') {
-      element.style.setProperty('fill', '#fdba74', 'important')
+      if (hasFill) {
+        element.style.setProperty('fill', '#fdba74', 'important')
+      }
       element.style.setProperty('stroke', '#c2410c', 'important')
       element.style.setProperty('stroke-width', '1.3', 'important')
       element.style.setProperty('filter', 'brightness(1.04)', 'important')
@@ -111,7 +139,9 @@ function applyBoneVisualState(elements, state) {
     }
 
     if (state === 'hover') {
-      element.style.setProperty('fill', '#fde68a', 'important')
+      if (hasFill) {
+        element.style.setProperty('fill', '#fde68a', 'important')
+      }
       element.style.setProperty('stroke', '#0f766e', 'important')
       element.style.setProperty('stroke-width', '1.15', 'important')
       element.style.setProperty('filter', 'brightness(1.03)', 'important')
@@ -165,14 +195,25 @@ function findBoneNode(startNode, stopNode) {
   return null
 }
 
+function getBoneDisplayName(bone, displayLanguage) {
+  return displayLanguage === 'la' ? bone.name_la : bone.name_ru
+}
+
+function getBoneSecondaryName(bone, displayLanguage) {
+  return displayLanguage === 'la' ? bone.name_ru : bone.name_la
+}
+
 export function SkeletonAtlas({
+  view = 'front',
   svgMarkup,
   activeGroup = 'all',
+  displayLanguage = 'ru',
   selectedBoneId: controlledSelectedBoneId = null,
   onBoneHover,
   onBoneLeave,
   onBoneSelect,
 }) {
+  const shellRef = useRef(null)
   const mountRef = useRef(null)
   const svgRef = useRef(null)
   const boneElementsRef = useRef(new Map())
@@ -181,9 +222,14 @@ export function SkeletonAtlas({
   const [hoveredBoneId, setHoveredBoneId] = useState(null)
   const [selectedBoneId, setSelectedBoneId] = useState(null)
   const [resolvedBonesCount, setResolvedBonesCount] = useState(0)
+  const [tooltipPosition, setTooltipPosition] = useState(null)
 
-  const svgGroupMap = useMemo(() => buildSvgGroupMap(bones), [])
+  const svgGroupMap = useMemo(() => buildSvgGroupMap(bones, view), [view])
   const boneMap = useMemo(() => buildBoneMap(bones), [])
+  const hoveredBone = useMemo(
+    () => (hoveredBoneId ? boneMap.get(hoveredBoneId) ?? null : null),
+    [boneMap, hoveredBoneId],
+  )
 
   useEffect(() => {
     const mountElement = mountRef.current
@@ -192,8 +238,8 @@ export function SkeletonAtlas({
     svgRef.current = null
     hoveredBoneIdRef.current = null
     setHoveredBoneId(null)
-    setSelectedBoneId(null)
     setResolvedBonesCount(0)
+    setTooltipPosition(null)
 
     if (!mountElement) {
       return undefined
@@ -250,18 +296,30 @@ export function SkeletonAtlas({
       }
 
       for (const target of drawableTargets) {
+        const existingBoneId = target.dataset.bonePrimaryId || null
+        const isOwnedByAnotherBone =
+          existingBoneId && existingBoneId !== primaryBone.id
+
         storeOriginalVisualState(target)
         target.classList.add('atlas-bone-target', 'atlas-bone-shape')
-        target.dataset.bonePrimaryId = primaryBone.id
-        target.dataset.boneSvgGroupId = svgGroupId
+        if (!target.dataset.bonePrimaryId) {
+          target.dataset.bonePrimaryId = primaryBone.id
+          target.dataset.boneSvgGroupId = svgGroupId
+        }
+
+        if (isOwnedByAnotherBone) {
+          continue
+        }
 
         const hitShape = createHitShape(target)
         if (!hitShape) {
           continue
         }
 
-        hitShape.dataset.bonePrimaryId = primaryBone.id
-        hitShape.dataset.boneSvgGroupId = svgGroupId
+        if (!hitShape.dataset.bonePrimaryId) {
+          hitShape.dataset.bonePrimaryId = primaryBone.id
+          hitShape.dataset.boneSvgGroupId = svgGroupId
+        }
         overlayLayer.appendChild(hitShape)
       }
     }
@@ -272,11 +330,20 @@ export function SkeletonAtlas({
     const handlePointerMove = (event) => {
       const boneNode = findBoneNode(event.target, svgElement)
 
+      if (shellRef.current) {
+        const shellRect = shellRef.current.getBoundingClientRect()
+        setTooltipPosition({
+          x: event.clientX - shellRect.left + 14,
+          y: event.clientY - shellRect.top + 14,
+        })
+      }
+
       if (!boneNode) {
         if (hoveredBoneIdRef.current) {
           const previousBoneId = hoveredBoneIdRef.current
           hoveredBoneIdRef.current = null
           setHoveredBoneId(null)
+          setTooltipPosition(null)
 
           const previousBone = boneMap.get(previousBoneId)
           if (previousBone && typeof onBoneLeave === 'function') {
@@ -316,12 +383,14 @@ export function SkeletonAtlas({
 
     const handlePointerLeave = () => {
       if (!hoveredBoneIdRef.current) {
+        setTooltipPosition(null)
         return
       }
 
       const previousBoneId = hoveredBoneIdRef.current
       hoveredBoneIdRef.current = null
       setHoveredBoneId(null)
+      setTooltipPosition(null)
 
       const previousBone = boneMap.get(previousBoneId)
       if (previousBone && typeof onBoneLeave === 'function') {
@@ -411,7 +480,7 @@ export function SkeletonAtlas({
         'hover',
       )
     }
-  }, [activeGroup, boneMap, hoveredBoneId, selectedBoneId])
+  }, [activeGroup, boneMap, hoveredBoneId, resolvedBonesCount, selectedBoneId, view])
 
   useEffect(() => {
     if (controlledSelectedBoneId === undefined) {
@@ -424,10 +493,28 @@ export function SkeletonAtlas({
   }, [controlledSelectedBoneId])
 
   return (
-    <div className="atlas-skeleton-shell">
+    <div ref={shellRef} className="atlas-skeleton-shell">
       <div className="atlas-skeleton-svg" aria-label={'\u0410\u0442\u043b\u0430\u0441 \u0441\u043a\u0435\u043b\u0435\u0442\u0430'}>
         <div ref={mountRef} className="atlas-skeleton-mount" />
       </div>
+      {hoveredBone && tooltipPosition ? (
+        <div
+          className="atlas-tooltip"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+          }}
+        >
+          <div className="atlas-tooltip__title">
+            {getBoneDisplayName(hoveredBone, displayLanguage)}
+          </div>
+          {getBoneSecondaryName(hoveredBone, displayLanguage) ? (
+            <div className="atlas-tooltip__subtitle">
+              {getBoneSecondaryName(hoveredBone, displayLanguage)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

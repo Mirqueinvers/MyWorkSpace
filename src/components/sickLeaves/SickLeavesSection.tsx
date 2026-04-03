@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { SickLeave } from '../../types/sickLeaves'
+import type { XRayPatient } from '../../types/xray'
 import {
   formatBirthDate,
   formatDateRange,
@@ -27,6 +28,8 @@ interface SickLeavesSectionProps {
   deletingLeaveId: number | null
   openSickLeavesCount: number
   lastNameFocusKey: number
+  onSelectPatient: (patient: XRayPatient) => void
+  onOpenPatient: () => void
   onLastNameChange: (value: string) => void
   onFirstNameChange: (value: string) => void
   onPatronymicChange: (value: string) => void
@@ -63,6 +66,8 @@ export function SickLeavesSection({
   deletingLeaveId,
   openSickLeavesCount,
   lastNameFocusKey,
+  onSelectPatient,
+  onOpenPatient,
   onLastNameChange,
   onFirstNameChange,
   onPatronymicChange,
@@ -76,6 +81,132 @@ export function SickLeavesSection({
   onDeleteSickLeave,
 }: SickLeavesSectionProps) {
   const [periodDrafts, setPeriodDrafts] = useState<Record<number, PeriodDraft>>({})
+  const [localError, setLocalError] = useState('')
+  const [copiedSickLeaveId, setCopiedSickLeaveId] = useState<number | null>(null)
+  const [patientLinkMap, setPatientLinkMap] = useState<Record<number, string>>({})
+
+  function normalizeBirthDateDigits(value: string) {
+    const digits = String(value ?? '').replace(/\D/g, '')
+    return digits.length === 8 ? digits : ''
+  }
+
+  function getPatientClipboardKey(sickLeave: SickLeave) {
+    const initials = `${sickLeave.lastName[0] ?? ''}${sickLeave.firstName[0] ?? ''}${sickLeave.patronymic[0] ?? ''}`
+    return `${initials}${normalizeBirthDateDigits(sickLeave.birthDate)}`.toLocaleLowerCase('ru-RU')
+  }
+
+  async function lookupXRayPatient(sickLeave: SickLeave) {
+    const searchQuery = [
+      sickLeave.lastName,
+      sickLeave.firstName,
+      sickLeave.patronymic,
+      normalizeBirthDateDigits(sickLeave.birthDate),
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    const results = await window.electronAPI.xray.searchPatients(searchQuery)
+    const birthDateDigits = normalizeBirthDateDigits(sickLeave.birthDate)
+
+    return (
+      results.find(
+        (patient) =>
+          patient.lastName === sickLeave.lastName &&
+          patient.firstName === sickLeave.firstName &&
+          patient.patronymic === sickLeave.patronymic &&
+          normalizeBirthDateDigits(patient.birthDate) === birthDateDigits,
+      ) ?? null
+    )
+  }
+
+  async function findXRayPatient(sickLeave: SickLeave) {
+    if (!window.electronAPI?.xray?.searchPatients) {
+      setLocalError('Переход в карточку пациента недоступен.')
+      return null
+    }
+
+    return lookupXRayPatient(sickLeave)
+  }
+
+  useEffect(() => {
+    if (!window.electronAPI?.xray?.searchPatients || sickLeaves.length === 0) {
+      setPatientLinkMap({})
+      return
+    }
+
+    let isCancelled = false
+
+    async function loadPatientLinks() {
+      const entries = await Promise.all(
+        sickLeaves.map(async (sickLeave) => {
+          try {
+            const patient = await lookupXRayPatient(sickLeave)
+            return [sickLeave.id, patient?.rmisUrl?.trim() ?? ''] as const
+          } catch {
+            return [sickLeave.id, ''] as const
+          }
+        }),
+      )
+
+      if (isCancelled) {
+        return
+      }
+
+      setPatientLinkMap(Object.fromEntries(entries))
+    }
+
+    void loadPatientLinks()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [sickLeaves])
+
+  async function handleOpenPatientCard(sickLeave: SickLeave) {
+    setLocalError('')
+
+    try {
+      const patient = await findXRayPatient(sickLeave)
+
+      if (!patient) {
+        setLocalError('Пациент не найден в карточках.')
+        return
+      }
+
+      onSelectPatient(patient)
+      onOpenPatient()
+    } catch {
+      setLocalError('Не удалось открыть карточку пациента.')
+    }
+  }
+
+  async function handleOpenPatientLink(sickLeave: SickLeave) {
+    setLocalError('')
+
+    try {
+      const patient = await findXRayPatient(sickLeave)
+
+      if (!patient?.rmisUrl || !window.electronAPI?.xray?.openLink) {
+        return
+      }
+
+      await window.electronAPI.xray.openLink(patient.rmisUrl)
+    } catch {
+      setLocalError('Не удалось открыть ссылку пациента.')
+    }
+  }
+
+  async function handleCopyPatientKey(sickLeave: SickLeave) {
+    try {
+      await navigator.clipboard.writeText(getPatientClipboardKey(sickLeave))
+      setCopiedSickLeaveId(sickLeave.id)
+      window.setTimeout(() => {
+        setCopiedSickLeaveId((currentId) => (currentId === sickLeave.id ? null : currentId))
+      }, 1400)
+    } catch {
+      setLocalError('Не удалось скопировать ключ пациента.')
+    }
+  }
 
   function getPeriodDraft(sickLeaveId: number): PeriodDraft {
     const sickLeave = sickLeaves.find((item) => item.id === sickLeaveId)
@@ -156,6 +287,7 @@ export function SickLeavesSection({
         </div>
 
         {error ? <div className="state-banner error-banner">{error}</div> : null}
+        {localError ? <div className="state-banner error-banner">{localError}</div> : null}
 
         {!loading && !error && sickLeaves.length === 0 ? (
           <div className="empty-state">
@@ -168,12 +300,98 @@ export function SickLeavesSection({
             {sickLeaves.map((sickLeave) => {
               const periodDraft = getPeriodDraft(sickLeave.id)
               const fullName = `${sickLeave.lastName} ${sickLeave.firstName} ${sickLeave.patronymic}`
+              const patientLink = patientLinkMap[sickLeave.id] ?? ''
+              const hasPatientLink = patientLink.length > 0
 
               return (
                 <article key={sickLeave.id} className="patient-item sick-leave-item">
                   <div className="patient-main">
                     <div className="sick-leave-head">
-                      <div className="patient-name">{fullName}</div>
+                      <div className="xray-fl-journal-patient-line">
+                        <button
+                          type="button"
+                          className="xray-fl-journal-copy-button"
+                          onClick={() => {
+                            void handleOpenPatientCard(sickLeave)
+                          }}
+                          aria-label="Открыть карточку пациента"
+                          title="Открыть карточку пациента"
+                        >
+                          <svg viewBox="0 0 20 20" aria-hidden="true">
+                            <path
+                              d="M10 3.25a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                            />
+                            <path
+                              d="M4.5 16.25a5.5 5.5 0 0 1 11 0"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                        <div
+                          className={`patient-name xray-fl-journal-name${hasPatientLink ? ' has-link' : ''}`}
+                          onClick={() => {
+                            if (hasPatientLink) {
+                              void handleOpenPatientLink(sickLeave)
+                            }
+                          }}
+                          role={hasPatientLink ? 'button' : undefined}
+                          tabIndex={hasPatientLink ? 0 : undefined}
+                          onKeyDown={(event) => {
+                            if (hasPatientLink && (event.key === 'Enter' || event.key === ' ')) {
+                              event.preventDefault()
+                              void handleOpenPatientLink(sickLeave)
+                            }
+                          }}
+                        >
+                          {fullName}
+                        </div>
+                        <button
+                          type="button"
+                          className={`xray-fl-journal-copy-button${copiedSickLeaveId === sickLeave.id ? ' is-copied' : ''}`}
+                          onClick={() => {
+                            void handleCopyPatientKey(sickLeave)
+                          }}
+                          aria-label="Скопировать ключ пациента"
+                          title="Скопировать ключ пациента"
+                        >
+                          {copiedSickLeaveId === sickLeave.id ? (
+                            <svg viewBox="0 0 20 20" aria-hidden="true">
+                              <path
+                                d="M4.5 10.5 8 14l7.5-8"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 20 20" aria-hidden="true">
+                              <path
+                                d="M7 3.5a2 2 0 0 1 2-2h5.5A2.5 2.5 0 0 1 17 4v9.5a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M5 5.5H4A2 2 0 0 0 2 7.5V16a2.5 2.5 0 0 0 2.5 2.5H11A2 2 0 0 0 13 16v-1"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                       <span
                         className={`status-indicator${sickLeave.status === 'closed' ? ' is-closed' : ''}`}
                         aria-label={

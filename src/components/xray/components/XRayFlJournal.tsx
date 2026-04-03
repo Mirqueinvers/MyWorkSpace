@@ -2,6 +2,7 @@
 import type {
   ImportXRayFlJournalResult,
   UpdateXRayFlJournalRmisUrlPayload,
+  XRayPatient,
   XRayFlJournalEntry,
 } from '../../../types/xray'
 
@@ -12,6 +13,7 @@ const FL_JOURNAL_API_UNAVAILABLE =
 const JOURNAL_LOAD_ERROR = 'Не удалось загрузить флюорографический журнал за выбранную дату.'
 const IMPORT_ERROR = 'Не удалось импортировать файл журнала.'
 const RMIS_SAVE_ERROR = 'Не удалось сохранить ссылку РМИС.'
+const PATIENT_OPEN_ERROR = 'Не удалось открыть карточку пациента.'
 const VIEWED_FL_PATIENTS_STORAGE_KEY = 'xray-fl-viewed-patients'
 const VIEWED_FL_PATIENTS_STORAGE_UNINITIALIZED = '__UNINITIALIZED__'
 
@@ -35,6 +37,11 @@ function formatBirthDate(value: string) {
   const digits = String(value ?? '').replace(/\D/g, '')
   if (digits.length !== 8) return value
   return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`
+}
+
+function normalizeBirthDateDigits(value: string) {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  return digits.length === 8 ? digits : ''
 }
 
 function getFullName(entry: XRayFlJournalEntry) {
@@ -61,7 +68,12 @@ function formatImportResult(result: ImportXRayFlJournalResult | null) {
   return `Импортировано: ${result.imported}, пропущено дублей: ${result.skipped}`
 }
 
-export function XRayFlJournal() {
+interface XRayFlJournalProps {
+  onSelectPatient: (patient: XRayPatient) => void
+  onOpenPatient: () => void
+}
+
+export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalProps) {
   const [journalDate, setJournalDate] = useState(getTodayIsoDate)
   const [entries, setEntries] = useState<XRayFlJournalEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -213,6 +225,45 @@ export function XRayFlJournal() {
     }
   }
 
+  async function handleOpenPatient(entry: XRayFlJournalEntry) {
+    if (!window.electronAPI?.xray?.searchPatients) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return
+    }
+
+    const searchQuery = [
+      entry.lastName,
+      entry.firstName,
+      entry.patronymic,
+      normalizeBirthDateDigits(entry.birthDate),
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    try {
+      const results = await window.electronAPI.xray.searchPatients(searchQuery)
+      const birthDateDigits = normalizeBirthDateDigits(entry.birthDate)
+      const matchedPatient =
+        results.find(
+          (patient) =>
+            patient.lastName === entry.lastName &&
+            patient.firstName === entry.firstName &&
+            patient.patronymic === entry.patronymic &&
+            normalizeBirthDateDigits(patient.birthDate) === birthDateDigits,
+        ) ?? null
+
+      if (!matchedPatient) {
+        setError('Пациент не найден в карточках.')
+        return
+      }
+
+      onSelectPatient(matchedPatient)
+      onOpenPatient()
+    } catch {
+      setError(PATIENT_OPEN_ERROR)
+    }
+  }
+
   function handleOpenRmisEditor(entry: XRayFlJournalEntry) {
     setEditingEntryId(entry.id)
     setRmisDraft(entry.rmisUrl ?? '')
@@ -342,6 +393,29 @@ export function XRayFlJournal() {
               <article key={entry.id} className="xray-journal-item xray-fl-journal-item">
                 <div className="xray-journal-item-head">
                   <div className="xray-fl-journal-patient-line">
+                    <button
+                      type="button"
+                      className="xray-fl-journal-copy-button"
+                      onClick={() => void handleOpenPatient(entry)}
+                      aria-label="Открыть карточку пациента"
+                      title="Открыть карточку пациента"
+                    >
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path
+                          d="M10 3.25a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                        <path
+                          d="M4.5 16.25a5.5 5.5 0 0 1 11 0"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
                     <strong
                       className={`xray-fl-journal-name${entry.rmisUrl ? ' has-link' : ''}${isViewed ? ' is-viewed' : ''}`}
                       onClick={() => {
