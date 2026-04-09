@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type {
   ImportUltrasoundJournalResult,
   UltrasoundJournalEntry,
   UltrasoundProtocolEntry,
 } from '../../../types/ultrasound'
 import type { UpdateXRayFlJournalRmisUrlPayload, XRayPatient } from '../../../types/xray'
+import { UltrasoundProtocolModal } from './UltrasoundProtocolModal'
 
 const ELECTRON_API_UNAVAILABLE =
   'API Electron недоступно. Откройте приложение через dev:electron.'
@@ -67,6 +68,19 @@ function formatStudySummary(studiesCount: number) {
   return `${studiesCount} исследований`
 }
 
+function getStudyTitleResearchCount(studyTitle: string) {
+  const parts = String(studyTitle ?? '')
+    .split('+')
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return parts.length > 0 ? parts.length : 1
+}
+
+function getEntryResearchCount(entry: UltrasoundJournalEntry) {
+  return entry.studies.reduce((count, study) => count + getStudyTitleResearchCount(study.studyTitle), 0)
+}
+
 function getPatientClipboardKey(entry: UltrasoundJournalEntry) {
   const { lastName, firstName, patronymic, birthDate } = entry.patient
   const initials = `${lastName[0] ?? ''}${firstName[0] ?? ''}${patronymic[0] ?? ''}`
@@ -77,296 +91,9 @@ function getPatientRmisUrl(entry: UltrasoundJournalEntry) {
   return entry.studies.find((study) => study.rmisUrl)?.rmisUrl ?? null
 }
 
-function getProtocolViewerHtml(documentHtml: string) {
-  const overrideCss = `
-    <style>
-      html, body {
-        background: #f1f5f9 !important;
-      }
-
-      .export-shell {
-        background: transparent !important;
-      }
-    </style>
-  `
-
-  if (documentHtml.includes('</head>')) {
-    return documentHtml.replace('</head>', `${overrideCss}</head>`)
-  }
-
-  return `${overrideCss}${documentHtml}`
-}
-
-function getProtocolClipboardPayload(documentHtml: string) {
-  if (typeof window === 'undefined') {
-    return { text: '', html: '' }
-  }
-
-  const parser = new window.DOMParser()
-  const documentNode = parser.parseFromString(documentHtml, 'text/html')
-  const html = documentNode.body?.innerHTML ?? ''
-  const rootNode = documentNode.body?.querySelector('.export-shell') ?? documentNode.body
-  const blockTags = new Set([
-    'address',
-    'article',
-    'aside',
-    'blockquote',
-    'div',
-    'dl',
-    'fieldset',
-    'figcaption',
-    'figure',
-    'footer',
-    'form',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-    'header',
-    'hr',
-    'li',
-    'main',
-    'nav',
-    'ol',
-    'p',
-    'pre',
-    'section',
-    'table',
-    'tbody',
-    'td',
-    'tfoot',
-    'th',
-    'thead',
-    'tr',
-    'ul',
-  ])
-
-  function normalizeInlineText(value: string) {
-    return value.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ')
-  }
-
-  function serializeNode(node: Node, listDepth = 0): string {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return normalizeInlineText(node.textContent ?? '')
-    }
-
-    if (node.nodeType !== Node.ELEMENT_NODE) {
-      return ''
-    }
-
-    const element = node as HTMLElement
-    const tagName = element.tagName.toLowerCase()
-
-    if (['script', 'style', 'noscript'].includes(tagName)) {
-      return ''
-    }
-
-    if (tagName === 'br') {
-      return '\n'
-    }
-
-    if (tagName === 'li') {
-      const itemText = Array.from(element.childNodes)
-        .map((childNode) => serializeNode(childNode, listDepth + 1))
-        .join('')
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
-
-      if (!itemText) {
-        return ''
-      }
-
-      const indent = '  '.repeat(Math.max(0, listDepth))
-      const normalizedItemText = itemText.replace(/\n/g, `\n${indent}  `)
-      return `${indent}• ${normalizedItemText}\n`
-    }
-
-    if (tagName === 'tr') {
-      const rowText = Array.from(element.children)
-        .map((childElement) => serializeNode(childElement, listDepth).trim())
-        .filter(Boolean)
-        .join(' | ')
-
-      return rowText ? `${rowText}\n` : ''
-    }
-
-    const childText = Array.from(element.childNodes)
-      .map((childNode) => serializeNode(childNode, listDepth))
-      .join('')
-
-    if (blockTags.has(tagName)) {
-      const normalizedBlockText = childText
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
-
-      return normalizedBlockText ? `${normalizedBlockText}\n\n` : ''
-    }
-
-    return childText
-  }
-
-  const text = serializeNode(rootNode)
-    .replace(/\u00a0/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n[ \t]+/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-
-  return { text, html }
-}
-
-async function writeProtocolToClipboard(documentHtml: string) {
-  const payload = getProtocolClipboardPayload(documentHtml)
-
-  if (!payload.text) {
-    return false
-  }
-
-  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-    const clipboardItem = new ClipboardItem({
-      'text/plain': new Blob([payload.text], { type: 'text/plain' }),
-      'text/html': new Blob([payload.html], { type: 'text/html' }),
-    })
-
-    await navigator.clipboard.write([clipboardItem])
-    return true
-  }
-
-  await navigator.clipboard.writeText(payload.text)
-  return true
-}
-
-interface ProtocolModalProps {
-  protocol: UltrasoundProtocolEntry | null
-  loading: boolean
-  error: string
-  onClose: () => void
-}
-
 interface UltrasoundJournalProps {
   onSelectPatient: (patient: XRayPatient) => void
   onOpenPatient: () => void
-}
-
-function UltrasoundProtocolModal({ protocol, loading, error, onClose }: ProtocolModalProps) {
-  const [isCopied, setIsCopied] = useState(false)
-
-  if (!protocol && !loading && !error) {
-    return null
-  }
-
-  async function handleCopyProtocol() {
-    if (!protocol) {
-      return
-    }
-
-    try {
-      const copied = await writeProtocolToClipboard(protocol.documentHtml)
-
-      if (!copied) {
-        return
-      }
-
-      setIsCopied(true)
-      window.setTimeout(() => {
-        setIsCopied(false)
-      }, 1400)
-    } catch {}
-  }
-
-  return (
-    <div
-      className="modal-backdrop"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15, 23, 42, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        zIndex: 120,
-      }}
-    >
-      <div
-        className="content-card"
-        onClick={(event) => event.stopPropagation()}
-        style={{
-          width: 'min(1100px, 100%)',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          padding: '16px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div>
-            <p className="section-kicker">УЗИ журнал</p>
-            <h3 style={{ margin: 0 }}>{protocol?.studyTitle ?? 'Просмотр протокола'}</h3>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {protocol ? (
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => void handleCopyProtocol()}
-                style={{ minWidth: '186px', display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}
-              >
-                {isCopied ? (
-                  <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: '16px', height: '16px', color: '#16a34a' }}>
-                    <path
-                      d="M4.5 10.5 8 14l7.5-8"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  'Скопировать протокол'
-                )}
-              </button>
-            ) : null}
-            <button type="button" className="primary-button" onClick={onClose}>
-              Закрыть
-            </button>
-          </div>
-        </div>
-
-        {loading ? <p className="xray-journal-empty">Открываю протокол...</p> : null}
-        {error ? <p className="xray-journal-empty">{error}</p> : null}
-
-        {protocol ? (
-          <iframe
-            title={`УЗИ протокол ${protocol.id}`}
-            srcDoc={getProtocolViewerHtml(protocol.documentHtml)}
-            style={{
-              width: '100%',
-              minHeight: '70vh',
-              border: '1px solid rgba(148, 163, 184, 0.35)',
-              borderRadius: '16px',
-              background: '#f1f5f9',
-            }}
-          />
-        ) : null}
-      </div>
-    </div>
-  )
 }
 
 export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: UltrasoundJournalProps) {
@@ -386,7 +113,7 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   const [rmisDraft, setRmisDraft] = useState('')
   const [savingRmis, setSavingRmis] = useState(false)
 
-  const studiesCount = entries.reduce((count, entry) => count + entry.studies.length, 0)
+  const studiesCount = entries.reduce((count, entry) => count + getEntryResearchCount(entry), 0)
 
   async function loadJournalByDate(targetDate: string) {
     if (!window.electronAPI?.ultrasoundJournal) {
@@ -798,7 +525,7 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
                         +
                       </button>
                     </div>
-                    <span>{formatStudySummary(entry.studies.length)}</span>
+                    <span>{formatStudySummary(getEntryResearchCount(entry))}</span>
                   </div>
 
                   {editingPatientKey === patientKey ? (
@@ -847,7 +574,10 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
         loading={protocolLoading}
         error={protocolError}
         onClose={() => setProtocolId(null)}
+        kicker={'УЗИ журнал'}
       />
     </>
   )
 }
+
+

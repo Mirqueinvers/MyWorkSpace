@@ -25,6 +25,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addPeriod(payload) {
       return ipcRenderer.invoke('sick-leaves:add-period', payload);
     },
+    updatePeriod(payload) {
+      return ipcRenderer.invoke('sick-leaves:update-period', payload);
+    },
     close(payload) {
       return ipcRenderer.invoke('sick-leaves:close', payload);
     },

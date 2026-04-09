@@ -4004,11 +4004,28 @@ html[data-theme='dark'] .atlas-bone-selected rect {
 .period-chip {
   padding: 8px 12px;
   border-radius: 999px;
+  border: none;
   background: rgba(236, 253, 245, 0.9);
   color: #166534;
   font-size: 0.86rem;
   font-weight: 600;
   box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.16);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.period-chip:hover {
+  background: rgba(220, 252, 231, 1);
+}
+
+.period-chip.is-active {
+  background: rgba(187, 247, 208, 1);
+  box-shadow:
+    inset 0 0 0 1px rgba(22, 101, 52, 0.22),
+    0 0 0 2px rgba(34, 197, 94, 0.12);
 }
 
 .extend-form {
@@ -4634,6 +4651,12 @@ html[data-theme='dark'] .atlas-bone-selected rect {
   display: grid;
   gap: 14px;
   margin-top: 28px;
+}
+
+.reminder-form .field,
+.reminder-form .field input,
+.reminder-form .field textarea {
+  width: 100%;
 }
 
 .reminder-textarea {

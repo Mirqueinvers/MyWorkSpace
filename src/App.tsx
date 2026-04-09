@@ -258,6 +258,7 @@ function App() {
           onDiagnosisChange={sickLeaves.setDiagnosis}
           onSubmit={sickLeaves.handleAddSickLeave}
           onAddPeriod={sickLeaves.handleAddPeriod}
+          onUpdatePeriod={sickLeaves.handleUpdatePeriod}
           onCloseSickLeave={sickLeaves.handleCloseSickLeave}
           onDeleteSickLeave={sickLeaves.handleDeleteSickLeave}
         />
@@ -385,6 +386,7 @@ function App() {
       <aside className="right-rail">
         <ClockPanel weather={weather} />
         <RemindersPanel
+          currentDateDigits={todayDateDigits}
           reminders={visibleReminders}
           allReminders={reminders.reminders}
           urgentSickLeaves={urgentSickLeaves}

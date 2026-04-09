@@ -35,6 +35,13 @@ export interface AddSickLeavePeriodPayload {
   endDate: string
 }
 
+export interface UpdateSickLeavePeriodPayload {
+  id: number
+  sickLeaveId: number
+  startDate: string
+  endDate: string
+}
+
 export interface CloseSickLeavePayload {
   id: number
   closeDate: string
@@ -44,6 +51,7 @@ export interface SickLeavesApi {
   list: () => Promise<SickLeave[]>
   add: (payload: AddSickLeavePayload) => Promise<SickLeave>
   addPeriod: (payload: AddSickLeavePeriodPayload) => Promise<SickLeavePeriod>
+  updatePeriod: (payload: UpdateSickLeavePeriodPayload) => Promise<SickLeavePeriod>
   close: (payload: CloseSickLeavePayload) => Promise<SickLeave>
   delete: (id: number) => Promise<boolean>
 }

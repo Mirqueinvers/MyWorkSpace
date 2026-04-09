@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { ReminderRecurrence, Reminder } from '../../types/reminders'
 import type { SickLeave } from '../../types/sickLeaves'
 import { formatPatientCreatedAt, formatReminderSchedule } from '../../utils/date'
 
 interface RemindersPanelProps {
+  currentDateDigits: string
   reminders: Reminder[]
   allReminders: Reminder[]
   urgentSickLeaves: SickLeave[]
@@ -50,6 +51,7 @@ const ADDED_AT_LABEL = '\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043e:'
 const CLOSE_ICON = '\u00d7'
 
 export function RemindersPanel({
+  currentDateDigits,
   reminders,
   allReminders,
   urgentSickLeaves,
@@ -69,6 +71,16 @@ export function RemindersPanel({
 }: RemindersPanelProps) {
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
+  const [dismissedReminderIds, setDismissedReminderIds] = useState<number[]>([])
+
+  useEffect(() => {
+    setDismissedReminderIds([])
+  }, [currentDateDigits])
+
+  const visibleReminderItems = useMemo(
+    () => reminders.filter((reminder) => !dismissedReminderIds.includes(reminder.id)),
+    [dismissedReminderIds, reminders],
+  )
 
   return (
     <>
@@ -168,11 +180,11 @@ export function RemindersPanel({
 
         {error ? <div className="state-banner error-banner">{error}</div> : null}
         {loading ? <div className="empty-state">{LOADING_LABEL}</div> : null}
-        {!loading && urgentSickLeaves.length === 0 && reminders.length === 0 ? (
+        {!loading && urgentSickLeaves.length === 0 && visibleReminderItems.length === 0 ? (
           <div className="empty-state">{EMPTY_LABEL}</div>
         ) : null}
 
-        {urgentSickLeaves.length > 0 || reminders.length > 0 ? (
+        {urgentSickLeaves.length > 0 || visibleReminderItems.length > 0 ? (
           <div className="patient-list reminders-list">
             {urgentSickLeaves.map((sickLeave) => {
               const fullName = `${sickLeave.lastName} ${sickLeave.firstName} ${sickLeave.patronymic}`
@@ -190,19 +202,22 @@ export function RemindersPanel({
               )
             })}
 
-            {reminders.map((reminder) => (
+            {visibleReminderItems.map((reminder) => (
               <article key={reminder.id} className="patient-item reminder-item">
                 <button
                   type="button"
                   className="reminder-close-button"
                   onClick={() => {
-                    void onDeleteReminder(reminder.id)
+                    setDismissedReminderIds((currentIds) =>
+                      currentIds.includes(reminder.id)
+                        ? currentIds
+                        : [...currentIds, reminder.id],
+                    )
                   }}
-                  disabled={deletingReminderId === reminder.id}
-                  aria-label={DELETE_REMINDER}
-                  title={DELETE_REMINDER}
+                  aria-label="Закрыть напоминание"
+                  title="Закрыть напоминание"
                 >
-                  {deletingReminderId === reminder.id ? '...' : CLOSE_ICON}
+                  {CLOSE_ICON}
                 </button>
 
                 <div className="patient-main">

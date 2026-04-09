@@ -54,7 +54,12 @@ export function XRayShoulderJointSurfaceModal({
         aria-modal="true"
         aria-label="Суставные поверхности"
       >
-        <button type="button" className="reminders-modal-close" onClick={onClose} aria-label="Закрыть окно суставных поверхностей">
+        <button
+          type="button"
+          className="reminders-modal-close"
+          onClick={onClose}
+          aria-label="Закрыть окно суставных поверхностей"
+        >
           ×
         </button>
         <h3 className="xray-knee-choice-title">Суставные поверхности</h3>

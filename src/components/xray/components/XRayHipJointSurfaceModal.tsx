@@ -65,7 +65,12 @@ export function XRayHipJointSurfaceModal({
         aria-modal="true"
         aria-label="Суставные поверхности тазобедренных суставов"
       >
-        <button type="button" className="reminders-modal-close" onClick={onClose} aria-label="Закрыть окно">
+        <button
+          type="button"
+          className="reminders-modal-close"
+          onClick={onClose}
+          aria-label="Закрыть окно"
+        >
           ×
         </button>
 

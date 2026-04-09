@@ -2594,6 +2594,70 @@ function addSickLeavePeriod({ sickLeaveId, startDate, endDate }) {
   };
 }
 
+function updateSickLeavePeriod({ id, sickLeaveId, startDate, endDate }) {
+  const normalizedPeriodId = Number(id);
+  const normalizedSickLeaveId = Number(sickLeaveId);
+  const normalizedStartDate = normalizeDateDigits(startDate);
+  const normalizedEndDate = normalizeDateDigits(endDate);
+
+  if (!Number.isInteger(normalizedPeriodId) || normalizedPeriodId <= 0) {
+    throw new Error('SICK_LEAVE_PERIOD_ID_INVALID');
+  }
+
+  if (!Number.isInteger(normalizedSickLeaveId) || normalizedSickLeaveId <= 0) {
+    throw new Error('SICK_LEAVE_ID_INVALID');
+  }
+
+  assertPeriodRange(normalizedStartDate, normalizedEndDate);
+
+  const db = getDatabase();
+  const leaveStatement = db.prepare(`
+    SELECT id, status
+    FROM sick_leaves
+    WHERE id = ?
+  `);
+  const sickLeave = leaveStatement.get(normalizedSickLeaveId);
+
+  if (!sickLeave) {
+    throw new Error('SICK_LEAVE_NOT_FOUND');
+  }
+
+  if (sickLeave.status !== 'open') {
+    throw new Error('SICK_LEAVE_ALREADY_CLOSED');
+  }
+
+  const periodStatement = db.prepare(`
+    SELECT id, sick_leave_id, created_at
+    FROM sick_leave_periods
+    WHERE id = ? AND sick_leave_id = ?
+  `);
+  const currentPeriod = periodStatement.get(normalizedPeriodId, normalizedSickLeaveId);
+
+  if (!currentPeriod) {
+    throw new Error('SICK_LEAVE_PERIOD_NOT_FOUND');
+  }
+
+  const updateStatement = db.prepare(`
+    UPDATE sick_leave_periods
+    SET start_date = ?, end_date = ?
+    WHERE id = ? AND sick_leave_id = ?
+  `);
+  updateStatement.run(
+    normalizedStartDate,
+    normalizedEndDate,
+    normalizedPeriodId,
+    normalizedSickLeaveId
+  );
+
+  return {
+    id: normalizedPeriodId,
+    sickLeaveId: normalizedSickLeaveId,
+    startDate: normalizedStartDate,
+    endDate: normalizedEndDate,
+    createdAt: currentPeriod.created_at,
+  };
+}
+
 function closeSickLeave({ id, closeDate }) {
   const numericId = Number(id);
   const normalizedCloseDate = normalizeDateDigits(closeDate);
@@ -3129,6 +3193,10 @@ function registerIpcHandlers() {
     addSickLeavePeriod(payload)
   );
 
+  ipcMain.handle('sick-leaves:update-period', (_event, payload) =>
+    updateSickLeavePeriod(payload)
+  );
+
   ipcMain.handle('sick-leaves:close', (_event, payload) => closeSickLeave(payload));
 
   ipcMain.handle('sick-leaves:delete', (_event, id) => deleteSickLeave(id));
@@ -3281,6 +3349,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 680,
     autoHideMenuBar: true,
+    icon: path.join(__dirname, '..', 'build', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

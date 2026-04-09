@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { formatStudyLabel, getPatientFullName } from '../helpers'
 import { useXRayHomeState } from '../hooks'
 import type { XRaySectionProps } from '../types'
@@ -41,168 +41,8 @@ import {
   XRayWristOsteophytesModal,
 } from '.'
 import type { UltrasoundProtocolEntry } from '../../../types/ultrasound'
+import { UltrasoundProtocolModal } from './UltrasoundProtocolModal'
 
-function getProtocolViewerHtml(documentHtml: string) {
-  const overrideCss = `
-    <style>
-      html, body {
-        background: #f1f5f9 !important;
-      }
-
-      .export-shell {
-        background: transparent !important;
-      }
-    </style>
-  `
-
-  if (documentHtml.includes('</head>')) {
-    return documentHtml.replace('</head>', `${overrideCss}</head>`)
-  }
-
-  return `${overrideCss}${documentHtml}`
-}
-function getProtocolClipboardPayload(documentHtml: string) {
-  if (typeof window === 'undefined') {
-    return { text: '', html: '' }
-  }
-
-  const parser = new window.DOMParser()
-  const documentNode = parser.parseFromString(documentHtml, 'text/html')
-  const html = documentNode.body?.innerHTML ?? ''
-  const rootNode = documentNode.body?.querySelector('.export-shell') ?? documentNode.body
-  const blockTags = new Set([
-    'address',
-    'article',
-    'aside',
-    'blockquote',
-    'div',
-    'dl',
-    'fieldset',
-    'figcaption',
-    'figure',
-    'footer',
-    'form',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-    'header',
-    'hr',
-    'li',
-    'main',
-    'nav',
-    'ol',
-    'p',
-    'pre',
-    'section',
-    'table',
-    'tbody',
-    'td',
-    'tfoot',
-    'th',
-    'thead',
-    'tr',
-    'ul',
-  ])
-
-  function normalizeInlineText(value: string) {
-    return value.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ')
-  }
-
-  function serializeNode(node: Node, listDepth = 0): string {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return normalizeInlineText(node.textContent ?? '')
-    }
-
-    if (node.nodeType !== Node.ELEMENT_NODE) {
-      return ''
-    }
-
-    const element = node as HTMLElement
-    const tagName = element.tagName.toLowerCase()
-
-    if (['script', 'style', 'noscript'].includes(tagName)) {
-      return ''
-    }
-
-    if (tagName === 'br') {
-      return '\n'
-    }
-
-    if (tagName === 'li') {
-      const itemText = Array.from(element.childNodes)
-        .map((childNode) => serializeNode(childNode, listDepth + 1))
-        .join('')
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
-
-      if (!itemText) {
-        return ''
-      }
-
-      const indent = '  '.repeat(Math.max(0, listDepth))
-      const normalizedItemText = itemText.replace(/\n/g, `\n${indent}  `)
-      return `${indent}• ${normalizedItemText}\n`
-    }
-
-    if (tagName === 'tr') {
-      const rowText = Array.from(element.children)
-        .map((childElement) => serializeNode(childElement, listDepth).trim())
-        .filter(Boolean)
-        .join(' | ')
-
-      return rowText ? `${rowText}\n` : ''
-    }
-
-    const childText = Array.from(element.childNodes)
-      .map((childNode) => serializeNode(childNode, listDepth))
-      .join('')
-
-    if (blockTags.has(tagName)) {
-      const normalizedBlockText = childText
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
-
-      return normalizedBlockText ? `${normalizedBlockText}\n\n` : ''
-    }
-
-    return childText
-  }
-
-  const text = serializeNode(rootNode)
-    .replace(/\u00a0/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n[ \t]+/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-
-  return { text, html }
-}
-
-async function writeProtocolToClipboard(documentHtml: string) {
-  const payload = getProtocolClipboardPayload(documentHtml)
-
-  if (!payload.text) {
-    return false
-  }
-
-  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-    const clipboardItem = new ClipboardItem({
-      'text/plain': new Blob([payload.text], { type: 'text/plain' }),
-      'text/html': new Blob([payload.html], { type: 'text/html' }),
-    })
-
-    await navigator.clipboard.write([clipboardItem])
-    return true
-  }
-
-  await navigator.clipboard.writeText(payload.text)
-  return true
-}
 import {
   XRAY_ANKLE_CONGRUENCY_OPTIONS,
   XRAY_ANKLE_INTEGRITY_OPTIONS,
@@ -240,20 +80,18 @@ export function XRayHome(props: XRaySectionProps) {
   const [ultrasoundProtocolEntry, setUltrasoundProtocolEntry] = useState<UltrasoundProtocolEntry | null>(null)
   const [ultrasoundProtocolLoading, setUltrasoundProtocolLoading] = useState(false)
   const [ultrasoundProtocolError, setUltrasoundProtocolError] = useState('')
-  const [isUltrasoundProtocolCopied, setIsUltrasoundProtocolCopied] = useState(false)
 
   useEffect(() => {
     if (ultrasoundProtocolId === null) {
       setUltrasoundProtocolEntry(null)
       setUltrasoundProtocolError('')
       setUltrasoundProtocolLoading(false)
-      setIsUltrasoundProtocolCopied(false)
       return
     }
 
     if (!window.electronAPI?.ultrasoundJournal?.getProtocol) {
       setUltrasoundProtocolEntry(null)
-      setUltrasoundProtocolError('Просмотр УЗИ-протокола недоступен.')
+      setUltrasoundProtocolError('РџСЂРѕСЃРјРѕС‚СЂ РЈР—Р-РїСЂРѕС‚РѕРєРѕР»Р° РЅРµРґРѕСЃС‚СѓРїРµРЅ.')
       setUltrasoundProtocolLoading(false)
       return
     }
@@ -272,13 +110,13 @@ export function XRayHome(props: XRaySectionProps) {
             setUltrasoundProtocolEntry(result)
           } else {
             setUltrasoundProtocolEntry(null)
-            setUltrasoundProtocolError('Не удалось открыть УЗИ-протокол.')
+            setUltrasoundProtocolError('РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РЈР—Р-РїСЂРѕС‚РѕРєРѕР».')
           }
         }
       } catch {
         if (!isCancelled) {
           setUltrasoundProtocolEntry(null)
-          setUltrasoundProtocolError('Не удалось открыть УЗИ-протокол.')
+          setUltrasoundProtocolError('РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РЈР—Р-РїСЂРѕС‚РѕРєРѕР».')
         }
       } finally {
         if (!isCancelled) {
@@ -293,25 +131,6 @@ export function XRayHome(props: XRaySectionProps) {
       isCancelled = true
     }
   }, [ultrasoundProtocolId])
-
-  async function handleCopyUltrasoundProtocol() {
-    if (!ultrasoundProtocolEntry) {
-      return
-    }
-
-    try {
-      const copied = await writeProtocolToClipboard(ultrasoundProtocolEntry.documentHtml)
-
-      if (!copied) {
-        return
-      }
-
-      setIsUltrasoundProtocolCopied(true)
-      window.setTimeout(() => {
-        setIsUltrasoundProtocolCopied(false)
-      }, 1400)
-    } catch {}
-  }
 
   return (
     <div className="xray-home">
@@ -369,121 +188,29 @@ export function XRayHome(props: XRaySectionProps) {
         />
       ) : null}
 
-      {(ultrasoundProtocolEntry || ultrasoundProtocolLoading || ultrasoundProtocolError) ? (
-        <div
-          className="modal-backdrop"
-          onClick={() => setUltrasoundProtocolId(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            zIndex: 120,
-          }}
-        >
-          <div
-            className="content-card"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: 'min(1100px, 100%)',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              padding: '16px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div>
-                <p className="section-kicker">УЗИ протокол</p>
-                <h3 style={{ margin: 0 }}>
-                  {ultrasoundProtocolEntry?.studyTitle ?? 'Просмотр протокола'}
-                </h3>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {ultrasoundProtocolEntry ? (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => void handleCopyUltrasoundProtocol()}
-                    style={{ minWidth: '186px', display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}
-                  >
-                    {isUltrasoundProtocolCopied ? (
-                      <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: '16px', height: '16px', color: '#16a34a' }}>
-                        <path
-                          d="M4.5 10.5 8 14l7.5-8"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ) : (
-                      'Скопировать протокол'
-                    )}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => setUltrasoundProtocolId(null)}
-                >
-                  Закрыть
-                </button>
-              </div>
-            </div>
-
-            {ultrasoundProtocolLoading ? (
-              <p className="xray-journal-empty">Открываю протокол...</p>
-            ) : null}
-            {ultrasoundProtocolError ? (
-              <p className="xray-journal-empty">{ultrasoundProtocolError}</p>
-            ) : null}
-
-            {ultrasoundProtocolEntry ? (
-              <iframe
-                title={`УЗИ протокол ${ultrasoundProtocolEntry.id}`}
-                srcDoc={getProtocolViewerHtml(ultrasoundProtocolEntry.documentHtml)}
-                style={{
-                  width: '100%',
-                  minHeight: '70vh',
-                  border: '1px solid rgba(148, 163, 184, 0.35)',
-                  borderRadius: '16px',
-                  background: '#f1f5f9',
-                }}
-              />
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <UltrasoundProtocolModal
+        protocol={ultrasoundProtocolEntry}
+        loading={ultrasoundProtocolLoading}
+        error={ultrasoundProtocolError}
+        onClose={() => setUltrasoundProtocolId(null)}
+        kicker={'УЗИ протокол'}
+      />
 
       {props.selectedPatient && state.isDeleteConfirmOpen ? (
         <XRayConfirmModal
-          kicker="Удаление пациента"
-          title="Удалить карточку пациента?"
+          kicker="РЈРґР°Р»РµРЅРёРµ РїР°С†РёРµРЅС‚Р°"
+          title="РЈРґР°Р»РёС‚СЊ РєР°СЂС‚РѕС‡РєСѓ РїР°С†РёРµРЅС‚Р°?"
           description={
             <>
-              Пациент <strong>{getPatientFullName(props.selectedPatient)}</strong> будет удалён из
-              журнала X-ray без возможности восстановления.
+              РџР°С†РёРµРЅС‚ <strong>{getPatientFullName(props.selectedPatient)}</strong> Р±СѓРґРµС‚ СѓРґР°Р»С‘РЅ РёР·
+              Р¶СѓСЂРЅР°Р»Р° X-ray Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ.
             </>
           }
-          confirmLabel="Удалить"
-          confirmBusyLabel="Удаляю..."
+          confirmLabel="РЈРґР°Р»РёС‚СЊ"
+          confirmBusyLabel="РЈРґР°Р»СЏСЋ..."
           isBusy={props.isDeleting}
           dialogLabelId="xray-delete-title"
-          closeAriaLabel="Закрыть окно подтверждения"
+          closeAriaLabel="Р—Р°РєСЂС‹С‚СЊ РѕРєРЅРѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"
           onClose={() => state.setIsDeleteConfirmOpen(false)}
           onConfirm={state.handleDeleteCurrentPatient}
         />
@@ -978,7 +705,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isEndoprosthesisModalOpen}
-            title="Эндопротезирование"
+            title={'\u042d\u043d\u0434\u043e\u043f\u0440\u043e\u0442\u0435\u0437\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435'}
             options={XRAY_KNEE_ENDOPROSTHESIS_OPTIONS}
             onClose={() => state.setIsEndoprosthesisModalOpen(false)}
             onSelect={state.handleEndoprosthesisSelect}
@@ -986,7 +713,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isBumpsModalOpen}
-            title="Бугорки"
+            title={'\u0411\u0443\u0433\u043e\u0440\u043a\u0438'}
             options={XRAY_KNEE_BUMPS_OPTIONS}
             onClose={() => state.setIsBumpsModalOpen(false)}
             onSelect={state.handleBumpsSelect}
@@ -994,7 +721,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isCongruencyModalOpen}
-            title="Конгруэнтность"
+            title={'\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_KNEE_CONGRUENCY_OPTIONS}
             onClose={() => state.setIsCongruencyModalOpen(false)}
             onSelect={state.handleCongruencySelect}
@@ -1002,7 +729,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isIntegrityModalOpen}
-            title="Целостность"
+            title={'\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_KNEE_INTEGRITY_OPTIONS}
             onClose={() => state.setIsIntegrityModalOpen(false)}
             onSelect={state.handleIntegritySelect}
@@ -1010,7 +737,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title={'\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438'}
             options={XRAY_KNEE_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsParaarticularModalOpen(false)}
             onSelect={state.handleParaarticularSelect}
@@ -1058,7 +785,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHipEndoprosthesisModalOpen}
-            title="Эндопротез"
+            title={'\u042d\u043d\u0434\u043e\u043f\u0440\u043e\u0442\u0435\u0437'}
             options={XRAY_HIP_ENDOPROSTHESIS_OPTIONS}
             onClose={() => state.setIsHipEndoprosthesisModalOpen(false)}
             onSelect={state.handleHipEndoprosthesisSelect}
@@ -1066,7 +793,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHipCongruencyModalOpen}
-            title="Конгруэнтность"
+            title={'\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_HIP_CONGRUENCY_OPTIONS}
             onClose={() => state.setIsHipCongruencyModalOpen(false)}
             onSelect={state.handleHipCongruencySelect}
@@ -1074,7 +801,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHipIntegrityModalOpen}
-            title="Целостность"
+            title={'\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_HIP_INTEGRITY_OPTIONS}
             onClose={() => state.setIsHipIntegrityModalOpen(false)}
             onSelect={state.handleHipIntegritySelect}
@@ -1082,7 +809,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHipParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title={'\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438'}
             options={XRAY_HIP_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsHipParaarticularModalOpen(false)}
             onSelect={state.handleHipParaarticularSelect}
@@ -1128,7 +855,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isAnkleCongruencyModalOpen}
-            title="Конгруэнтность"
+            title={'\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_ANKLE_CONGRUENCY_OPTIONS}
             onClose={() => state.setIsAnkleCongruencyModalOpen(false)}
             onSelect={state.handleAnkleCongruencySelect}
@@ -1136,7 +863,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isAnkleIntegrityModalOpen}
-            title="Целостность"
+            title={'\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_ANKLE_INTEGRITY_OPTIONS}
             onClose={() => state.setIsAnkleIntegrityModalOpen(false)}
             onSelect={state.handleAnkleIntegritySelect}
@@ -1144,7 +871,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isAnkleParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title={'\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438'}
             options={XRAY_ANKLE_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsAnkleParaarticularModalOpen(false)}
             onSelect={state.handleAnkleParaarticularSelect}
@@ -1192,7 +919,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isShoulderCongruencyModalOpen}
-            title="Конгруэнтность"
+            title={'\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_SHOULDER_CONGRUENCY_OPTIONS}
             onClose={() => state.setIsShoulderCongruencyModalOpen(false)}
             onSelect={state.handleShoulderCongruencySelect}
@@ -1200,7 +927,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isShoulderIntegrityModalOpen}
-            title="Целостность"
+            title={'\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_SHOULDER_INTEGRITY_OPTIONS}
             onClose={() => state.setIsShoulderIntegrityModalOpen(false)}
             onSelect={state.handleShoulderIntegritySelect}
@@ -1208,7 +935,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isShoulderParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title={'\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438'}
             options={XRAY_SHOULDER_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsShoulderParaarticularModalOpen(false)}
             onSelect={state.handleShoulderParaarticularSelect}
@@ -1220,7 +947,7 @@ export function XRayHome(props: XRaySectionProps) {
         <>
           <XRayWristGapSurfaceModal
             isOpen={state.isWristJointSpaceModalOpen}
-            title="Суставные щели"
+            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ С‰РµР»Рё"
             values={state.wristJointSpaceState}
             onClose={() => state.setIsWristJointSpaceModalOpen(false)}
             onSideToggle={(side) => state.handleWristGapSurfaceSideToggle('jointSpace', side)}
@@ -1235,7 +962,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayWristGapSurfaceModal
             isOpen={state.isWristJointSurfaceModalOpen}
-            title="Суставные поверхности"
+            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё"
             values={state.wristJointSurfaceState}
             onClose={() => state.setIsWristJointSurfaceModalOpen(false)}
             onSideToggle={(side) => state.handleWristGapSurfaceSideToggle('jointSurface', side)}
@@ -1258,7 +985,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isWristCongruencyModalOpen}
-            title="Конгруэнтность"
+            title={'\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_WRIST_CONGRUENCY_OPTIONS}
             onClose={() => state.setIsWristCongruencyModalOpen(false)}
             onSelect={state.handleWristCongruencySelect}
@@ -1266,7 +993,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isWristIntegrityModalOpen}
-            title="Целостность"
+            title={'\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_WRIST_INTEGRITY_OPTIONS}
             onClose={() => state.setIsWristIntegrityModalOpen(false)}
             onSelect={state.handleWristIntegritySelect}
@@ -1274,7 +1001,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isWristParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title={'\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438'}
             options={XRAY_WRIST_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsWristParaarticularModalOpen(false)}
             onSelect={state.handleWristParaarticularSelect}
@@ -1306,7 +1033,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isNasalPassagesModalOpen}
-            title="Носовые ходы"
+            title="РќРѕСЃРѕРІС‹Рµ С…РѕРґС‹"
             options={XRAY_NASAL_PASSAGES_OPTIONS}
             onClose={() => state.setIsNasalPassagesModalOpen(false)}
             onSelect={state.handleNasalPassagesSelect}
@@ -1314,7 +1041,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isNasalSeptumModalOpen}
-            title="Носовая перегородка"
+            title="РќРѕСЃРѕРІР°СЏ РїРµСЂРµРіРѕСЂРѕРґРєР°"
             options={XRAY_NASAL_SEPTUM_OPTIONS}
             onClose={() => state.setIsNasalSeptumModalOpen(false)}
             onSelect={state.handleNasalSeptumSelect}
@@ -1394,7 +1121,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineLordosisModalOpen}
-            title="Лордоз"
+            title="Р›РѕСЂРґРѕР·"
             options={XRAY_SPINE_LORDOSIS_OPTIONS}
             onClose={() => state.setIsSpineLordosisModalOpen(false)}
             onSelect={state.handleSpineLordosisSelect}
@@ -1402,7 +1129,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineKyphosisModalOpen}
-            title="Кифоз"
+            title="РљРёС„РѕР·"
             options={XRAY_SPINE_KYPHOSIS_OPTIONS}
             onClose={() => state.setIsSpineKyphosisModalOpen(false)}
             onSelect={state.handleSpineKyphosisSelect}
@@ -1410,7 +1137,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineIntegrityModalOpen}
-            title="Целостность"
+            title="Р¦РµР»РѕСЃС‚РЅРѕСЃС‚СЊ"
             options={XRAY_SPINE_INTEGRITY_OPTIONS}
             onClose={() => state.setIsSpineIntegrityModalOpen(false)}
             onSelect={state.handleSpineIntegritySelect}
@@ -1418,7 +1145,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title="РџР°СЂР°Р°СЂС‚РёРєСѓР»СЏСЂРЅС‹Рµ С‚РєР°РЅРё"
             options={XRAY_SPINE_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsSpineParaarticularModalOpen(false)}
             onSelect={state.handleSpineParaarticularSelect}
@@ -1442,7 +1169,7 @@ export function XRayHome(props: XRaySectionProps) {
         <>
           <XRayFootJointMapModal
             isOpen={state.isFootJointSpaceModalOpen}
-            title="Суставные щели"
+            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ С‰РµР»Рё"
             values={state.footJointSpaceState}
             mode="degrees"
             activeDegree={state.activeFootJointDegree}
@@ -1454,7 +1181,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayFootJointMapModal
             isOpen={state.isFootJointSurfaceModalOpen}
-            title="Суставные поверхности"
+            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё"
             values={state.footJointSurfaceState}
             mode="degrees"
             activeDegree={state.activeFootJointDegree}
@@ -1466,7 +1193,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayFootJointMapModal
             isOpen={state.isFootOsteophytesModalOpen}
-            title="Остеофиты"
+            title="РћСЃС‚РµРѕС„РёС‚С‹"
             values={state.footOsteophytesState}
             mode="toggle"
             onClose={() => state.setIsFootOsteophytesModalOpen(false)}
@@ -1476,7 +1203,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayFootJointMapModal
             isOpen={state.isFootCongruencyModalOpen}
-            title="Конгруэнтность"
+            title="РљРѕРЅРіСЂСѓСЌРЅС‚РЅРѕСЃС‚СЊ"
             values={state.footCongruencyState}
             mode="toggle"
             onClose={() => state.setIsFootCongruencyModalOpen(false)}
@@ -1486,7 +1213,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isFootIntegrityModalOpen}
-            title="Целостность"
+            title="Р¦РµР»РѕСЃС‚РЅРѕСЃС‚СЊ"
             options={XRAY_FOOT_INTEGRITY_OPTIONS}
             onClose={() => state.setIsFootIntegrityModalOpen(false)}
             onSelect={state.handleFootIntegritySelect}
@@ -1494,7 +1221,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isFootParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title="РџР°СЂР°Р°СЂС‚РёРєСѓР»СЏСЂРЅС‹Рµ С‚РєР°РЅРё"
             options={XRAY_FOOT_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsFootParaarticularModalOpen(false)}
             onSelect={state.handleFootParaarticularSelect}
@@ -1506,7 +1233,7 @@ export function XRayHome(props: XRaySectionProps) {
         <>
           <XRayHandJointMapModal
             isOpen={state.isHandJointSpaceModalOpen}
-            title="Суставные щели"
+            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ С‰РµР»Рё"
             values={state.handJointSpaceState}
             mode="degrees"
             activeDegree={state.activeHandJointDegree}
@@ -1518,7 +1245,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayHandJointMapModal
             isOpen={state.isHandJointSurfaceModalOpen}
-            title="Суставные поверхности"
+            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё"
             values={state.handJointSurfaceState}
             mode="degrees"
             activeDegree={state.activeHandJointDegree}
@@ -1530,7 +1257,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayHandJointMapModal
             isOpen={state.isHandOsteophytesModalOpen}
-            title="Остеофиты"
+            title="РћСЃС‚РµРѕС„РёС‚С‹"
             values={state.handOsteophytesState}
             mode="toggle"
             onClose={() => state.setIsHandOsteophytesModalOpen(false)}
@@ -1540,7 +1267,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayHandJointMapModal
             isOpen={state.isHandCongruencyModalOpen}
-            title="Конгруэнтность"
+            title="РљРѕРЅРіСЂСѓСЌРЅС‚РЅРѕСЃС‚СЊ"
             values={state.handCongruencyState}
             mode="toggle"
             onClose={() => state.setIsHandCongruencyModalOpen(false)}
@@ -1550,7 +1277,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHandIntegrityModalOpen}
-            title="Целостность"
+            title="Р¦РµР»РѕСЃС‚РЅРѕСЃС‚СЊ"
             options={XRAY_HAND_INTEGRITY_OPTIONS}
             onClose={() => state.setIsHandIntegrityModalOpen(false)}
             onSelect={state.handleHandIntegritySelect}
@@ -1558,7 +1285,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHandParaarticularModalOpen}
-            title="Параартикулярные ткани"
+            title="РџР°СЂР°Р°СЂС‚РёРєСѓР»СЏСЂРЅС‹Рµ С‚РєР°РЅРё"
             options={XRAY_HAND_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsHandParaarticularModalOpen(false)}
             onSelect={state.handleHandParaarticularSelect}
@@ -1568,20 +1295,20 @@ export function XRayHome(props: XRaySectionProps) {
 
       {state.deleteStudyCandidate ? (
         <XRayConfirmModal
-          kicker="Удаление исследования"
-          title="Удалить исследование?"
+          kicker="РЈРґР°Р»РµРЅРёРµ РёСЃСЃР»РµРґРѕРІР°РЅРёСЏ"
+          title="РЈРґР°Р»РёС‚СЊ РёСЃСЃР»РµРґРѕРІР°РЅРёРµ?"
           description={
             <>
-              Исследование <strong>{formatStudyLabel(state.deleteStudyCandidate)}</strong> будет
-              удалено без возможности восстановления.
+              РСЃСЃР»РµРґРѕРІР°РЅРёРµ <strong>{formatStudyLabel(state.deleteStudyCandidate)}</strong> Р±СѓРґРµС‚
+              СѓРґР°Р»РµРЅРѕ Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ.
             </>
           }
-          confirmLabel="Удалить"
-          confirmBusyLabel="Удаляю..."
+          confirmLabel="РЈРґР°Р»РёС‚СЊ"
+          confirmBusyLabel="РЈРґР°Р»СЏСЋ..."
           isBusy={props.deletingStudyId === state.deleteStudyCandidate.id}
           isTopLayer
           dialogLabelId="xray-study-delete-title"
-          closeAriaLabel="Закрыть окно подтверждения"
+          closeAriaLabel="Р—Р°РєСЂС‹С‚СЊ РѕРєРЅРѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"
           onClose={() => state.setDeleteStudyCandidate(null)}
           onConfirm={state.handleDeleteStudyConfirm}
         />
@@ -1599,3 +1326,6 @@ export function XRayHome(props: XRaySectionProps) {
     </div>
   )
 }
+
+
+

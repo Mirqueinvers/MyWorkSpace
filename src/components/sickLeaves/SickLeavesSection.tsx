@@ -39,11 +39,18 @@ interface SickLeavesSectionProps {
   onDiagnosisChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
   onAddPeriod: (sickLeaveId: number, startDate: string, endDate: string) => Promise<boolean>
+  onUpdatePeriod: (
+    sickLeaveId: number,
+    periodId: number,
+    startDate: string,
+    endDate: string,
+  ) => Promise<boolean>
   onCloseSickLeave: (id: number, closeDate: string) => void | Promise<void>
   onDeleteSickLeave: (id: number) => void | Promise<void>
 }
 
 interface PeriodDraft {
+  editingPeriodId: number | null
   startDate: string
   endDate: string
   closeDate: string
@@ -77,6 +84,7 @@ export function SickLeavesSection({
   onDiagnosisChange,
   onSubmit,
   onAddPeriod,
+  onUpdatePeriod,
   onCloseSickLeave,
   onDeleteSickLeave,
 }: SickLeavesSectionProps) {
@@ -216,6 +224,7 @@ export function SickLeavesSection({
         : ''
 
     return periodDrafts[sickLeaveId] ?? {
+      editingPeriodId: null,
       startDate: '',
       endDate: '',
       closeDate: lastPeriodEndDate,
@@ -238,22 +247,47 @@ export function SickLeavesSection({
 
   async function handleSubmitPeriod(sickLeaveId: number) {
     const draft = getPeriodDraft(sickLeaveId)
-    const isSaved = await onAddPeriod(
-      sickLeaveId,
-      draft.startDate,
-      draft.endDate,
-    )
+    const isSaved = draft.editingPeriodId
+      ? await onUpdatePeriod(
+          sickLeaveId,
+          draft.editingPeriodId,
+          draft.startDate,
+          draft.endDate,
+        )
+      : await onAddPeriod(
+          sickLeaveId,
+          draft.startDate,
+          draft.endDate,
+        )
 
     if (isSaved) {
       setPeriodDrafts((currentDrafts) => ({
         ...currentDrafts,
         [sickLeaveId]: {
           ...getPeriodDraft(sickLeaveId),
+          editingPeriodId: null,
           startDate: '',
           endDate: '',
         },
       }))
     }
+  }
+
+  function handleSelectPeriod(
+    sickLeaveId: number,
+    periodId: number,
+    startDate: string,
+    endDate: string,
+  ) {
+    setPeriodDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [sickLeaveId]: {
+        ...getPeriodDraft(sickLeaveId),
+        editingPeriodId: periodId,
+        startDate,
+        endDate,
+      },
+    }))
   }
 
   return (
@@ -424,9 +458,21 @@ export function SickLeavesSection({
                       <div className="periods-title">Периоды</div>
                       <div className="periods-list">
                         {sickLeave.periods.map((period, index) => (
-                          <div key={period.id} className="period-chip">
+                          <button
+                            type="button"
+                            key={period.id}
+                            className={`period-chip${periodDraft.editingPeriodId === period.id ? ' is-active' : ''}`}
+                            onClick={() =>
+                              handleSelectPeriod(
+                                sickLeave.id,
+                                period.id,
+                                period.startDate,
+                                period.endDate,
+                              )
+                            }
+                          >
                             {index + 1}. {formatDateRange(period.startDate, period.endDate)}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -478,7 +524,9 @@ export function SickLeavesSection({
                           >
                             {savingPeriodLeaveId === sickLeave.id
                               ? 'Сохранение периода...'
-                              : 'Добавить период'}
+                              : periodDraft.editingPeriodId
+                                ? 'Изменить'
+                                : 'Добавить период'}
                           </button>
                         </div>
 

@@ -303,25 +303,21 @@ export const XRAY_KNEE_NORMAL_DESCRIPTION = [
 ].join('\n')
 
 export const XRAY_KNEE_BUMPS_OPTIONS = [
-  'не изменены',
-  'заострены',
-  'уплощены',
-  'заострены справа',
-  'заострены слева',
-  'уплощены справа',
-  'уплощены слева',
+  '\u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u044b',
+  '\u0437\u0430\u043e\u0441\u0442\u0440\u0435\u043d\u044b',
+  '\u0443\u043f\u043b\u043e\u0449\u0435\u043d\u044b',
+  '\u0437\u0430\u043e\u0441\u0442\u0440\u0435\u043d\u044b \u0441\u043f\u0440\u0430\u0432\u0430',
+  '\u0437\u0430\u043e\u0441\u0442\u0440\u0435\u043d\u044b \u0441\u043b\u0435\u0432\u0430',
+  '\u0443\u043f\u043b\u043e\u0449\u0435\u043d\u044b \u0441\u043f\u0440\u0430\u0432\u0430',
+  '\u0443\u043f\u043b\u043e\u0449\u0435\u043d\u044b \u0441\u043b\u0435\u0432\u0430',
 ] as const
-
 export const XRAY_KNEE_CONGRUENCY_OPTIONS = [
-  'не нарушена',
-  'нарушена в левом',
-  'нарушена в правом',
+  '\u043d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043b\u0435\u0432\u043e\u043c',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043f\u0440\u0430\u0432\u043e\u043c',
 ] as const
-
-export const XRAY_KNEE_INTEGRITY_OPTIONS = ['Не нарушена', 'Нарушена'] as const
-
-export const XRAY_KNEE_PARAARTICULAR_OPTIONS = ['Без изменений', 'Изменения'] as const
-
+export const XRAY_KNEE_INTEGRITY_OPTIONS = ['\u041d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430', '\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0430'] as const
+export const XRAY_KNEE_PARAARTICULAR_OPTIONS = ['\u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439', '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f'] as const
 export const XRAY_KNEE_ENDOPROSTHESIS_OPTIONS = [
   'левого коленного сустава',
   'правого коленного сустава',
@@ -329,31 +325,27 @@ export const XRAY_KNEE_ENDOPROSTHESIS_OPTIONS = [
 ] as const
 
 export const XRAY_ANKLE_CONGRUENCY_OPTIONS = [
-  'не нарушена',
-  'нарушена в левом',
-  'нарушена в правом',
+  '\u043d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043b\u0435\u0432\u043e\u043c',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043f\u0440\u0430\u0432\u043e\u043c',
 ] as const
-
-export const XRAY_ANKLE_INTEGRITY_OPTIONS = ['Не нарушена', 'Нарушена'] as const
-
-export const XRAY_ANKLE_PARAARTICULAR_OPTIONS = ['Без изменений', 'Изменения'] as const
-export const XRAY_FOOT_INTEGRITY_OPTIONS = ['Не нарушена', 'Нарушена'] as const
-export const XRAY_FOOT_PARAARTICULAR_OPTIONS = ['Без изменений', 'Изменения'] as const
+export const XRAY_ANKLE_INTEGRITY_OPTIONS = ['\u041d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430', '\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0430'] as const
+export const XRAY_ANKLE_PARAARTICULAR_OPTIONS = ['\u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439', '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f'] as const
+export const XRAY_FOOT_INTEGRITY_OPTIONS = ['\u041d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430', '\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0430'] as const
+export const XRAY_FOOT_PARAARTICULAR_OPTIONS = ['\u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439', '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f'] as const
 export const XRAY_SHOULDER_CONGRUENCY_OPTIONS = [
-  'не нарушена',
-  'нарушена в левом',
-  'нарушена в правом',
+  '\u043d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043b\u0435\u0432\u043e\u043c',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043f\u0440\u0430\u0432\u043e\u043c',
 ] as const
-export const XRAY_SHOULDER_INTEGRITY_OPTIONS = ['Не нарушена', 'Нарушена'] as const
-export const XRAY_SHOULDER_PARAARTICULAR_OPTIONS = ['Без изменений', 'Изменения'] as const
+export const XRAY_SHOULDER_INTEGRITY_OPTIONS = ['\u041d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430', '\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0430'] as const
+export const XRAY_SHOULDER_PARAARTICULAR_OPTIONS = ['\u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439', '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f'] as const
 export const XRAY_WRIST_CONGRUENCY_OPTIONS = [
-  'не нарушена',
-  'нарушена в левом',
-  'нарушена в правом',
+  '\u043d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043b\u0435\u0432\u043e\u043c',
+  '\u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430 \u0432 \u043f\u0440\u0430\u0432\u043e\u043c',
 ] as const
-export const XRAY_WRIST_INTEGRITY_OPTIONS = ['Не нарушена', 'Нарушена'] as const
-export const XRAY_WRIST_PARAARTICULAR_OPTIONS = ['Без изменений', 'Изменения'] as const
-export const XRAY_HAND_INTEGRITY_OPTIONS = ['Не нарушена', 'Нарушена'] as const
-export const XRAY_HAND_PARAARTICULAR_OPTIONS = ['Без изменений', 'Изменения'] as const
-
-export type XRayTab = (typeof XRAY_TABS)[number]
+export const XRAY_WRIST_INTEGRITY_OPTIONS = ['\u041d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430', '\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0430'] as const
+export const XRAY_WRIST_PARAARTICULAR_OPTIONS = ['\u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439', '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f'] as const
+export const XRAY_HAND_INTEGRITY_OPTIONS = ['\u041d\u0435 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0430', '\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0430'] as const
+export const XRAY_HAND_PARAARTICULAR_OPTIONS = ['\u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439', '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f'] as const

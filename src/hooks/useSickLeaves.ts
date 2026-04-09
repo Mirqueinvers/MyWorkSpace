@@ -69,6 +69,25 @@ function getAddPeriodErrorMessage(error: unknown): string {
   }
 }
 
+function getUpdatePeriodErrorMessage(error: unknown): string {
+  const errorCode = getErrorCode(error)
+
+  switch (errorCode) {
+    case 'DATE_INVALID':
+      return 'Введите даты периода в формате ДДММГГГГ.'
+    case 'PERIOD_RANGE_INVALID':
+      return 'Дата окончания периода не может быть раньше даты начала.'
+    case 'SICK_LEAVE_NOT_FOUND':
+      return 'Больничный лист не найден.'
+    case 'SICK_LEAVE_PERIOD_NOT_FOUND':
+      return 'Период больничного листа не найден.'
+    case 'SICK_LEAVE_ALREADY_CLOSED':
+      return 'Нельзя изменить период уже закрытого больничного листа.'
+    default:
+      return 'Не удалось изменить период больничного листа.'
+  }
+}
+
 function getCloseSickLeaveErrorMessage(error: unknown): string {
   const errorCode = getErrorCode(error)
 
@@ -271,6 +290,60 @@ export function useSickLeaves() {
     }
   }
 
+  async function handleUpdatePeriod(
+    sickLeaveId: number,
+    periodId: number,
+    startDate: string,
+    endDate: string,
+  ) {
+    if (!/^\d{8}$/.test(startDate) || !/^\d{8}$/.test(endDate)) {
+      setError('Введите период продления в формате ДДММГГГГ.')
+      return false
+    }
+
+    if (!isDateRangeValid(startDate, endDate)) {
+      setError('Дата окончания периода не может быть раньше даты начала.')
+      return false
+    }
+
+    if (!window.electronAPI?.sickLeaves) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return false
+    }
+
+    setSavingPeriodLeaveId(sickLeaveId)
+    setError('')
+
+    try {
+      const updatedPeriod = await window.electronAPI.sickLeaves.updatePeriod({
+        id: periodId,
+        sickLeaveId,
+        startDate,
+        endDate,
+      })
+
+      setSickLeaves((currentLeaves) =>
+        currentLeaves.map((sickLeave) =>
+          sickLeave.id === sickLeaveId
+            ? {
+                ...sickLeave,
+                periods: sickLeave.periods.map((period) =>
+                  period.id === periodId ? updatedPeriod : period,
+                ),
+              }
+            : sickLeave,
+        ),
+      )
+
+      return true
+    } catch (error) {
+      setError(getUpdatePeriodErrorMessage(error))
+      return false
+    } finally {
+      setSavingPeriodLeaveId(null)
+    }
+  }
+
   async function handleCloseSickLeave(id: number, closeDate: string) {
     if (!/^\d{8}$/.test(closeDate)) {
       setError('Введите дату закрытия в формате ДДММГГГГ.')
@@ -354,6 +427,7 @@ export function useSickLeaves() {
     openSickLeavesCount,
     handleAddSickLeave,
     handleAddPeriod,
+    handleUpdatePeriod,
     handleCloseSickLeave,
     handleDeleteSickLeave,
   }
