@@ -198,19 +198,20 @@ export function XRayHome(props: XRaySectionProps) {
 
       {props.selectedPatient && state.isDeleteConfirmOpen ? (
         <XRayConfirmModal
-          kicker="РЈРґР°Р»РµРЅРёРµ РїР°С†РёРµРЅС‚Р°"
-          title="РЈРґР°Р»РёС‚СЊ РєР°СЂС‚РѕС‡РєСѓ РїР°С†РёРµРЅС‚Р°?"
+          kicker={'\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430'}
+          title={'\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430?'}
           description={
             <>
-              РџР°С†РёРµРЅС‚ <strong>{getPatientFullName(props.selectedPatient)}</strong> Р±СѓРґРµС‚ СѓРґР°Р»С‘РЅ РёР·
-              Р¶СѓСЂРЅР°Р»Р° X-ray Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ.
+              {'\u041f\u0430\u0446\u0438\u0435\u043d\u0442 ' }
+              <strong>{getPatientFullName(props.selectedPatient)}</strong>
+              {' \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u0430\u043b\u0451\u043d \u0438\u0437 \u0436\u0443\u0440\u043d\u0430\u043b\u0430 X-ray \u0431\u0435\u0437 \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f.'}
             </>
           }
-          confirmLabel="РЈРґР°Р»РёС‚СЊ"
-          confirmBusyLabel="РЈРґР°Р»СЏСЋ..."
+          confirmLabel={'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}
+          confirmBusyLabel={'\u0423\u0434\u0430\u043b\u044f\u044e...'}
           isBusy={props.isDeleting}
           dialogLabelId="xray-delete-title"
-          closeAriaLabel="Р—Р°РєСЂС‹С‚СЊ РѕРєРЅРѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"
+          closeAriaLabel={'\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043e\u043a\u043d\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f'}
           onClose={() => state.setIsDeleteConfirmOpen(false)}
           onConfirm={state.handleDeleteCurrentPatient}
         />
@@ -947,7 +948,7 @@ export function XRayHome(props: XRaySectionProps) {
         <>
           <XRayWristGapSurfaceModal
             isOpen={state.isWristJointSpaceModalOpen}
-            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ С‰РµР»Рё"
+            title={"\u0421\u0443\u0441\u0442\u0430\u0432\u043d\u044b\u0435 \u0449\u0435\u043b\u0438"}
             values={state.wristJointSpaceState}
             onClose={() => state.setIsWristJointSpaceModalOpen(false)}
             onSideToggle={(side) => state.handleWristGapSurfaceSideToggle('jointSpace', side)}
@@ -962,7 +963,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayWristGapSurfaceModal
             isOpen={state.isWristJointSurfaceModalOpen}
-            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё"
+            title={"\u0421\u0443\u0441\u0442\u0430\u0432\u043d\u044b\u0435 \u043f\u043e\u0432\u0435\u0440\u0445\u043d\u043e\u0441\u0442\u0438"}
             values={state.wristJointSurfaceState}
             onClose={() => state.setIsWristJointSurfaceModalOpen(false)}
             onSideToggle={(side) => state.handleWristGapSurfaceSideToggle('jointSurface', side)}
@@ -1033,7 +1034,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isNasalPassagesModalOpen}
-            title="РќРѕСЃРѕРІС‹Рµ С…РѕРґС‹"
+            title={"\u041d\u043e\u0441\u043e\u0432\u044b\u0435 \u0445\u043e\u0434\u044b"}
             options={XRAY_NASAL_PASSAGES_OPTIONS}
             onClose={() => state.setIsNasalPassagesModalOpen(false)}
             onSelect={state.handleNasalPassagesSelect}
@@ -1041,7 +1042,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isNasalSeptumModalOpen}
-            title="РќРѕСЃРѕРІР°СЏ РїРµСЂРµРіРѕСЂРѕРґРєР°"
+            title={"\u041d\u043e\u0441\u043e\u0432\u0430\u044f \u043f\u0435\u0440\u0435\u0433\u043e\u0440\u043e\u0434\u043a\u0430"}
             options={XRAY_NASAL_SEPTUM_OPTIONS}
             onClose={() => state.setIsNasalSeptumModalOpen(false)}
             onSelect={state.handleNasalSeptumSelect}
@@ -1121,7 +1122,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineLordosisModalOpen}
-            title="Р›РѕСЂРґРѕР·"
+            title={'\u041b\u043e\u0440\u0434\u043e\u0437'}
             options={XRAY_SPINE_LORDOSIS_OPTIONS}
             onClose={() => state.setIsSpineLordosisModalOpen(false)}
             onSelect={state.handleSpineLordosisSelect}
@@ -1129,7 +1130,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineKyphosisModalOpen}
-            title="РљРёС„РѕР·"
+            title={'\u041a\u0438\u0444\u043e\u0437'}
             options={XRAY_SPINE_KYPHOSIS_OPTIONS}
             onClose={() => state.setIsSpineKyphosisModalOpen(false)}
             onSelect={state.handleSpineKyphosisSelect}
@@ -1137,7 +1138,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineIntegrityModalOpen}
-            title="Р¦РµР»РѕСЃС‚РЅРѕСЃС‚СЊ"
+            title={'\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c'}
             options={XRAY_SPINE_INTEGRITY_OPTIONS}
             onClose={() => state.setIsSpineIntegrityModalOpen(false)}
             onSelect={state.handleSpineIntegritySelect}
@@ -1145,7 +1146,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isSpineParaarticularModalOpen}
-            title="РџР°СЂР°Р°СЂС‚РёРєСѓР»СЏСЂРЅС‹Рµ С‚РєР°РЅРё"
+            title={'\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438'}
             options={XRAY_SPINE_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsSpineParaarticularModalOpen(false)}
             onSelect={state.handleSpineParaarticularSelect}
@@ -1169,7 +1170,7 @@ export function XRayHome(props: XRaySectionProps) {
         <>
           <XRayFootJointMapModal
             isOpen={state.isFootJointSpaceModalOpen}
-            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ С‰РµР»Рё"
+            title={"\u0421\u0443\u0441\u0442\u0430\u0432\u043d\u044b\u0435 \u0449\u0435\u043b\u0438"}
             values={state.footJointSpaceState}
             mode="degrees"
             activeDegree={state.activeFootJointDegree}
@@ -1181,7 +1182,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayFootJointMapModal
             isOpen={state.isFootJointSurfaceModalOpen}
-            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё"
+            title={"\u0421\u0443\u0441\u0442\u0430\u0432\u043d\u044b\u0435 \u043f\u043e\u0432\u0435\u0440\u0445\u043d\u043e\u0441\u0442\u0438"}
             values={state.footJointSurfaceState}
             mode="degrees"
             activeDegree={state.activeFootJointDegree}
@@ -1193,7 +1194,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayFootJointMapModal
             isOpen={state.isFootOsteophytesModalOpen}
-            title="РћСЃС‚РµРѕС„РёС‚С‹"
+            title={"\u041e\u0441\u0442\u0435\u043e\u0444\u0438\u0442\u044b"}
             values={state.footOsteophytesState}
             mode="toggle"
             onClose={() => state.setIsFootOsteophytesModalOpen(false)}
@@ -1203,7 +1204,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayFootJointMapModal
             isOpen={state.isFootCongruencyModalOpen}
-            title="РљРѕРЅРіСЂСѓСЌРЅС‚РЅРѕСЃС‚СЊ"
+            title={"\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c"}
             values={state.footCongruencyState}
             mode="toggle"
             onClose={() => state.setIsFootCongruencyModalOpen(false)}
@@ -1213,7 +1214,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isFootIntegrityModalOpen}
-            title="Р¦РµР»РѕСЃС‚РЅРѕСЃС‚СЊ"
+            title={"\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c"}
             options={XRAY_FOOT_INTEGRITY_OPTIONS}
             onClose={() => state.setIsFootIntegrityModalOpen(false)}
             onSelect={state.handleFootIntegritySelect}
@@ -1221,7 +1222,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isFootParaarticularModalOpen}
-            title="РџР°СЂР°Р°СЂС‚РёРєСѓР»СЏСЂРЅС‹Рµ С‚РєР°РЅРё"
+            title={"\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438"}
             options={XRAY_FOOT_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsFootParaarticularModalOpen(false)}
             onSelect={state.handleFootParaarticularSelect}
@@ -1233,7 +1234,7 @@ export function XRayHome(props: XRaySectionProps) {
         <>
           <XRayHandJointMapModal
             isOpen={state.isHandJointSpaceModalOpen}
-            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ С‰РµР»Рё"
+            title={"\u0421\u0443\u0441\u0442\u0430\u0432\u043d\u044b\u0435 \u0449\u0435\u043b\u0438"}
             values={state.handJointSpaceState}
             mode="degrees"
             activeDegree={state.activeHandJointDegree}
@@ -1245,7 +1246,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayHandJointMapModal
             isOpen={state.isHandJointSurfaceModalOpen}
-            title="РЎСѓСЃС‚Р°РІРЅС‹Рµ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё"
+            title={"\u0421\u0443\u0441\u0442\u0430\u0432\u043d\u044b\u0435 \u043f\u043e\u0432\u0435\u0440\u0445\u043d\u043e\u0441\u0442\u0438"}
             values={state.handJointSurfaceState}
             mode="degrees"
             activeDegree={state.activeHandJointDegree}
@@ -1257,7 +1258,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayHandJointMapModal
             isOpen={state.isHandOsteophytesModalOpen}
-            title="РћСЃС‚РµРѕС„РёС‚С‹"
+            title={"\u041e\u0441\u0442\u0435\u043e\u0444\u0438\u0442\u044b"}
             values={state.handOsteophytesState}
             mode="toggle"
             onClose={() => state.setIsHandOsteophytesModalOpen(false)}
@@ -1267,7 +1268,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayHandJointMapModal
             isOpen={state.isHandCongruencyModalOpen}
-            title="РљРѕРЅРіСЂСѓСЌРЅС‚РЅРѕСЃС‚СЊ"
+            title={"\u041a\u043e\u043d\u0433\u0440\u0443\u044d\u043d\u0442\u043d\u043e\u0441\u0442\u044c"}
             values={state.handCongruencyState}
             mode="toggle"
             onClose={() => state.setIsHandCongruencyModalOpen(false)}
@@ -1277,7 +1278,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHandIntegrityModalOpen}
-            title="Р¦РµР»РѕСЃС‚РЅРѕСЃС‚СЊ"
+            title={"\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c"}
             options={XRAY_HAND_INTEGRITY_OPTIONS}
             onClose={() => state.setIsHandIntegrityModalOpen(false)}
             onSelect={state.handleHandIntegritySelect}
@@ -1285,7 +1286,7 @@ export function XRayHome(props: XRaySectionProps) {
 
           <XRayKneeChoiceModal
             isOpen={state.isHandParaarticularModalOpen}
-            title="РџР°СЂР°Р°СЂС‚РёРєСѓР»СЏСЂРЅС‹Рµ С‚РєР°РЅРё"
+            title={"\u041f\u0430\u0440\u0430\u0430\u0440\u0442\u0438\u043a\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u043a\u0430\u043d\u0438"}
             options={XRAY_HAND_PARAARTICULAR_OPTIONS}
             onClose={() => state.setIsHandParaarticularModalOpen(false)}
             onSelect={state.handleHandParaarticularSelect}
@@ -1295,20 +1296,21 @@ export function XRayHome(props: XRaySectionProps) {
 
       {state.deleteStudyCandidate ? (
         <XRayConfirmModal
-          kicker="РЈРґР°Р»РµРЅРёРµ РёСЃСЃР»РµРґРѕРІР°РЅРёСЏ"
-          title="РЈРґР°Р»РёС‚СЊ РёСЃСЃР»РµРґРѕРІР°РЅРёРµ?"
+          kicker={'\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f'}
+          title={'\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435?'}
           description={
             <>
-              РСЃСЃР»РµРґРѕРІР°РЅРёРµ <strong>{formatStudyLabel(state.deleteStudyCandidate)}</strong> Р±СѓРґРµС‚
-              СѓРґР°Р»РµРЅРѕ Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ.
+              {'\u0418\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435 ' }
+              <strong>{formatStudyLabel(state.deleteStudyCandidate)}</strong>
+              {' \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u0430\u043b\u0435\u043d\u043e \u0431\u0435\u0437 \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f.'}
             </>
           }
-          confirmLabel="РЈРґР°Р»РёС‚СЊ"
-          confirmBusyLabel="РЈРґР°Р»СЏСЋ..."
+          confirmLabel={'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}
+          confirmBusyLabel={'\u0423\u0434\u0430\u043b\u044f\u044e...'}
           isBusy={props.deletingStudyId === state.deleteStudyCandidate.id}
           isTopLayer
           dialogLabelId="xray-study-delete-title"
-          closeAriaLabel="Р—Р°РєСЂС‹С‚СЊ РѕРєРЅРѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ"
+          closeAriaLabel={'\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043e\u043a\u043d\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f'}
           onClose={() => state.setDeleteStudyCandidate(null)}
           onConfirm={state.handleDeleteStudyConfirm}
         />

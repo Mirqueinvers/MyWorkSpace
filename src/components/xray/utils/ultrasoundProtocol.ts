@@ -37,6 +37,35 @@ function normalizeClipboardText(value: string) {
     .trim()
 }
 
+function formatSpecialProtocolBlocks(value: string) {
+  let text = value
+
+  const thyroidMarkers = ['Правая доля:', 'Левая доля:', 'Перешеек ']
+  const lymphMarkers = [
+    'Поднижнечелюстные:',
+    'Шейные:',
+    'Подключичные:',
+    'Надключичные:',
+    'Подмышечные:',
+    'Паховые:',
+    'Справа определяется',
+    'Слева определяется',
+  ]
+
+  for (const marker of [...thyroidMarkers, ...lymphMarkers]) {
+    const escapedMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    text = text.replace(new RegExp(`([^\\n])(${escapedMarker})`, 'g'), '$1\n\n$2')
+  }
+
+  text = text
+    .replace(/([^\n])(\n\nУзел №\d+)/g, '$1\n$2')
+    .replace(/(\n\nСправа определяется)/g, '\n$1')
+    .replace(/(\n\nСлева определяется)/g, '\n$1')
+    .replace(/\n{3,}/g, '\n\n')
+
+  return text.trim()
+}
+
 function getProtocolFragmentDocumentHtml(
   documentNode: Document,
   rootNode: HTMLElement,
@@ -255,7 +284,7 @@ export function getProtocolClipboardPayload(documentHtml: string) {
     return childText
   }
 
-  const text = normalizeClipboardText(serializeNode(rootNode))
+  const text = formatSpecialProtocolBlocks(normalizeClipboardText(serializeNode(rootNode)))
 
   return { text, html }
 }
