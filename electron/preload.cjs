@@ -161,6 +161,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getProtocol(id) {
       return ipcRenderer.invoke('ultrasound-journal:get-protocol', id);
     },
+    deleteStudy(id) {
+      return ipcRenderer.invoke('ultrasound-journal:delete-study', id);
+    },
+    deletePatient(payload) {
+      return ipcRenderer.invoke('ultrasound-journal:delete-patient', payload);
+    },
     selectFile() {
       return ipcRenderer.invoke('ultrasound-journal:select-file');
     },

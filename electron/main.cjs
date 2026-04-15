@@ -2013,6 +2013,51 @@ function getUltrasoundProtocolEntry(id) {
   return mapUltrasoundProtocolEntry(row);
 }
 
+function deleteUltrasoundJournalStudy(id) {
+  const normalizedId = normalizePositiveInteger(
+    id,
+    'ULTRASOUND_JOURNAL_PROTOCOL_ID_INVALID'
+  );
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM ultrasound_journal_entries
+    WHERE id = ?
+  `).run(normalizedId);
+
+  return result.changes > 0;
+}
+
+function deleteUltrasoundJournalPatient({ lastName, firstName, patronymic, birthDate }) {
+  const normalizedLastName = normalizeRequiredText(
+    lastName,
+    'ULTRASOUND_PATIENT_LAST_NAME_REQUIRED'
+  );
+  const normalizedFirstName = normalizeRequiredText(
+    firstName,
+    'ULTRASOUND_PATIENT_FIRST_NAME_REQUIRED'
+  );
+  const normalizedPatronymic = normalizeText(patronymic);
+  const normalizedBirthDate = normalizeRequiredText(
+    birthDate,
+    'ULTRASOUND_PATIENT_BIRTH_DATE_REQUIRED'
+  );
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM ultrasound_journal_entries
+    WHERE last_name = ?
+      AND first_name = ?
+      AND patronymic = ?
+      AND birth_date = ?
+  `).run(
+    normalizedLastName,
+    normalizedFirstName,
+    normalizedPatronymic,
+    normalizedBirthDate
+  );
+
+  return Number(result.changes ?? 0);
+}
+
 function listXRayDoseReference() {
   const db = getDatabase();
 
@@ -3315,6 +3360,14 @@ function registerIpcHandlers() {
 
   ipcMain.handle('ultrasound-journal:get-protocol', (_event, id) =>
     getUltrasoundProtocolEntry(id)
+  );
+
+  ipcMain.handle('ultrasound-journal:delete-study', (_event, id) =>
+    deleteUltrasoundJournalStudy(id)
+  );
+
+  ipcMain.handle('ultrasound-journal:delete-patient', (_event, payload) =>
+    deleteUltrasoundJournalPatient(payload)
   );
 
   ipcMain.handle('ultrasound-journal:select-file', () =>

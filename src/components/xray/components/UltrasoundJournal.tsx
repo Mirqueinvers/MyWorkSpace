@@ -2,10 +2,12 @@
 import type {
   ImportUltrasoundJournalResult,
   UltrasoundJournalEntry,
+  UltrasoundJournalPatient,
   UltrasoundProtocolEntry,
 } from '../../../types/ultrasound'
 import type { UpdateXRayFlJournalRmisUrlPayload, XRayPatient } from '../../../types/xray'
 import { UltrasoundProtocolModal } from './UltrasoundProtocolModal'
+import { XRayConfirmModal } from './XRayConfirmModal'
 
 const ELECTRON_API_UNAVAILABLE =
   'API Electron недоступно. Откройте приложение через dev:electron.'
@@ -16,6 +18,15 @@ const IMPORT_ERROR = 'Не удалось импортировать файл У
 const PROTOCOL_LOAD_ERROR = 'Не удалось открыть протокол исследования.'
 const RMIS_SAVE_ERROR = 'Не удалось сохранить ссылку РМИС.'
 const PATIENT_OPEN_ERROR = 'Не удалось открыть карточку пациента.'
+const STUDY_DELETE_ERROR = 'Не удалось удалить исследование.'
+const PATIENT_DELETE_ERROR = 'Не удалось удалить пациента из УЗИ журнала.'
+const EDIT_JOURNAL_LABEL = 'Редактировать УЗИ журнал'
+const DELETE_CONFIRM_CLOSE_LABEL = 'Закрыть окно подтверждения'
+
+interface UltrasoundDeletePatientCandidate {
+  patient: UltrasoundJournalPatient
+  fullName: string
+}
 
 function getTodayIsoDate() {
   const now = new Date()
@@ -112,6 +123,11 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   const [editingPatientKey, setEditingPatientKey] = useState<string | null>(null)
   const [rmisDraft, setRmisDraft] = useState('')
   const [savingRmis, setSavingRmis] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [deletingPatientKey, setDeletingPatientKey] = useState<string | null>(null)
+  const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null)
+  const [deleteStudyCandidate, setDeleteStudyCandidate] = useState<UltrasoundProtocolEntry | null>(null)
+  const [deletePatientCandidate, setDeletePatientCandidate] = useState<UltrasoundDeletePatientCandidate | null>(null)
 
   const studiesCount = entries.reduce((count, entry) => count + getEntryResearchCount(entry), 0)
 
@@ -355,6 +371,89 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
     }
   }
 
+  async function handleDeleteStudy(studyId: number) {
+    if (!window.electronAPI?.ultrasoundJournal?.deleteStudy) {
+      setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    setDeletingStudyId(studyId)
+    setError('')
+
+    try {
+      const deleted = await window.electronAPI.ultrasoundJournal.deleteStudy(studyId)
+
+      if (!deleted) {
+        setError(STUDY_DELETE_ERROR)
+        return
+      }
+
+      if (protocolId === studyId) {
+        setProtocolId(null)
+      }
+
+      setDeleteStudyCandidate(null)
+
+      setEntries((currentEntries) =>
+        currentEntries
+          .map((entry) => ({
+            ...entry,
+            studies: entry.studies.filter((study) => study.id !== studyId),
+          }))
+          .filter((entry) => entry.studies.length > 0),
+      )
+    } catch {
+      setError(STUDY_DELETE_ERROR)
+    } finally {
+      setDeletingStudyId(null)
+    }
+  }
+
+  async function handleDeletePatient(entry: UltrasoundJournalEntry) {
+    if (!window.electronAPI?.ultrasoundJournal?.deletePatient) {
+      setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    const patientKey = `${entry.patient.fullName}|${entry.patient.birthDate}`
+    setDeletingPatientKey(patientKey)
+    setError('')
+
+    try {
+      const deletedCount = await window.electronAPI.ultrasoundJournal.deletePatient({
+        lastName: entry.patient.lastName,
+        firstName: entry.patient.firstName,
+        patronymic: entry.patient.patronymic,
+        birthDate: entry.patient.birthDate,
+      })
+
+      if (!deletedCount) {
+        setError(PATIENT_DELETE_ERROR)
+        return
+      }
+
+      if (protocolEntry && protocolEntry.patient.fullName === entry.patient.fullName && protocolEntry.patient.birthDate === entry.patient.birthDate) {
+        setProtocolId(null)
+      }
+
+      setDeletePatientCandidate(null)
+
+      setEntries((currentEntries) =>
+        currentEntries.filter(
+          (currentEntry) =>
+            !(
+              currentEntry.patient.fullName === entry.patient.fullName &&
+              currentEntry.patient.birthDate === entry.patient.birthDate
+            ),
+        ),
+      )
+    } catch {
+      setError(PATIENT_DELETE_ERROR)
+    } finally {
+      setDeletingPatientKey(null)
+    }
+  }
+
   return (
     <>
       <section className="content-card xray-journal-card">
@@ -414,7 +513,33 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
 
         <div className="xray-journal-meta xray-journal-meta-dual">
           <span>{entries.length === 0 ? 'Пациенты не найдены' : `Пациентов: ${entries.length}`}</span>
-          <span>{`Исследований: ${studiesCount}`}</span>
+          <div className="xray-journal-meta-edit">
+            <span>{`Исследований: ${studiesCount}`}</span>
+            <button
+              type="button"
+              className={`xray-journal-edit-toggle${isEditMode ? ' is-active' : ''}`}
+              onClick={() => setIsEditMode((currentMode) => !currentMode)}
+              aria-label={EDIT_JOURNAL_LABEL}
+              title={EDIT_JOURNAL_LABEL}
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path
+                  d="M13.5 3.5a1.8 1.8 0 0 1 2.55 0l.45.45a1.8 1.8 0 0 1 0 2.55l-8.9 8.9L4 16l.6-3.6 8.9-8.9Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M12.5 4.5 15.5 7.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {error ? <p className="xray-journal-empty">{error}</p> : null}
@@ -524,8 +649,25 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
                       >
                         +
                       </button>
+                      <button
+                        type="button"
+                        className={`xray-fl-journal-delete-button${isEditMode ? ' is-visible' : ''}`}
+                        onClick={() =>
+                          setDeletePatientCandidate({
+                            patient: entry.patient,
+                            fullName: entry.patient.fullName,
+                          })
+                        }
+                        aria-label="Удалить пациента из УЗИ журнала"
+                        title="Удалить пациента из УЗИ журнала"
+                        disabled={!isEditMode || deletingPatientKey === patientKey}
+                      >
+                        ×
+                      </button>
                     </div>
-                    <span>{formatStudySummary(getEntryResearchCount(entry))}</span>
+                    <div className="xray-journal-item-head-actions">
+                      <span>{formatStudySummary(getEntryResearchCount(entry))}</span>
+                    </div>
                   </div>
 
                   {editingPatientKey === patientKey ? (
@@ -550,16 +692,34 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
 
                   <div className="xray-journal-study-list">
                     {entry.studies.map((study) => (
-                      <button
-                        key={study.id}
-                        type="button"
-                        className="xray-journal-study-chip"
-                        style={{ textAlign: 'left' }}
-                        onClick={() => setProtocolId(study.id)}
-                      >
-                        <span>{study.studyTitle}</span>
-                        <span>{study.conclusion || study.doctorName || 'Открыть протокол'}</span>
-                      </button>
+                      <div key={study.id} className="xray-journal-study-chip-wrap">
+                        <button
+                          type="button"
+                          className="xray-journal-study-chip"
+                          style={{ textAlign: 'left' }}
+                          onClick={() => setProtocolId(study.id)}
+                        >
+                          <span>{study.studyTitle}</span>
+                          <span>{study.conclusion || study.doctorName || 'Открыть протокол'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`xray-journal-study-delete${isEditMode ? ' is-visible' : ''}`}
+                          onClick={() =>
+                            setDeleteStudyCandidate({
+                              ...study,
+                              patient: entry.patient,
+                              sourceFile: '',
+                              documentHtml: '',
+                            })
+                          }
+                          aria-label="Удалить исследование"
+                          title="Удалить исследование"
+                          disabled={!isEditMode || deletingStudyId === study.id}
+                        >
+                          ×
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </article>
@@ -576,6 +736,56 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
         onClose={() => setProtocolId(null)}
         kicker={'УЗИ журнал'}
       />
+
+      {deleteStudyCandidate ? (
+        <XRayConfirmModal
+          kicker={'Удаление исследования'}
+          title={'Удалить исследование?'}
+          description={
+            <>
+              {'Исследование '}
+              <strong>{deleteStudyCandidate.studyTitle}</strong>
+              {' будет удалено из УЗИ журнала без возможности восстановления.'}
+            </>
+          }
+          confirmLabel={'Удалить'}
+          confirmBusyLabel={'Удаляю...'}
+          isBusy={deletingStudyId === deleteStudyCandidate.id}
+          dialogLabelId="ultrasound-study-delete-title"
+          closeAriaLabel={DELETE_CONFIRM_CLOSE_LABEL}
+          onClose={() => setDeleteStudyCandidate(null)}
+          onConfirm={() => void handleDeleteStudy(deleteStudyCandidate.id)}
+        />
+      ) : null}
+
+      {deletePatientCandidate ? (
+        <XRayConfirmModal
+          kicker={'Удаление пациента'}
+          title={'Удалить пациента из УЗИ журнала?'}
+          description={
+            <>
+              {'Пациент '}
+              <strong>{deletePatientCandidate.fullName}</strong>
+              {' и все его исследования за все даты будут удалены без возможности восстановления.'}
+            </>
+          }
+          confirmLabel={'Удалить'}
+          confirmBusyLabel={'Удаляю...'}
+          isBusy={
+            deletingPatientKey ===
+            `${deletePatientCandidate.patient.fullName}|${deletePatientCandidate.patient.birthDate}`
+          }
+          dialogLabelId="ultrasound-patient-delete-title"
+          closeAriaLabel={DELETE_CONFIRM_CLOSE_LABEL}
+          onClose={() => setDeletePatientCandidate(null)}
+          onConfirm={() =>
+            void handleDeletePatient({
+              patient: deletePatientCandidate.patient,
+              studies: [],
+            })
+          }
+        />
+      ) : null}
     </>
   )
 }

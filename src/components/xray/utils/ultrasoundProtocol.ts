@@ -2,6 +2,7 @@ export interface UltrasoundProtocolCopySection {
   key: string
   label: string
   documentHtml: string
+  conclusionText: string
 }
 
 function parseProtocolDocument(documentHtml: string) {
@@ -35,6 +36,83 @@ function normalizeClipboardText(value: string) {
     .replace(/\n[ \t]+/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function getStableProtocolKey(title: string) {
+  const loweredTitle = title.toLocaleLowerCase('ru-RU')
+  const isOmtFemale =
+    /\(\s*ж\s*\)/.test(loweredTitle) ||
+    loweredTitle.includes('\u0436\u0435\u043d')
+  const isOmtMale =
+    /\(\s*м\s*\)/.test(loweredTitle) ||
+    loweredTitle.includes('\u043c\u0443\u0436')
+  const isAbdominal =
+    loweredTitle.includes('\u043e\u0431\u043f') ||
+    loweredTitle.includes('\u0431\u0440\u044e\u0448') ||
+    loweredTitle.includes('abdomen')
+  const isKidneys =
+    loweredTitle.includes('\u043f\u043e\u0447\u043a\u0438') ||
+    loweredTitle.includes('\u043f\u043e\u0447\u0435\u043a') ||
+    loweredTitle.includes('kidney')
+
+  if (isAbdominal) return 'obp'
+  if (isKidneys) return 'kidneys'
+  if (loweredTitle.includes('\u0449\u0438\u0442\u043e\u0432\u0438\u0434')) return 'thyroid'
+  if (loweredTitle.includes('\u043c\u043e\u043b\u043e\u0447\u043d')) return 'breast'
+  if (loweredTitle.includes('\u043c\u043e\u0448\u043e\u043d')) return 'scrotum'
+  if (loweredTitle.includes('\u043c\u043e\u0447\u0435\u0432\u043e\u0439 \u043f\u0443\u0437\u044b\u0440')) return 'bladder'
+  if (loweredTitle.includes('\u043b\u0438\u043c\u0444')) return 'lymph-nodes'
+  if (loweredTitle.includes('\u0441\u043b\u044e\u043d')) return 'salivary-glands'
+  if (loweredTitle.includes('\u0431\u0446\u0430')) return 'brachio-cephalic-arteries'
+  if (loweredTitle.includes('\u043c\u044f\u0433\u043a')) return 'soft-tissue'
+  if (loweredTitle.includes('\u0434\u0438\u0441\u043f\u0430\u043d\u0441\u0435\u0440')) return 'child-dispensary'
+  if (loweredTitle.includes('\u043c\u0430\u043b\u043e\u0433\u043e \u0442\u0430\u0437\u0430')) {
+    if (isOmtFemale) return 'omt-female'
+    if (isOmtMale) return 'omt-male'
+  }
+  if (loweredTitle.includes('\u043e\u043c\u0442') && isOmtFemale) return 'omt-female'
+  if (loweredTitle.includes('\u043e\u043c\u0442') && isOmtMale) return 'omt-male'
+
+  return loweredTitle || 'protocol'
+}
+
+function getProtocolConclusionMap(rootNode: HTMLElement) {
+  const conclusionMap = new Map<string, string[]>()
+
+  Array.from(rootNode.querySelectorAll<HTMLElement>('[data-uzi-conclusion-key]')).forEach((node) => {
+    const key = normalizeInlineText(node.dataset.uziConclusionKey ?? '')
+    const conclusion = normalizeClipboardText(node.dataset.uziConclusion ?? '')
+
+    if (!key || !conclusion) {
+      return
+    }
+
+    const existing = conclusionMap.get(key)
+    if (existing) {
+      existing.push(conclusion)
+      return
+    }
+
+    conclusionMap.set(key, [conclusion])
+  })
+
+  return conclusionMap
+}
+
+function getMergedConclusionText(conclusionMap: Map<string, string[]>, key: string) {
+  const sourceKeys = key === 'obp-kidneys' ? ['obp', 'kidneys'] : [key]
+  const values = sourceKeys.flatMap((sourceKey) => conclusionMap.get(sourceKey) ?? [])
+  const normalizedValues = values.map((value) => normalizeClipboardText(value)).filter(Boolean)
+  return Array.from(new Set(normalizedValues)).join('\n')
 }
 
 function formatSpecialProtocolBlocks(value: string) {
@@ -87,15 +165,9 @@ ${headHtml}
 
 function getProtocolCopyGroup(title: string) {
   const normalizedTitle = normalizeInlineText(title)
-  const loweredTitle = normalizedTitle.toLocaleLowerCase('ru-RU')
-  const isAbdominal =
-    loweredTitle.includes('\u043e\u0431\u043f') ||
-    loweredTitle.includes('\u0431\u0440\u044e\u0448') ||
-    loweredTitle.includes('abdomen')
-  const isKidneys =
-    loweredTitle.includes('\u043f\u043e\u0447\u043a\u0438') ||
-    loweredTitle.includes('\u043f\u043e\u0447\u0435\u043a') ||
-    loweredTitle.includes('kidney')
+  const stableKey = getStableProtocolKey(normalizedTitle)
+  const isAbdominal = stableKey === 'obp'
+  const isKidneys = stableKey === 'kidneys'
 
   if (isAbdominal && isKidneys) {
     return {
@@ -119,7 +191,7 @@ function getProtocolCopyGroup(title: string) {
   }
 
   return {
-    key: loweredTitle || 'protocol',
+    key: stableKey,
     label: normalizedTitle || '\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b',
   }
 }
@@ -176,7 +248,12 @@ export function getProtocolViewerHtml(documentHtml: string) {
   return `${overrideCss}${documentHtml}`
 }
 
-export function getProtocolClipboardPayload(documentHtml: string) {
+export function getProtocolClipboardPayload(
+  documentHtml: string,
+  options?: {
+    conclusionText?: string
+  },
+) {
   const parsedProtocol = parseProtocolDocument(documentHtml)
 
   if (!parsedProtocol) {
@@ -184,7 +261,7 @@ export function getProtocolClipboardPayload(documentHtml: string) {
   }
 
   const { documentNode, rootNode } = parsedProtocol
-  const html = documentNode.body?.innerHTML ?? ''
+  const initialHtml = documentNode.body?.innerHTML ?? ''
   const blockTags = new Set([
     'address',
     'article',
@@ -285,8 +362,14 @@ export function getProtocolClipboardPayload(documentHtml: string) {
   }
 
   const text = formatSpecialProtocolBlocks(normalizeClipboardText(serializeNode(rootNode)))
+  const conclusionText = normalizeClipboardText(options?.conclusionText ?? '')
+  const fullText = conclusionText ? `${text}\n\nЗаключение: ${conclusionText}` : text
+  const htmlConclusion = conclusionText
+    ? `<p><strong>Заключение:</strong> ${escapeHtml(conclusionText).replace(/\n/g, '<br>')}</p>`
+    : ''
+  const html = `${initialHtml}${htmlConclusion}`
 
-  return { text, html }
+  return { text: fullText, html }
 }
 
 export function getProtocolCopySections(documentHtml: string) {
@@ -297,6 +380,7 @@ export function getProtocolCopySections(documentHtml: string) {
   }
 
   const { documentNode, rootNode } = parsedProtocol
+  const conclusionMap = getProtocolConclusionMap(rootNode)
   const printableBlocks = Array.from(rootNode.querySelectorAll<HTMLElement>('.print-page-inner > .no-break'))
 
   if (printableBlocks.length > 0) {
@@ -347,6 +431,7 @@ export function getProtocolCopySections(documentHtml: string) {
         .map(([key, section]) => ({
           key,
           label: section.label,
+          conclusionText: getMergedConclusionText(conclusionMap, key),
           documentHtml: getProtocolFragmentDocumentHtml(
             documentNode,
             rootNode,
@@ -366,6 +451,7 @@ export function getProtocolCopySections(documentHtml: string) {
         key: 'protocol',
         label: 'Протокол',
         documentHtml,
+        conclusionText: '',
       },
     ]
   }
@@ -379,6 +465,7 @@ export function getProtocolCopySections(documentHtml: string) {
         key: 'protocol',
         label: 'Протокол',
         documentHtml,
+        conclusionText: '',
       },
     ]
   }
@@ -394,6 +481,7 @@ export function getProtocolCopySections(documentHtml: string) {
         key: 'protocol',
         label: 'Протокол',
         documentHtml,
+        conclusionText: '',
       },
     ]
   }
@@ -453,6 +541,7 @@ export function getProtocolCopySections(documentHtml: string) {
         key: 'protocol',
         label: 'Протокол',
         documentHtml,
+        conclusionText: '',
       },
     ]
   }
@@ -472,6 +561,7 @@ export function getProtocolCopySections(documentHtml: string) {
     .map(([key, section]) => ({
       key,
       label: section.label,
+      conclusionText: getMergedConclusionText(conclusionMap, key),
       documentHtml: getProtocolFragmentDocumentHtml(
         documentNode,
         rootNode,
@@ -480,8 +570,13 @@ export function getProtocolCopySections(documentHtml: string) {
     }))
 }
 
-export async function writeProtocolToClipboard(documentHtml: string) {
-  const payload = getProtocolClipboardPayload(documentHtml)
+export async function writeProtocolToClipboard(
+  documentHtml: string,
+  options?: {
+    conclusionText?: string
+  },
+) {
+  const payload = getProtocolClipboardPayload(documentHtml, options)
 
   if (!payload.text) {
     return false
@@ -500,3 +595,5 @@ export async function writeProtocolToClipboard(documentHtml: string) {
   await navigator.clipboard.writeText(payload.text)
   return true
 }
+
+

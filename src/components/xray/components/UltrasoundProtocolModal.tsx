@@ -28,13 +28,19 @@ export function UltrasoundProtocolModal({
     return null
   }
 
-  async function handleCopyProtocol(sectionKey: string, documentHtml: string) {
+  async function handleCopyProtocol(
+    sectionKey: string,
+    documentHtml: string,
+    conclusionText: string,
+  ) {
     if (!documentHtml) {
       return
     }
 
     try {
-      const copied = await writeProtocolToClipboard(documentHtml)
+      const copied = await writeProtocolToClipboard(documentHtml, {
+        conclusionText,
+      })
 
       if (!copied) {
         return
@@ -90,7 +96,9 @@ export function UltrasoundProtocolModal({
                   key={section.key}
                   type="button"
                   className="primary-button"
-                  onClick={() => void handleCopyProtocol(section.key, section.documentHtml)}
+                  onClick={() =>
+                    void handleCopyProtocol(section.key, section.documentHtml, section.conclusionText)
+                  }
                   style={{
                     minWidth: '186px',
                     display: 'inline-flex',

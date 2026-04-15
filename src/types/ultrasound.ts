@@ -39,12 +39,21 @@ export interface ListUltrasoundJournalByPatientPayload {
   birthDate: string
 }
 
+export interface DeleteUltrasoundJournalPatientPayload {
+  lastName: string
+  firstName: string
+  patronymic: string
+  birthDate: string
+}
+
 export interface UltrasoundJournalApi {
   listByDate: (studyDate: string) => Promise<UltrasoundJournalEntry[]>
   listByPatient: (
     payload: ListUltrasoundJournalByPatientPayload,
   ) => Promise<UltrasoundJournalStudy[]>
   getProtocol: (id: number) => Promise<UltrasoundProtocolEntry | null>
+  deleteStudy: (id: number) => Promise<boolean>
+  deletePatient: (payload: DeleteUltrasoundJournalPatientPayload) => Promise<number>
   selectFile: () => Promise<string | null>
   importFile: (filePath: string) => Promise<ImportUltrasoundJournalResult>
 }
