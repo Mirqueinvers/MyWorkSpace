@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { RefObject } from 'react'
 
 interface XRayStudyDescriptionTool {
@@ -35,6 +36,26 @@ export function XRayStudyDescriptionModal({
   onSave,
   onDelete,
 }: XRayStudyDescriptionModalProps) {
+  const [isCopying, setIsCopying] = useState(false)
+
+  async function handleCopyDescription() {
+    const description = descriptionDraft.trim()
+    const diagnosis = diagnosisDraft.trim()
+
+    const payload = `${description ? `\n\n${description}` : ''}${diagnosis ? `\n\nЗаключение: ${diagnosis}` : ''}`
+
+    if (!payload.trim()) {
+      return
+    }
+
+    setIsCopying(true)
+    try {
+      await navigator.clipboard.writeText(payload)
+    } finally {
+      setIsCopying(false)
+    }
+  }
+
   return (
     <div className="reminders-modal-overlay xray-top-overlay">
       <section
@@ -89,6 +110,10 @@ export function XRayStudyDescriptionModal({
                   Редактировать исследование
                 </button>
               )}
+
+              <button type="button" className="secondary-button" onClick={handleCopyDescription}>
+                {isCopying ? 'Копирую...' : 'Копировать описание'}
+              </button>
 
               <button
                 type="button"
