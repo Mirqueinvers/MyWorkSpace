@@ -37,7 +37,7 @@ export interface UltrasoundProtocolEntry extends UltrasoundJournalStudy {
   patient: UltrasoundJournalPatient
   sourceFile: string
   documentHtml: string
-  attachments: UltrasoundStudyAttachment[]
+  attachments?: UltrasoundStudyAttachment[]
 }
 
 export interface ImportUltrasoundJournalResult {

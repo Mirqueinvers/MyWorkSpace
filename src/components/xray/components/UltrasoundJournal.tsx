@@ -132,17 +132,22 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   const studiesCount = entries.reduce((count, entry) => count + getEntryResearchCount(entry), 0)
 
   async function loadJournalByDate(targetDate: string) {
-    if (!window.electronAPI?.ultrasoundJournal) {
+    const electronAPI = window.electronAPI
+    const ultrasoundJournal = electronAPI?.ultrasoundJournal
+
+    if (!ultrasoundJournal) {
       setEntries([])
       setError(ELECTRON_API_UNAVAILABLE)
       return
     }
 
+    const ultrasoundJournalApi = ultrasoundJournal
+
     setLoading(true)
     setError('')
 
     try {
-      const items = await window.electronAPI.ultrasoundJournal.listByDate(targetDate)
+      const items = await ultrasoundJournalApi.listByDate(targetDate)
       setEntries(items)
     } catch {
       setEntries([])
@@ -164,11 +169,17 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
       return
     }
 
-    if (!window.electronAPI?.ultrasoundJournal?.getProtocol) {
+    const electronAPI = window.electronAPI
+    const ultrasoundJournal = electronAPI?.ultrasoundJournal
+
+    if (!ultrasoundJournal?.getProtocol) {
       setProtocolEntry(null)
       setProtocolError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
       return
     }
+
+    const ultrasoundJournalApi = ultrasoundJournal
+    const selectedProtocolId = protocolId
 
     let isCancelled = false
 
@@ -177,11 +188,14 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
       setProtocolError('')
 
       try {
-        const result = await window.electronAPI.ultrasoundJournal.getProtocol(protocolId)
+        const result = await ultrasoundJournalApi.getProtocol(selectedProtocolId)
 
         if (!isCancelled) {
           if (result) {
-            setProtocolEntry(result)
+            setProtocolEntry({
+              ...result,
+              attachments: result.attachments ?? [],
+            })
           } else {
             setProtocolEntry(null)
             setProtocolError(PROTOCOL_LOAD_ERROR)
@@ -207,12 +221,17 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   }, [protocolId])
 
   async function handleImport() {
-    if (!window.electronAPI?.ultrasoundJournal) {
+    const electronAPI = window.electronAPI
+    const ultrasoundJournal = electronAPI?.ultrasoundJournal
+
+    if (!ultrasoundJournal) {
       setError(ELECTRON_API_UNAVAILABLE)
       return
     }
 
-    if (!window.electronAPI.ultrasoundJournal.selectFile || !window.electronAPI.ultrasoundJournal.importFile) {
+    const ultrasoundJournalApi = ultrasoundJournal
+
+    if (!ultrasoundJournalApi.selectFile || !ultrasoundJournalApi.importFile) {
       setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
       return
     }
@@ -222,14 +241,14 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
     setImportResult(null)
 
     try {
-      const filePath = await window.electronAPI.ultrasoundJournal.selectFile()
+      const filePath = await ultrasoundJournalApi.selectFile()
 
       if (!filePath) {
         return
       }
 
       setSelectedFilePath(filePath)
-      const result = await window.electronAPI.ultrasoundJournal.importFile(filePath)
+      const result = await ultrasoundJournalApi.importFile(filePath)
       setImportResult(result)
       await loadJournalByDate(journalDate)
     } catch (importError) {
@@ -259,23 +278,30 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
 
   async function handleOpenRmisLink(entry: UltrasoundJournalEntry) {
     const rmisUrl = getPatientRmisUrl(entry)
+    const electronAPI = window.electronAPI
+    const xrayApi = electronAPI?.xray
 
-    if (!rmisUrl || !window.electronAPI?.xray?.openLink) {
+    if (!rmisUrl || !xrayApi?.openLink) {
       return
     }
 
     try {
-      await window.electronAPI.xray.openLink(rmisUrl)
+      await xrayApi.openLink(rmisUrl)
     } catch {
       setError('Не удалось открыть ссылку РМИС.')
     }
   }
 
   async function handleOpenPatient(entry: UltrasoundJournalEntry) {
-    if (!window.electronAPI?.xray?.searchPatients) {
+    const electronAPI = window.electronAPI
+    const xrayApi = electronAPI?.xray
+
+    if (!xrayApi?.searchPatients) {
       setError(ELECTRON_API_UNAVAILABLE)
       return
     }
+
+    const xrayApiReady = xrayApi
 
     const searchQuery = [
       entry.patient.lastName,
@@ -287,7 +313,7 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
       .join(' ')
 
     try {
-      const results = await window.electronAPI.xray.searchPatients(searchQuery)
+      const results = await xrayApiReady.searchPatients(searchQuery)
       const birthDateDigits = normalizeBirthDateDigits(entry.patient.birthDate)
       const matchedPatient =
         results.find(
@@ -317,10 +343,15 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   }
 
   async function handleSaveRmis(entry: UltrasoundJournalEntry) {
-    if (!window.electronAPI?.xray?.updateFlJournalRmisUrl) {
+    const electronAPI = window.electronAPI
+    const xrayApi = electronAPI?.xray
+
+    if (!xrayApi?.updateFlJournalRmisUrl) {
       setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
       return
     }
+
+    const xrayApiReady = xrayApi
 
     const normalizedBirthDate = normalizeBirthDateDigits(entry.patient.birthDate)
 
@@ -341,7 +372,7 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
         rmisUrl: rmisDraft.trim() || null,
       }
 
-      const updated = await window.electronAPI.xray.updateFlJournalRmisUrl(payload)
+      const updated = await xrayApiReady.updateFlJournalRmisUrl(payload)
 
       if (!updated) {
         setError(RMIS_SAVE_ERROR)
@@ -372,16 +403,21 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   }
 
   async function handleDeleteStudy(studyId: number) {
-    if (!window.electronAPI?.ultrasoundJournal?.deleteStudy) {
+    const electronAPI = window.electronAPI
+    const ultrasoundJournal = electronAPI?.ultrasoundJournal
+
+    if (!ultrasoundJournal?.deleteStudy) {
       setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
       return
     }
+
+    const ultrasoundJournalApi = ultrasoundJournal
 
     setDeletingStudyId(studyId)
     setError('')
 
     try {
-      const deleted = await window.electronAPI.ultrasoundJournal.deleteStudy(studyId)
+      const deleted = await ultrasoundJournalApi.deleteStudy(studyId)
 
       if (!deleted) {
         setError(STUDY_DELETE_ERROR)
@@ -410,17 +446,22 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   }
 
   async function handleDeletePatient(entry: UltrasoundJournalEntry) {
-    if (!window.electronAPI?.ultrasoundJournal?.deletePatient) {
+    const electronAPI = window.electronAPI
+    const ultrasoundJournal = electronAPI?.ultrasoundJournal
+
+    if (!ultrasoundJournal?.deletePatient) {
       setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
       return
     }
+
+    const ultrasoundJournalApi = ultrasoundJournal
 
     const patientKey = `${entry.patient.fullName}|${entry.patient.birthDate}`
     setDeletingPatientKey(patientKey)
     setError('')
 
     try {
-      const deletedCount = await window.electronAPI.ultrasoundJournal.deletePatient({
+      const deletedCount = await ultrasoundJournalApi.deletePatient({
         lastName: entry.patient.lastName,
         firstName: entry.patient.firstName,
         patronymic: entry.patient.patronymic,

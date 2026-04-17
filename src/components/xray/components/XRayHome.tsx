@@ -82,6 +82,8 @@ export function XRayHome(props: XRaySectionProps) {
   const [ultrasoundProtocolError, setUltrasoundProtocolError] = useState('')
 
   useEffect(() => {
+    const electronAPI = window.electronAPI
+
     if (ultrasoundProtocolId === null) {
       setUltrasoundProtocolEntry(null)
       setUltrasoundProtocolError('')
@@ -89,13 +91,15 @@ export function XRayHome(props: XRaySectionProps) {
       return
     }
 
-    if (!window.electronAPI?.ultrasoundJournal?.getProtocol) {
+    if (!electronAPI?.ultrasoundJournal?.getProtocol) {
       setUltrasoundProtocolEntry(null)
       setUltrasoundProtocolError('РџСЂРѕСЃРјРѕС‚СЂ РЈР—Р-РїСЂРѕС‚РѕРєРѕР»Р° РЅРµРґРѕСЃС‚СѓРїРµРЅ.')
       setUltrasoundProtocolLoading(false)
       return
     }
 
+    const ultrasoundJournal = electronAPI.ultrasoundJournal
+    const protocolId = ultrasoundProtocolId
     let isCancelled = false
 
     async function loadUltrasoundProtocol() {
@@ -103,11 +107,14 @@ export function XRayHome(props: XRaySectionProps) {
       setUltrasoundProtocolError('')
 
       try {
-        const result = await window.electronAPI.ultrasoundJournal.getProtocol(ultrasoundProtocolId)
+        const result = await ultrasoundJournal.getProtocol(protocolId)
 
         if (!isCancelled) {
           if (result) {
-            setUltrasoundProtocolEntry(result)
+            setUltrasoundProtocolEntry({
+              ...result,
+              attachments: result.attachments ?? [],
+            })
           } else {
             setUltrasoundProtocolEntry(null)
             setUltrasoundProtocolError('РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РЈР—Р-РїСЂРѕС‚РѕРєРѕР».')
