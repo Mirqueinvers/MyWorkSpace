@@ -346,11 +346,26 @@ function ensureUltrasoundJournalSchema(db) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS ultrasound_journal_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      study_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (study_id) REFERENCES ultrasound_journal_entries (id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_ultrasound_journal_entries_study_date
     ON ultrasound_journal_entries (study_date, created_at DESC, id DESC);
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_ultrasound_journal_entries_content_hash
     ON ultrasound_journal_entries (content_hash);
+
+    CREATE INDEX IF NOT EXISTS idx_ultrasound_journal_attachments_study_id
+    ON ultrasound_journal_attachments (study_id, created_at ASC, id ASC);
   `);
 }
 
@@ -541,7 +556,245 @@ function mapUltrasoundProtocolEntry(row) {
       patronymic: row.patronymic,
       birthDate: row.birth_date,
     },
+    attachments: [],
   };
+}
+
+function mapUltrasoundAttachment(row) {
+  return {
+    id: row.id,
+    studyId: row.study_id,
+    originalName: row.original_name,
+    storedName: row.stored_name,
+    filePath: row.file_path,
+    mimeType: row.mime_type,
+    fileSize: Number(row.file_size),
+    createdAt: row.created_at,
+    kind: row.mime_type?.startsWith('image/')
+      ? 'image'
+      : row.mime_type?.startsWith('video/')
+        ? 'video'
+    : 'file',
+  };
+}
+
+function getUltrasoundAttachmentPreviewDataUrl(filePath) {
+  const normalizedFilePath = normalizeText(filePath);
+
+  if (!normalizedFilePath || !fs.existsSync(normalizedFilePath)) {
+    throw new Error('ULTRASOUND_ATTACHMENT_FILE_NOT_FOUND');
+  }
+
+  const stat = fs.statSync(normalizedFilePath);
+  if (!stat.isFile()) {
+    throw new Error('ULTRASOUND_ATTACHMENT_FILE_NOT_FOUND');
+  }
+
+  const mimeType = getUltrasoundAttachmentMimeType(normalizedFilePath);
+  if (!mimeType.startsWith('image/')) {
+    return null;
+  }
+
+  const buffer = fs.readFileSync(normalizedFilePath);
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
+function getUltrasoundAttachmentsDir() {
+  const userDataPath = app.getPath('userData');
+  const attachmentsDir = path.join(userDataPath, 'ultrasound-attachments');
+  fs.mkdirSync(attachmentsDir, { recursive: true });
+  return attachmentsDir;
+}
+
+function sanitizeAttachmentName(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, ' ');
+}
+
+function getUltrasoundAttachmentMimeType(fileName) {
+  const ext = path.extname(String(fileName ?? '')).toLowerCase();
+
+  if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(ext)) {
+    return `image/${ext === '.jpg' ? 'jpeg' : ext.slice(1)}`;
+  }
+
+  if (ext === '.avi') {
+    return 'video/x-msvideo';
+  }
+
+  return 'application/octet-stream';
+}
+
+function getUltrasoundAttachmentKind(mimeType) {
+  if (String(mimeType ?? '').startsWith('image/')) {
+    return 'image';
+  }
+
+  if (String(mimeType ?? '').startsWith('video/')) {
+    return 'video';
+  }
+
+  return 'file';
+}
+
+function listUltrasoundAttachments(studyId) {
+  const normalizedStudyId = normalizePositiveInteger(
+    studyId,
+    'ULTRASOUND_ATTACHMENT_STUDY_ID_INVALID'
+  );
+  const db = getDatabase();
+
+  return db
+    .prepare(
+      `
+      SELECT
+        id,
+        study_id,
+        original_name,
+        stored_name,
+        file_path,
+        mime_type,
+        file_size,
+        created_at
+      FROM ultrasound_journal_attachments
+      WHERE study_id = ?
+      ORDER BY created_at ASC, id ASC
+    `
+    )
+    .all(normalizedStudyId)
+    .map(mapUltrasoundAttachment);
+}
+
+function copyUltrasoundAttachmentFile(studyId, filePath) {
+  const normalizedStudyId = normalizePositiveInteger(
+    studyId,
+    'ULTRASOUND_ATTACHMENT_STUDY_ID_INVALID'
+  );
+  const normalizedFilePath = normalizeText(filePath);
+
+  if (!normalizedFilePath || !fs.existsSync(normalizedFilePath)) {
+    throw new Error('ULTRASOUND_ATTACHMENT_FILE_NOT_FOUND');
+  }
+
+  const stat = fs.statSync(normalizedFilePath);
+  if (!stat.isFile()) {
+    throw new Error('ULTRASOUND_ATTACHMENT_FILE_NOT_FOUND');
+  }
+
+  const originalName = sanitizeAttachmentName(path.basename(normalizedFilePath));
+  const extension = path.extname(originalName);
+  const storedName = `${normalizedStudyId}_${Date.now()}_${crypto.randomUUID()}${extension}`;
+  const attachmentsDir = getUltrasoundAttachmentsDir();
+  const storedPath = path.join(attachmentsDir, storedName);
+
+  fs.copyFileSync(normalizedFilePath, storedPath);
+
+  const db = getDatabase();
+  const createdAt = new Date().toISOString();
+  const mimeType = getUltrasoundAttachmentMimeType(originalName);
+  const result = db
+    .prepare(
+      `
+      INSERT INTO ultrasound_journal_attachments (
+        study_id,
+        original_name,
+        stored_name,
+        file_path,
+        mime_type,
+        file_size,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `
+    )
+    .run(
+      normalizedStudyId,
+      originalName,
+      storedName,
+      storedPath,
+      mimeType,
+      stat.size,
+      createdAt
+    );
+
+  return {
+    id: Number(result.lastInsertRowid),
+    studyId: normalizedStudyId,
+    originalName,
+    storedName,
+    filePath: storedPath,
+    mimeType,
+    fileSize: stat.size,
+    createdAt,
+    kind: getUltrasoundAttachmentKind(mimeType),
+  };
+}
+
+function deleteUltrasoundAttachment(attachmentId) {
+  const normalizedAttachmentId = normalizePositiveInteger(
+    attachmentId,
+    'ULTRASOUND_ATTACHMENT_ID_INVALID'
+  );
+  const db = getDatabase();
+  const row = db.prepare(`
+    SELECT file_path
+    FROM ultrasound_journal_attachments
+    WHERE id = ?
+    LIMIT 1
+  `).get(normalizedAttachmentId);
+
+  if (!row) {
+    return false;
+  }
+
+  try {
+    if (row.file_path && fs.existsSync(row.file_path)) {
+      fs.unlinkSync(row.file_path);
+    }
+  } catch {}
+
+  const result = db.prepare(`
+    DELETE FROM ultrasound_journal_attachments
+    WHERE id = ?
+  `).run(normalizedAttachmentId);
+
+  return result.changes > 0;
+}
+
+function removeUltrasoundAttachmentFilesByStudyIds(studyIds) {
+  const uniqueStudyIds = Array.from(
+    new Set(
+      (studyIds ?? [])
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0)
+    )
+  );
+
+  if (uniqueStudyIds.length === 0) {
+    return;
+  }
+
+  const db = getDatabase();
+  const placeholders = uniqueStudyIds.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `
+      SELECT file_path
+      FROM ultrasound_journal_attachments
+      WHERE study_id IN (${placeholders})
+    `
+    )
+    .all(...uniqueStudyIds);
+
+  rows.forEach((row) => {
+    try {
+      if (row?.file_path && fs.existsSync(row.file_path)) {
+        fs.unlinkSync(row.file_path);
+      }
+    } catch {}
+  });
 }
 
 function normalizePositiveInteger(value, errorCode) {
@@ -2010,7 +2263,14 @@ function getUltrasoundProtocolEntry(id) {
     LIMIT 1
   `).get(normalizedId);
 
-  return mapUltrasoundProtocolEntry(row);
+  const protocol = mapUltrasoundProtocolEntry(row);
+
+  if (!protocol) {
+    return null;
+  }
+
+  protocol.attachments = listUltrasoundAttachments(normalizedId);
+  return protocol;
 }
 
 function deleteUltrasoundJournalStudy(id) {
@@ -2019,6 +2279,7 @@ function deleteUltrasoundJournalStudy(id) {
     'ULTRASOUND_JOURNAL_PROTOCOL_ID_INVALID'
   );
   const db = getDatabase();
+  removeUltrasoundAttachmentFilesByStudyIds([normalizedId]);
   const result = db.prepare(`
     DELETE FROM ultrasound_journal_entries
     WHERE id = ?
@@ -2042,6 +2303,24 @@ function deleteUltrasoundJournalPatient({ lastName, firstName, patronymic, birth
     'ULTRASOUND_PATIENT_BIRTH_DATE_REQUIRED'
   );
   const db = getDatabase();
+  const studyRows = db
+    .prepare(
+      `
+      SELECT id
+      FROM ultrasound_journal_entries
+      WHERE last_name = ?
+        AND first_name = ?
+        AND patronymic = ?
+        AND birth_date = ?
+    `
+    )
+    .all(
+      normalizedLastName,
+      normalizedFirstName,
+      normalizedPatronymic,
+      normalizedBirthDate
+    );
+  removeUltrasoundAttachmentFilesByStudyIds(studyRows.map((row) => row.id));
   const result = db.prepare(`
     DELETE FROM ultrasound_journal_entries
     WHERE last_name = ?
@@ -2056,6 +2335,43 @@ function deleteUltrasoundJournalPatient({ lastName, firstName, patronymic, birth
   );
 
   return Number(result.changes ?? 0);
+}
+
+async function selectUltrasoundAttachmentFile() {
+  const result = await dialog.showOpenDialog({
+    title: 'Выберите файл для вложения',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] },
+      { name: 'Videos', extensions: ['avi'] },
+      { name: 'All files', extensions: ['*'] },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+}
+
+function importUltrasoundAttachmentFile(studyId, filePath) {
+  return copyUltrasoundAttachmentFile(studyId, filePath);
+}
+
+async function openUltrasoundAttachment(filePath) {
+  const normalizedFilePath = normalizeText(filePath);
+
+  if (!normalizedFilePath) {
+    return false;
+  }
+
+  const errorMessage = await shell.openPath(normalizedFilePath);
+  if (errorMessage) {
+    throw new Error(errorMessage);
+  }
+
+  return true;
 }
 
 function listXRayDoseReference() {
@@ -3362,6 +3678,18 @@ function registerIpcHandlers() {
     getUltrasoundProtocolEntry(id)
   );
 
+  ipcMain.handle('ultrasound-journal:list-attachments', (_event, studyId) =>
+    listUltrasoundAttachments(studyId)
+  );
+
+  ipcMain.handle('ultrasound-journal:get-attachment-preview', (_event, filePath) =>
+    getUltrasoundAttachmentPreviewDataUrl(filePath)
+  );
+
+  ipcMain.handle('ultrasound-journal:delete-attachment', (_event, attachmentId) =>
+    deleteUltrasoundAttachment(attachmentId)
+  );
+
   ipcMain.handle('ultrasound-journal:delete-study', (_event, id) =>
     deleteUltrasoundJournalStudy(id)
   );
@@ -3376,6 +3704,18 @@ function registerIpcHandlers() {
 
   ipcMain.handle('ultrasound-journal:import-file', (_event, filePath) =>
     importUltrasoundJournalFile(filePath)
+  );
+
+  ipcMain.handle('ultrasound-journal:select-attachment-file', () =>
+    selectUltrasoundAttachmentFile()
+  );
+
+  ipcMain.handle('ultrasound-journal:import-attachment-file', (_event, studyId, filePath) =>
+    importUltrasoundAttachmentFile(studyId, filePath)
+  );
+
+  ipcMain.handle('ultrasound-journal:open-attachment', (_event, filePath) =>
+    openUltrasoundAttachment(filePath)
   );
 
   ipcMain.handle('xray:list-studies', (_event, patientId) =>

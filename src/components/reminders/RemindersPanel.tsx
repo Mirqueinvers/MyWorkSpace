@@ -202,29 +202,40 @@ export function RemindersPanel({
               )
             })}
 
-            {visibleReminderItems.map((reminder) => (
-              <article key={reminder.id} className="patient-item reminder-item">
-                <button
-                  type="button"
-                  className="reminder-close-button"
-                  onClick={() => {
-                    setDismissedReminderIds((currentIds) =>
-                      currentIds.includes(reminder.id)
-                        ? currentIds
-                        : [...currentIds, reminder.id],
-                    )
-                  }}
-                  aria-label="Закрыть напоминание"
-                  title="Закрыть напоминание"
-                >
-                  {CLOSE_ICON}
-                </button>
+            {visibleReminderItems.map((reminder) => {
+              const isOneTimeReminder = reminder.recurrence === 'none'
+              const isDeletingThisReminder = isOneTimeReminder && deletingReminderId === reminder.id
 
-                <div className="patient-main">
-                  <div className="patient-name">{reminder.text}</div>
-                </div>
-              </article>
-            ))}
+              return (
+                <article key={reminder.id} className="patient-item reminder-item">
+                  <button
+                    type="button"
+                    className="reminder-close-button"
+                    onClick={() => {
+                      if (isOneTimeReminder) {
+                        void onDeleteReminder(reminder.id)
+                        return
+                      }
+
+                      setDismissedReminderIds((currentIds) =>
+                        currentIds.includes(reminder.id)
+                          ? currentIds
+                          : [...currentIds, reminder.id],
+                      )
+                    }}
+                    aria-label="Р—Р°РєСЂС‹С‚СЊ РЅР°РїРѕРјРёРЅР°РЅРёРµ"
+                    title="Р—Р°РєСЂС‹С‚СЊ РЅР°РїРѕРјРёРЅР°РЅРёРµ"
+                    disabled={isDeletingThisReminder}
+                  >
+                    {isDeletingThisReminder ? '...' : CLOSE_ICON}
+                  </button>
+
+                  <div className="patient-main">
+                    <div className="patient-name">{reminder.text}</div>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         ) : null}
       </section>

@@ -161,6 +161,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getProtocol(id) {
       return ipcRenderer.invoke('ultrasound-journal:get-protocol', id);
     },
+    listAttachments(studyId) {
+      return ipcRenderer.invoke('ultrasound-journal:list-attachments', studyId);
+    },
+    getAttachmentPreview(filePath) {
+      return ipcRenderer.invoke('ultrasound-journal:get-attachment-preview', filePath);
+    },
+    deleteAttachment(attachmentId) {
+      return ipcRenderer.invoke('ultrasound-journal:delete-attachment', attachmentId);
+    },
     deleteStudy(id) {
       return ipcRenderer.invoke('ultrasound-journal:delete-study', id);
     },
@@ -172,6 +181,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     importFile(filePath) {
       return ipcRenderer.invoke('ultrasound-journal:import-file', filePath);
+    },
+    selectAttachmentFile() {
+      return ipcRenderer.invoke('ultrasound-journal:select-attachment-file');
+    },
+    importAttachmentFile(studyId, filePath) {
+      return ipcRenderer.invoke('ultrasound-journal:import-attachment-file', studyId, filePath);
+    },
+    openAttachment(filePath) {
+      return ipcRenderer.invoke('ultrasound-journal:open-attachment', filePath);
     },
   },
 });

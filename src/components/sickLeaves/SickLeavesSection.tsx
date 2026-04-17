@@ -368,7 +368,7 @@ export function SickLeavesSection({
                           </svg>
                         </button>
                         <div
-                          className={`patient-name xray-fl-journal-name${hasPatientLink ? ' has-link' : ''}`}
+                          className={`patient-name xray-fl-journal-name${hasPatientLink ? ' has-patient-link' : ''}`}
                           onClick={() => {
                             if (hasPatientLink) {
                               void handleOpenPatientLink(sickLeave)

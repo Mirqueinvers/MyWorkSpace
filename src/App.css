@@ -1982,6 +1982,14 @@ html[data-theme='dark'] .atlas-bone-selected rect {
   outline: none;
 }
 
+.xray-fl-journal-name.has-patient-link,
+.xray-fl-journal-name.has-patient-link:hover,
+.xray-fl-journal-name.has-patient-link:focus-visible {
+  color: #0d9488 !important;
+  cursor: pointer;
+  outline: none;
+}
+
 .xray-fl-journal-name.is-viewed,
 .xray-fl-journal-birth-date.is-viewed {
   text-decoration: line-through;
