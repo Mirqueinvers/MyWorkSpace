@@ -3736,19 +3736,25 @@ function registerIpcHandlers() {
 }
 
 function createWindow() {
+  const windowIcon = isDev
+    ? path.join(__dirname, '..', 'build', 'icon.ico')
+    : path.join(process.resourcesPath, 'build', 'icon.ico');
+
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1000,
     minHeight: 680,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, '..', 'build', 'icon.ico'),
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+
+  mainWindow.setIcon(windowIcon);
 
   if (isDev) {
     mainWindow.webContents.session.clearCache().catch(() => {});
@@ -3761,6 +3767,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  app.setAppUserModelId('com.mirqueinvers.myworkspase');
   getDatabase();
   registerIpcHandlers();
   createWindow();
