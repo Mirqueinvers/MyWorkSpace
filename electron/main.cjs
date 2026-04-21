@@ -1,8 +1,9 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+﻿const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const crypto = require('node:crypto');
 const path = require('node:path');
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
+const dicomParser = require('dicom-parser');
 const xrayDoseReferenceSeed = require('./xray-dose-reference-seed.json');
 
 const isDev = !app.isPackaged;
@@ -203,6 +204,10 @@ function ensureXRaySchema(db) {
       patronymic TEXT NOT NULL,
       birth_date TEXT NOT NULL,
       dose TEXT NOT NULL,
+      pathology_description TEXT NOT NULL DEFAULT '',
+      pathology_conclusion TEXT NOT NULL DEFAULT '',
+      pathology_image_path TEXT,
+      pathology_updated_at TEXT,
       source_file TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -272,6 +277,39 @@ function ensureXRaySchema(db) {
     db.exec(`
       ALTER TABLE xray_studies
       ADD COLUMN description TEXT NOT NULL DEFAULT '';
+    `);
+  }
+
+  const flJournalColumns = db
+    .prepare(`PRAGMA table_info('xray_flu_journal')`)
+    .all()
+    .map((column) => column.name);
+
+  if (!flJournalColumns.includes('pathology_description')) {
+    db.exec(`
+      ALTER TABLE xray_flu_journal
+      ADD COLUMN pathology_description TEXT NOT NULL DEFAULT '';
+    `);
+  }
+
+  if (!flJournalColumns.includes('pathology_conclusion')) {
+    db.exec(`
+      ALTER TABLE xray_flu_journal
+      ADD COLUMN pathology_conclusion TEXT NOT NULL DEFAULT '';
+    `);
+  }
+
+  if (!flJournalColumns.includes('pathology_image_path')) {
+    db.exec(`
+      ALTER TABLE xray_flu_journal
+      ADD COLUMN pathology_image_path TEXT;
+    `);
+  }
+
+  if (!flJournalColumns.includes('pathology_updated_at')) {
+    db.exec(`
+      ALTER TABLE xray_flu_journal
+      ADD COLUMN pathology_updated_at TEXT;
     `);
   }
 
@@ -453,8 +491,8 @@ function getDatabase() {
 function normalizeSearchFragment(value) {
   return String(value ?? '')
     .toLocaleLowerCase('ru-RU')
-    .replaceAll('ё', 'е')
-    .replace(/[^a-zа-я0-9]+/gi, ' ')
+    .replaceAll('С‘', 'Рµ')
+    .replace(/[^a-zР°-СЏ0-9]+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -518,6 +556,8 @@ function mapXRayFlJournalEntry(row) {
     patronymic: row.patronymic,
     birthDate: row.birth_date,
     dose: row.dose,
+    pathologyDescription: row.pathology_description ?? '',
+    pathologyConclusion: row.pathology_conclusion ?? '',
     rmisUrl: row.rmis_url ?? null,
     createdAt: row.created_at,
   };
@@ -826,7 +866,7 @@ function normalizeXRayStudyPayload(payload) {
     'XRAY_STUDY_AREA_REQUIRED'
   );
   const normalizedStudyType =
-    payload.studyType === 'Урография' ? 'Урография' : 'Рентген';
+    payload.studyType === 'РЈСЂРѕРіСЂР°С„РёСЏ' ? 'РЈСЂРѕРіСЂР°С„РёСЏ' : 'Р РµРЅС‚РіРµРЅ';
   const normalizedCassette = normalizeRequiredText(
     payload.cassette,
     'XRAY_CASSETTE_REQUIRED'
@@ -1221,43 +1261,43 @@ function listXRayJournalByDate(studyDate) {
 }
 
 const XRAY_STATISTICS_AREA_ORDER = [
-  'Органы грудной клетки',
-  'Верхние конечности',
-  'Нижние конечности',
-  'Шейный отдел позвоночника',
-  'Грудной отдел позвоночника',
-  'Поясничный отдел позвоночника',
-  'Тазобедренные суставы',
-  'Ребра и грудина',
-  'Органы брюшной полости',
-  'Череп, гол. мозг, ЧЛО',
-  'Почки, мочевыводящая система',
+  'РћСЂРіР°РЅС‹ РіСЂСѓРґРЅРѕР№ РєР»РµС‚РєРё',
+  'Р’РµСЂС…РЅРёРµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё',
+  'РќРёР¶РЅРёРµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё',
+  'РЁРµР№РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°',
+  'Р“СЂСѓРґРЅРѕР№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°',
+  'РџРѕСЏСЃРЅРёС‡РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°',
+  'РўР°Р·РѕР±РµРґСЂРµРЅРЅС‹Рµ СЃСѓСЃС‚Р°РІС‹',
+  'Р РµР±СЂР° Рё РіСЂСѓРґРёРЅР°',
+  'РћСЂРіР°РЅС‹ Р±СЂСЋС€РЅРѕР№ РїРѕР»РѕСЃС‚Рё',
+  'Р§РµСЂРµРї, РіРѕР». РјРѕР·Рі, Р§Р›Рћ',
+  'РџРѕС‡РєРё, РјРѕС‡РµРІС‹РІРѕРґСЏС‰Р°СЏ СЃРёСЃС‚РµРјР°',
 ];
 
 const XRAY_FORM30_BONE_MUSCLE_PARTS = [
-  'Верхние конечности',
-  'Нижние конечности',
-  'Шейный отдел позвоночника',
-  'Грудной отдел позвоночника',
-  'Поясничный отдел позвоночника',
-  'Тазобедренные суставы',
+  'Р’РµСЂС…РЅРёРµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё',
+  'РќРёР¶РЅРёРµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё',
+  'РЁРµР№РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°',
+  'Р“СЂСѓРґРЅРѕР№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°',
+  'РџРѕСЏСЃРЅРёС‡РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°',
+  'РўР°Р·РѕР±РµРґСЂРµРЅРЅС‹Рµ СЃСѓСЃС‚Р°РІС‹',
 ];
 
-const XRAY_FORM30_LIMBS_PARTS = ['Верхние конечности', 'Нижние конечности'];
+const XRAY_FORM30_LIMBS_PARTS = ['Р’РµСЂС…РЅРёРµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё', 'РќРёР¶РЅРёРµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё'];
 
 const XRAY_STATISTICS_MONTH_NAMES = [
-  'Январь',
-  'Февраль',
-  'Март',
-  'Апрель',
-  'Май',
-  'Июнь',
-  'Июль',
-  'Август',
-  'Сентябрь',
-  'Октябрь',
-  'Ноябрь',
-  'Декабрь',
+  'РЇРЅРІР°СЂСЊ',
+  'Р¤РµРІСЂР°Р»СЊ',
+  'РњР°СЂС‚',
+  'РђРїСЂРµР»СЊ',
+  'РњР°Р№',
+  'РСЋРЅСЊ',
+  'РСЋР»СЊ',
+  'РђРІРіСѓСЃС‚',
+  'РЎРµРЅС‚СЏР±СЂСЊ',
+  'РћРєС‚СЏР±СЂСЊ',
+  'РќРѕСЏР±СЂСЊ',
+  'Р”РµРєР°Р±СЂСЊ',
 ];
 
 function parseBirthDateDigitsToDate(value) {
@@ -1312,11 +1352,11 @@ function parseXRayDoseValue(value) {
 function getXRayStatisticsCareSetting(referredBy) {
   const normalizedValue = normalizeText(referredBy).toLocaleLowerCase('ru-RU');
 
-  if (normalizedValue.includes('днев')) {
+  if (normalizedValue.includes('РґРЅРµРІ')) {
     return 'dayHospital';
   }
 
-  if (normalizedValue.includes('круглосу') || normalizedValue.includes('стационар')) {
+  if (normalizedValue.includes('РєСЂСѓРіР»РѕСЃСѓ') || normalizedValue.includes('СЃС‚Р°С†РёРѕРЅР°СЂ')) {
     return 'inpatient';
   }
 
@@ -1437,7 +1477,7 @@ function getXRayStatistics({ startDate, endDate }) {
 
   rows.forEach((row) => {
     const studyArea = normalizeText(row.study_area);
-    const referredBy = normalizeText(row.referred_by) || 'Не указано';
+    const referredBy = normalizeText(row.referred_by) || 'РќРµ СѓРєР°Р·Р°РЅРѕ';
     const currentResearchCount = 1;
     const currentProcedureCount = Number(row.study_count) || 0;
     const currentDose = parseXRayDoseValue(row.radiation_dose);
@@ -1560,21 +1600,21 @@ function getXRayStatistics({ startDate, endDate }) {
   }
 
   const form30Rows = [
-    form30Map.get('Органы грудной клетки') ?? createEmptyXRayForm30Row('Органы грудной клетки'),
-    sumForm30Rows('Костно-мышечная система', XRAY_FORM30_BONE_MUSCLE_PARTS),
-    sumForm30Rows('Конечности', XRAY_FORM30_LIMBS_PARTS),
-    form30Map.get('Шейный отдел позвоночника') ?? createEmptyXRayForm30Row('Шейный отдел позвоночника'),
-    form30Map.get('Грудной отдел позвоночника') ?? createEmptyXRayForm30Row('Грудной отдел позвоночника'),
-    form30Map.get('Поясничный отдел позвоночника') ?? createEmptyXRayForm30Row('Поясничный отдел позвоночника'),
-    form30Map.get('Тазобедренные суставы') ?? createEmptyXRayForm30Row('Тазобедренные суставы'),
-    form30Map.get('Ребра и грудина') ?? createEmptyXRayForm30Row('Ребра и грудина'),
-    form30Map.get('Органы брюшной полости') ?? createEmptyXRayForm30Row('Органы брюшной полости'),
-    form30Map.get('Череп, гол. мозг, ЧЛО') ?? createEmptyXRayForm30Row('Череп, гол. мозг, ЧЛО'),
-    form30Map.get('Почки, мочевыводящая система') ?? createEmptyXRayForm30Row('Почки, мочевыводящая система'),
+    form30Map.get('РћСЂРіР°РЅС‹ РіСЂСѓРґРЅРѕР№ РєР»РµС‚РєРё') ?? createEmptyXRayForm30Row('РћСЂРіР°РЅС‹ РіСЂСѓРґРЅРѕР№ РєР»РµС‚РєРё'),
+    sumForm30Rows('РљРѕСЃС‚РЅРѕ-РјС‹С€РµС‡РЅР°СЏ СЃРёСЃС‚РµРјР°', XRAY_FORM30_BONE_MUSCLE_PARTS),
+    sumForm30Rows('РљРѕРЅРµС‡РЅРѕСЃС‚Рё', XRAY_FORM30_LIMBS_PARTS),
+    form30Map.get('РЁРµР№РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°') ?? createEmptyXRayForm30Row('РЁРµР№РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°'),
+    form30Map.get('Р“СЂСѓРґРЅРѕР№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°') ?? createEmptyXRayForm30Row('Р“СЂСѓРґРЅРѕР№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°'),
+    form30Map.get('РџРѕСЏСЃРЅРёС‡РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°') ?? createEmptyXRayForm30Row('РџРѕСЏСЃРЅРёС‡РЅС‹Р№ РѕС‚РґРµР» РїРѕР·РІРѕРЅРѕС‡РЅРёРєР°'),
+    form30Map.get('РўР°Р·РѕР±РµРґСЂРµРЅРЅС‹Рµ СЃСѓСЃС‚Р°РІС‹') ?? createEmptyXRayForm30Row('РўР°Р·РѕР±РµРґСЂРµРЅРЅС‹Рµ СЃСѓСЃС‚Р°РІС‹'),
+    form30Map.get('Р РµР±СЂР° Рё РіСЂСѓРґРёРЅР°') ?? createEmptyXRayForm30Row('Р РµР±СЂР° Рё РіСЂСѓРґРёРЅР°'),
+    form30Map.get('РћСЂРіР°РЅС‹ Р±СЂСЋС€РЅРѕР№ РїРѕР»РѕСЃС‚Рё') ?? createEmptyXRayForm30Row('РћСЂРіР°РЅС‹ Р±СЂСЋС€РЅРѕР№ РїРѕР»РѕСЃС‚Рё'),
+    form30Map.get('Р§РµСЂРµРї, РіРѕР». РјРѕР·Рі, Р§Р›Рћ') ?? createEmptyXRayForm30Row('Р§РµСЂРµРї, РіРѕР». РјРѕР·Рі, Р§Р›Рћ'),
+    form30Map.get('РџРѕС‡РєРё, РјРѕС‡РµРІС‹РІРѕРґСЏС‰Р°СЏ СЃРёСЃС‚РµРјР°') ?? createEmptyXRayForm30Row('РџРѕС‡РєРё, РјРѕС‡РµРІС‹РІРѕРґСЏС‰Р°СЏ СЃРёСЃС‚РµРјР°'),
   ];
 
   form30Rows.push({
-    label: 'Всего',
+    label: 'Р’СЃРµРіРѕ',
     researchCount: form30Rows.reduce((sum, row) => sum + row.researchCount, 0),
     procedureCount: form30Rows.reduce((sum, row) => sum + row.procedureCount, 0),
     ambulatoryCount: form30Rows.reduce((sum, row) => sum + row.ambulatoryCount, 0),
@@ -1881,7 +1921,7 @@ function parseFlJournalFile(filePath) {
       return;
     }
 
-    if (cells[0] === 'Дата съёмки' || !/^\d{1,2}\.\d{1,2}\.\d{2,4}$/.test(cells[0])) {
+    if (cells[0] === 'Р”Р°С‚Р° СЃСЉС‘РјРєРё' || !/^\d{1,2}\.\d{1,2}\.\d{2,4}$/.test(cells[0])) {
       return;
     }
 
@@ -1909,6 +1949,182 @@ function parseFlJournalFile(filePath) {
   return {
     sourceFile: path.basename(normalizedFilePath),
     entries,
+  };
+}
+
+function normalizeFlPathologyKey(value) {
+  return normalizeText(value).toLocaleLowerCase('ru-RU');
+}
+
+function getFlJournalPatientKey({ last_name, first_name, patronymic, birth_date }) {
+  const initials = `${last_name?.[0] ?? ''}${first_name?.[0] ?? ''}${patronymic?.[0] ?? ''}`;
+  const birthDateDigits = String(birth_date ?? '').replace(/\D/g, '');
+  return normalizeFlPathologyKey(`${initials}${birthDateDigits}`);
+}
+
+function getDicomTextDecoderName(specificCharacterSet) {
+  const normalizedValue = normalizeText(specificCharacterSet).toUpperCase();
+  if (normalizedValue.includes('ISO_IR 144')) {
+    return 'iso-8859-5';
+  }
+  if (normalizedValue.includes('ISO_IR 192')) {
+    return 'utf-8';
+  }
+  if (normalizedValue.includes('WINDOWS-1251')) {
+    return 'windows-1251';
+  }
+  return 'windows-1251';
+}
+
+function decodeDicomValue(dataSet, tag, decoderName) {
+  const element = dataSet.elements[tag];
+  if (!element || element.length <= 0) {
+    return '';
+  }
+
+  const decoder = new TextDecoder(decoderName);
+  const rawSlice = dataSet.byteArray.slice(
+    element.dataOffset,
+    element.dataOffset + element.length
+  );
+  return normalizeText(
+    decoder
+      .decode(rawSlice)
+      .replace(/\0/g, '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/\\r\\n/g, '\n')
+      .replace(/\\r/g, '\n')
+      .replace(/\\n/g, '\n')
+  );
+}
+
+function getDicomConceptName(itemDataSet, decoderName) {
+  const conceptSequence = itemDataSet.elements.x0040a043;
+  if (!conceptSequence?.items?.length) {
+    return '';
+  }
+
+  return decodeDicomValue(conceptSequence.items[0].dataSet, 'x00080104', decoderName);
+}
+
+function parseFlPathologyFromDicomSr(source) {
+  const byteArray = new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
+  const dataSet = dicomParser.parseDicom(byteArray);
+  const specificCharacterSet = decodeDicomValue(dataSet, 'x00080005', 'windows-1251');
+  const decoderName = getDicomTextDecoderName(specificCharacterSet);
+  const descriptionParts = [];
+  const conclusionParts = [];
+
+  function walkContentSequence(parentDataSet, activeContainerName = '') {
+    const contentSequence = parentDataSet.elements.x0040a730;
+    if (!contentSequence?.items?.length) {
+      return;
+    }
+
+    contentSequence.items.forEach((item) => {
+      const itemDataSet = item.dataSet;
+      const valueType = decodeDicomValue(itemDataSet, 'x0040a040', decoderName).toUpperCase();
+      const conceptName = getDicomConceptName(itemDataSet, decoderName);
+      const containerName = valueType === 'CONTAINER' ? conceptName : activeContainerName;
+
+      if (valueType === 'TEXT') {
+        const textValue = decodeDicomValue(itemDataSet, 'x0040a160', decoderName);
+        const normalizedContainerName = containerName.toLocaleLowerCase('ru-RU');
+
+        if (textValue) {
+          if (normalizedContainerName.includes('описан')) {
+            descriptionParts.push(textValue);
+          } else if (normalizedContainerName.includes('заключ')) {
+            conclusionParts.push(textValue);
+          }
+        }
+      }
+
+      walkContentSequence(itemDataSet, containerName);
+    });
+  }
+
+  walkContentSequence(dataSet);
+
+  const description = descriptionParts.join('\n').trim();
+  const conclusion = conclusionParts.join('\n').trim();
+
+  if (!description && !conclusion) {
+    throw new Error('XRAY_FL_PATHOLOGY_DICOM_TEXT_NOT_FOUND');
+  }
+
+  return {
+    description,
+    conclusion,
+  };
+}
+
+function parseIniBlocks(content) {
+  return Array.from(
+    content.matchAll(/\[([^\]\r\n]+)\]([\s\S]*?)(?=\n\[[^\]\r\n]+\]|$)/g),
+    (match) => ({
+      name: normalizeText(match[1]),
+      body: match[2],
+    })
+  );
+}
+
+function parseIniLineTextValue(value) {
+  const normalizedValue = normalizeText(value);
+  const unquotedValue = normalizedValue.replace(/^"(.*)"$/, '$1');
+  return unquotedValue.replace(/\\r/g, '\r').replace(/\\n/g, '\n').trim();
+}
+
+function parseFlPathologyLinesFromBlock(blockBody) {
+  return Array.from(
+    blockBody.matchAll(/(?:^|\n)\s*Line\d+_Text=(.*)$/gim),
+    (match) => parseIniLineTextValue(match[1])
+  ).filter(Boolean);
+}
+
+function parseFlPathologyDsrFile(filePath) {
+  const normalizedFilePath = normalizeRequiredText(filePath, 'XRAY_FL_PATHOLOGY_DSR_REQUIRED');
+
+  if (!fs.existsSync(normalizedFilePath)) {
+    throw new Error('XRAY_FL_PATHOLOGY_DSR_NOT_FOUND');
+  }
+
+  const source = fs.readFileSync(normalizedFilePath);
+
+  try {
+    return parseFlPathologyFromDicomSr(source);
+  } catch {
+    // Fall back to ini-like sections for legacy files.
+  }
+
+  const decodedSource = new TextDecoder('windows-1251').decode(source).replace(/\0/g, '');
+  const blocks = parseIniBlocks(decodedSource);
+  let description = '';
+  let conclusion = '';
+
+  blocks.forEach((block) => {
+    const blockName = normalizeText(block.name).toLocaleLowerCase('ru-RU');
+    const captionMatch = block.body.match(/(?:^|\n)\s*Caption_Text=(.*)$/im);
+    const caption = normalizeText(parseIniLineTextValue(captionMatch?.[1] ?? '')).toLocaleLowerCase('ru-RU');
+    const lines = parseFlPathologyLinesFromBlock(block.body);
+
+    if (!lines.length) {
+      return;
+    }
+
+    if (!description && (caption.includes('описан') || blockName === 'block2')) {
+      description = lines.join('\n');
+      return;
+    }
+
+    if (!conclusion && (caption.includes('заключ') || blockName === 'block3')) {
+      conclusion = lines.join('\n');
+    }
+  });
+
+  return {
+    description,
+    conclusion,
   };
 }
 
@@ -1963,6 +2179,150 @@ function importXRayFlJournalFile(filePath) {
   return {
     imported,
     skipped,
+  };
+}
+
+function importXRayFlPathologyFolder({ shotDate, folderPath }) {
+  const normalizedShotDate = normalizeIsoDate(shotDate, 'XRAY_FL_JOURNAL_DATE_INVALID');
+  const normalizedFolderPath = normalizeRequiredText(
+    folderPath,
+    'XRAY_FL_PATHOLOGY_FOLDER_REQUIRED'
+  );
+
+  if (!fs.existsSync(normalizedFolderPath)) {
+    throw new Error('XRAY_FL_PATHOLOGY_FOLDER_NOT_FOUND');
+  }
+
+  const folderStat = fs.statSync(normalizedFolderPath);
+  if (!folderStat.isDirectory()) {
+    throw new Error('XRAY_FL_PATHOLOGY_FOLDER_INVALID');
+  }
+
+  const db = getDatabase();
+  const dateEntries = db.prepare(`
+    SELECT
+      id,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date
+    FROM xray_flu_journal
+    WHERE shot_date = ?
+  `).all(normalizedShotDate);
+
+  const entryIdsByKey = new Map();
+  dateEntries.forEach((entry) => {
+    const key = getFlJournalPatientKey(entry);
+    if (!entryIdsByKey.has(key)) {
+      entryIdsByKey.set(key, []);
+    }
+    entryIdsByKey.get(key).push(entry.id);
+  });
+
+  const fileGroupsByKey = new Map();
+  const files = fs.readdirSync(normalizedFolderPath, { withFileTypes: true });
+
+  files
+    .filter((entry) => entry.isFile())
+    .sort((left, right) => left.name.localeCompare(right.name, 'ru-RU'))
+    .forEach((entry) => {
+      const ext = path.extname(entry.name).toLocaleLowerCase('ru-RU');
+      if (ext !== '.dsr') {
+        return;
+      }
+
+      const key = normalizeFlPathologyKey(path.basename(entry.name, ext));
+      if (!key) {
+        return;
+      }
+
+      if (!fileGroupsByKey.has(key)) {
+        fileGroupsByKey.set(key, {
+          dsrPath: null,
+        });
+      }
+
+      const group = fileGroupsByKey.get(key);
+      const fullPath = path.join(normalizedFolderPath, entry.name);
+      if (ext === '.dsr' && !group.dsrPath) {
+        group.dsrPath = fullPath;
+      }
+    });
+
+  const updateDescriptionStatement = db.prepare(`
+    UPDATE xray_flu_journal
+    SET
+      pathology_description = ?,
+      pathology_conclusion = ?,
+      pathology_updated_at = ?
+    WHERE id = ?
+  `);
+
+
+  let matchedKeys = 0;
+  let skippedKeys = 0;
+  let failedKeys = 0;
+  let importedDescriptions = 0;
+  let updatedEntries = 0;
+  const updatedAt = new Date().toISOString();
+
+  db.exec('BEGIN');
+
+  try {
+    fileGroupsByKey.forEach((group, key) => {
+      const matchedEntryIds = entryIdsByKey.get(key);
+      if (!matchedEntryIds?.length) {
+        skippedKeys += 1;
+        return;
+      }
+
+      try {
+        let description = '';
+        let conclusion = '';
+        const hasDescriptionFile = Boolean(group.dsrPath);
+
+        if (group.dsrPath) {
+          const parsedDescription = parseFlPathologyDsrFile(group.dsrPath);
+          description = parsedDescription.description;
+          conclusion = parsedDescription.conclusion;
+        }
+
+        if (!hasDescriptionFile) {
+          skippedKeys += 1;
+          return;
+        }
+
+        matchedKeys += 1;
+        if (hasDescriptionFile) {
+          importedDescriptions += 1;
+        }
+
+        matchedEntryIds.forEach((entryId) => {
+          const result = updateDescriptionStatement.run(
+            description,
+            conclusion,
+            updatedAt,
+            entryId
+          );
+          updatedEntries += Number(result.changes ?? 0);
+        });
+      } catch {
+        failedKeys += 1;
+      }
+    });
+
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+
+  return {
+    matchedKeys,
+    skippedKeys,
+    failedKeys,
+    importedDescriptions,
+    updatedEntries,
   };
 }
 
@@ -2033,12 +2393,25 @@ function importUltrasoundJournalFile(filePath) {
 
 async function selectXRayFlJournalFile() {
   const result = await dialog.showOpenDialog({
-    title: 'Выберите файл Фл журнала',
+    title: 'Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р» Р¤Р» Р¶СѓСЂРЅР°Р»Р°',
     properties: ['openFile'],
     filters: [
       { name: 'XHTML files', extensions: ['xhtml', 'html', 'htm'] },
       { name: 'All files', extensions: ['*'] },
     ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+}
+
+async function selectXRayFlPathologyFolder() {
+  const result = await dialog.showOpenDialog({
+    title: 'Р’С‹Р±РµСЂРёС‚Рµ РїР°РїРєСѓ СЃ С„Р°Р№Р»Р°РјРё РїР°С‚РѕР»РѕРіРёРё',
+    properties: ['openDirectory'],
   });
 
   if (result.canceled || result.filePaths.length === 0) {
@@ -2078,6 +2451,8 @@ function listXRayFlJournalByDate(shotDate) {
       f.patronymic,
       f.birth_date,
       f.dose,
+      f.pathology_description,
+      f.pathology_conclusion,
       (
         SELECT p.rmis_url
         FROM xray_patients p
@@ -2111,6 +2486,8 @@ function listXRayFlJournalByPatient({ lastName, firstName, patronymic, birthDate
       f.patronymic,
       f.birth_date,
       f.dose,
+      f.pathology_description,
+      f.pathology_conclusion,
       (
         SELECT p.rmis_url
         FROM xray_patients p
@@ -2339,7 +2716,7 @@ function deleteUltrasoundJournalPatient({ lastName, firstName, patronymic, birth
 
 async function selectUltrasoundAttachmentFile() {
   const result = await dialog.showOpenDialog({
-    title: 'Выберите файл для вложения',
+    title: 'Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р» РґР»СЏ РІР»РѕР¶РµРЅРёСЏ',
     properties: ['openFile'],
     filters: [
       { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] },
@@ -2580,12 +2957,46 @@ function updateXRayFlJournalRmisUrl({ lastName, firstName, patronymic, birthDate
     normalizedFirstName,
     normalizedPatronymic,
     normalizedBirthDate,
-    'Адрес не указан',
+    'РђРґСЂРµСЃ РЅРµ СѓРєР°Р·Р°РЅ',
     normalizedRmisUrl,
     createdAt
   );
 
   return insertResult.changes > 0;
+}
+
+function updateXRayFlJournalPathology({ id, clearDescription }) {
+  const normalizedId = normalizePositiveInteger(id, 'XRAY_FL_JOURNAL_ID_INVALID');
+  const shouldClearDescription = Boolean(clearDescription);
+
+  if (!shouldClearDescription) {
+    return false;
+  }
+  const db = getDatabase();
+
+  const setClauses = [];
+  const params = [];
+
+  if (shouldClearDescription) {
+    setClauses.push('pathology_description = ?');
+    setClauses.push('pathology_conclusion = ?');
+    params.push('', '');
+  }
+
+  setClauses.push('pathology_updated_at = ?');
+  params.push(new Date().toISOString(), normalizedId);
+
+  const result = db.prepare(`
+    UPDATE xray_flu_journal
+    SET ${setClauses.join(', ')}
+    WHERE id = ?
+  `).run(...params);
+
+  if (result.changes <= 0) {
+    return false;
+  }
+
+  return true;
 }
 
 function addXRayStudy(payload) {
@@ -3658,12 +4069,24 @@ function registerIpcHandlers() {
     updateXRayFlJournalRmisUrl(payload)
   );
 
+  ipcMain.handle('xray:update-fl-journal-pathology', (_event, payload) =>
+    updateXRayFlJournalPathology(payload)
+  );
+
   ipcMain.handle('xray:select-fl-journal-file', () =>
     selectXRayFlJournalFile()
   );
 
   ipcMain.handle('xray:import-fl-journal-file', (_event, filePath) =>
     importXRayFlJournalFile(filePath)
+  );
+
+  ipcMain.handle('xray:select-fl-pathology-folder', () =>
+    selectXRayFlPathologyFolder()
+  );
+
+  ipcMain.handle('xray:import-fl-pathology-folder', (_event, payload) =>
+    importXRayFlPathologyFolder(payload)
   );
 
   ipcMain.handle('ultrasound-journal:list-by-date', (_event, studyDate) =>
@@ -3791,3 +4214,4 @@ app.on('before-quit', () => {
     database = undefined;
   }
 });
+

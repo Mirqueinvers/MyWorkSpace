@@ -2055,6 +2055,28 @@ html[data-theme='dark'] .atlas-bone-selected rect {
   outline: none;
 }
 
+.xray-fl-journal-description-button {
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.xray-fl-journal-description-button:hover,
+.xray-fl-journal-description-button:focus-visible {
+  color: #dc2626;
+  border-color: #dc2626;
+  outline: none;
+}
+
 .xray-fl-journal-delete-button {
   width: 28px;
   height: 28px;
@@ -2095,6 +2117,93 @@ html[data-theme='dark'] .atlas-bone-selected rect {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   margin-top: 10px;
+}
+
+.xray-fl-pathology-modal {
+  width: min(980px, 100%);
+  max-height: min(85vh, 880px);
+  display: grid;
+  gap: 14px;
+}
+
+.xray-fl-pathology-modal-head {
+  margin-bottom: 0;
+}
+
+.xray-fl-pathology-modal-head .reminders-modal-title {
+  margin: 0;
+}
+
+.xray-fl-pathology-modal-head .xray-journal-meta {
+  margin: 0;
+}
+
+.xray-fl-pathology-modal-body {
+  max-height: min(68vh, 720px);
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding-right: 6px;
+}
+
+.xray-fl-pathology-toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.xray-fl-pathology-text-block {
+  display: grid;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+}
+
+.xray-fl-pathology-text-block strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.xray-fl-pathology-text-block pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #334155;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.xray-fl-pathology-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.xray-fl-pathology-delete-all-button {
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.xray-fl-pathology-delete-all-button:hover,
+.xray-fl-pathology-delete-all-button:focus-visible {
+  color: #dc2626;
+  border-color: #dc2626;
+  outline: none;
+}
+
+.xray-fl-pathology-delete-all-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .xray-journal-item-head span {
@@ -4061,6 +4170,8 @@ html[data-theme='dark'] .atlas-bone-selected rect {
 
 .xray-top-overlay {
   z-index: 200;
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .xray-top-modal {

@@ -249,7 +249,7 @@ export function UltrasoundProtocolModal({
   return (
     <>
       <div
-        className="modal-backdrop"
+        className="modal-backdrop ultrasound-protocol-modal"
         onClick={onClose}
         style={{
           position: 'fixed',
@@ -263,7 +263,7 @@ export function UltrasoundProtocolModal({
         }}
       >
         <div
-          className="content-card"
+          className="content-card ultrasound-protocol-modal-card"
           onClick={(event) => event.stopPropagation()}
           style={{
             width: 'min(1100px, 100%)',
@@ -277,7 +277,10 @@ export function UltrasoundProtocolModal({
             minHeight: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+          <div
+            className="ultrasound-protocol-modal-controls"
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}
+          >
             <div style={{ minWidth: 0, flex: 1 }}>
               <p className="section-kicker">{kicker}</p>
 
@@ -495,7 +498,7 @@ export function UltrasoundProtocolModal({
         {error ? <p className="xray-journal-empty">{error}</p> : null}
 
         {protocol ? (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="ultrasound-protocol-modal-viewer" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <iframe
               title={`УЗИ протокол ${protocol.id}`}
               srcDoc={getProtocolViewerHtml(protocol.documentHtml)}

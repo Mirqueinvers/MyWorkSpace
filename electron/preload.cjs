@@ -138,6 +138,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importFlJournalFile(filePath) {
       return ipcRenderer.invoke('xray:import-fl-journal-file', filePath);
     },
+    selectFlPathologyFolder() {
+      return ipcRenderer.invoke('xray:select-fl-pathology-folder');
+    },
+    importFlPathologyFolder(payload) {
+      return ipcRenderer.invoke('xray:import-fl-pathology-folder', payload);
+    },
+    updateFlJournalPathology(payload) {
+      return ipcRenderer.invoke('xray:update-fl-journal-pathology', payload);
+    },
     listStudies(patientId) {
       return ipcRenderer.invoke('xray:list-studies', patientId);
     },

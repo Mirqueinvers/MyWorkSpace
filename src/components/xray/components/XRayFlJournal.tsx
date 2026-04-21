@@ -1,10 +1,13 @@
 ﻿import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type {
+  ImportXRayFlPathologyResult,
   ImportXRayFlJournalResult,
   UpdateXRayFlJournalRmisUrlPayload,
   XRayPatient,
   XRayFlJournalEntry,
 } from '../../../types/xray'
+import { XRayConfirmModal } from './XRayConfirmModal'
 
 const ELECTRON_API_UNAVAILABLE =
   'API Electron недоступно. Откройте приложение через dev:electron.'
@@ -12,6 +15,7 @@ const FL_JOURNAL_API_UNAVAILABLE =
   'Импорт Фл журнала недоступен. Полностью перезапустите Electron-приложение, чтобы подтянуть новый preload.'
 const JOURNAL_LOAD_ERROR = 'Не удалось загрузить флюорографический журнал за выбранную дату.'
 const IMPORT_ERROR = 'Не удалось импортировать файл журнала.'
+const PATHOLOGY_IMPORT_ERROR = 'Не удалось импортировать патологию.'
 const RMIS_SAVE_ERROR = 'Не удалось сохранить ссылку РМИС.'
 const PATIENT_OPEN_ERROR = 'Не удалось открыть карточку пациента.'
 const VIEWED_FL_PATIENTS_STORAGE_KEY = 'xray-fl-viewed-patients'
@@ -68,6 +72,27 @@ function formatImportResult(result: ImportXRayFlJournalResult | null) {
   return `Импортировано: ${result.imported}, пропущено дублей: ${result.skipped}`
 }
 
+function formatPathologyImportResult(result: ImportXRayFlPathologyResult | null) {
+  if (!result) {
+    return ''
+  }
+
+  return `Патология: ключей сопоставлено ${result.matchedKeys}, обновлено записей ${result.updatedEntries}, описаний ${result.importedDescriptions}, пропущено ${result.skippedKeys}, ошибок ${result.failedKeys}`
+}
+
+function hasPathology(entry: XRayFlJournalEntry) {
+  return Boolean(entry.pathologyDescription.trim() || entry.pathologyConclusion.trim())
+}
+
+function formatPathologyMultilineText(value: string) {
+  return String(value ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\r/g, '\n')
+    .replace(/\\n/g, '\n')
+    .trim()
+}
+
 interface XRayFlJournalProps {
   onSelectPatient: (patient: XRayPatient) => void
   onOpenPatient: () => void
@@ -81,6 +106,14 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
   const [selectedFilePath, setSelectedFilePath] = useState('')
   const [importLoading, setImportLoading] = useState(false)
   const [importResult, setImportResult] = useState<ImportXRayFlJournalResult | null>(null)
+  const [pathologyImportLoading, setPathologyImportLoading] = useState(false)
+  const [selectedPathologyFolder, setSelectedPathologyFolder] = useState('')
+  const [pathologyImportResult, setPathologyImportResult] =
+    useState<ImportXRayFlPathologyResult | null>(null)
+  const [pathologyModalEntry, setPathologyModalEntry] = useState<XRayFlJournalEntry | null>(null)
+  const [isPathologyDeleteConfirmOpen, setIsPathologyDeleteConfirmOpen] = useState(false)
+  const [isCopyingPathologyText, setIsCopyingPathologyText] = useState(false)
+  const [pathologyActionLoading, setPathologyActionLoading] = useState(false)
   const [copiedEntryId, setCopiedEntryId] = useState<number | null>(null)
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null)
   const [rmisDraft, setRmisDraft] = useState('')
@@ -185,6 +218,49 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
     }
   }
 
+  async function handleImportPathology() {
+    if (!window.electronAPI?.xray) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return
+    }
+
+    if (
+      !window.electronAPI.xray.selectFlPathologyFolder ||
+      !window.electronAPI.xray.importFlPathologyFolder
+    ) {
+      setError(FL_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    setPathologyImportLoading(true)
+    setError('')
+    setPathologyImportResult(null)
+
+    try {
+      const folderPath = await window.electronAPI.xray.selectFlPathologyFolder()
+
+      if (!folderPath) {
+        return
+      }
+
+      setSelectedPathologyFolder(folderPath)
+      const result = await window.electronAPI.xray.importFlPathologyFolder({
+        shotDate: journalDate,
+        folderPath,
+      })
+      setPathologyImportResult(result)
+      await loadJournalByDate(journalDate)
+    } catch (importError) {
+      if (importError instanceof Error && importError.message) {
+        setError(`${PATHOLOGY_IMPORT_ERROR} ${importError.message}`)
+      } else {
+        setError(PATHOLOGY_IMPORT_ERROR)
+      }
+    } finally {
+      setPathologyImportLoading(false)
+    }
+  }
+
   async function handleCopyPatientKey(entry: XRayFlJournalEntry) {
     try {
       await navigator.clipboard.writeText(getPatientClipboardKey(entry))
@@ -202,6 +278,86 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
       }, 1400)
     } catch {
       setError('Не удалось скопировать ключ пациента.')
+    }
+  }
+
+  async function handleClearPathology(entryId: number) {
+    if (!window.electronAPI?.xray?.updateFlJournalPathology) {
+      setError(FL_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    setPathologyActionLoading(true)
+    setError('')
+
+    try {
+      const updated = await window.electronAPI.xray.updateFlJournalPathology({
+        id: entryId,
+        clearDescription: true,
+      })
+
+      if (!updated) {
+        setError('Не удалось удалить данные патологии.')
+        return
+      }
+
+      setEntries((currentEntries) =>
+        currentEntries.map((entry) => {
+          if (entry.id !== entryId) {
+            return entry
+          }
+
+          return {
+            ...entry,
+            pathologyDescription: '',
+            pathologyConclusion: '',
+          }
+        }),
+      )
+
+      setPathologyModalEntry((currentEntry) => {
+        if (!currentEntry || currentEntry.id !== entryId) {
+          return currentEntry
+        }
+
+        const nextEntry = {
+          ...currentEntry,
+          pathologyDescription: '',
+          pathologyConclusion: '',
+        }
+
+        if (!hasPathology(nextEntry)) {
+          return null
+        }
+
+        return nextEntry
+      })
+    } catch {
+      setError('Не удалось удалить данные патологии.')
+    } finally {
+      setPathologyActionLoading(false)
+    }
+  }
+
+  async function handleCopyPathology(entry: XRayFlJournalEntry) {
+    const descriptionText = formatPathologyMultilineText(entry.pathologyDescription)
+    const conclusionText = formatPathologyMultilineText(entry.pathologyConclusion)
+    const payload = [
+      descriptionText,
+      conclusionText ? `Заключение: ${conclusionText}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    if (!payload) {
+      return
+    }
+
+    setIsCopyingPathologyText(true)
+    try {
+      await navigator.clipboard.writeText(payload)
+    } finally {
+      setIsCopyingPathologyText(false)
     }
   }
 
@@ -356,10 +512,23 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
         >
           {importLoading ? 'Импортирую...' : 'Импорт'}
         </button>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => void handleImportPathology()}
+          disabled={pathologyImportLoading}
+        >
+          {pathologyImportLoading ? 'Импортирую патологию...' : 'Патология'}
+        </button>
 
         {selectedFilePath ? (
           <div className="xray-journal-meta xray-fl-journal-selected-file">
             <span>{selectedFilePath}</span>
+          </div>
+        ) : null}
+        {selectedPathologyFolder ? (
+          <div className="xray-journal-meta xray-fl-journal-selected-file">
+            <span>{`Папка патологии: ${selectedPathologyFolder}`}</span>
           </div>
         ) : null}
       </div>
@@ -367,6 +536,11 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
       {importResult ? (
         <div className="xray-journal-meta">
           <span>{formatImportResult(importResult)}</span>
+        </div>
+      ) : null}
+      {pathologyImportResult ? (
+        <div className="xray-journal-meta">
+          <span>{formatPathologyImportResult(pathologyImportResult)}</span>
         </div>
       ) : null}
 
@@ -388,6 +562,7 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
             const isViewed =
               viewedPatients !== VIEWED_FL_PATIENTS_STORAGE_UNINITIALIZED &&
               Boolean(viewedPatients[getViewedPatientKey(entry)])
+            const isEntryHasPathology = hasPathology(entry)
 
             return (
               <article key={entry.id} className="xray-journal-item xray-fl-journal-item">
@@ -484,6 +659,18 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
                     >
                       +
                     </button>
+                    {isEntryHasPathology ? (
+                      <button
+                        type="button"
+                        className="xray-fl-journal-description-button"
+                        onClick={() => {
+                          setPathologyModalEntry(entry)
+                          setIsPathologyDeleteConfirmOpen(false)
+                        }}
+                      >
+                        Описание
+                      </button>
+                    ) : null}
                   </div>
                   <span>{entry.dose} мЗв</span>
                 </div>
@@ -512,6 +699,114 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
           })}
         </div>
       ) : null}
+
+      {pathologyModalEntry && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="reminders-modal-overlay xray-top-overlay"
+              onClick={() => {
+                setPathologyModalEntry(null)
+                setIsPathologyDeleteConfirmOpen(false)
+              }}
+            >
+              <section
+                className="reminders-modal xray-fl-pathology-modal xray-top-modal"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Описание патологии"
+              >
+                <div className="reminders-modal-head xray-fl-pathology-modal-head">
+                  <div>
+                    <h3 className="reminders-modal-title">{getFullName(pathologyModalEntry)}</h3>
+                    <p className="xray-journal-meta">
+                      {formatBirthDate(pathologyModalEntry.birthDate)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="reminders-modal-close"
+                    onClick={() => {
+                      setPathologyModalEntry(null)
+                      setIsPathologyDeleteConfirmOpen(false)
+                    }}
+                    aria-label="Закрыть описание патологии"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="xray-fl-pathology-modal-body">
+                  <div className="xray-fl-pathology-toolbar">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => void handleCopyPathology(pathologyModalEntry)}
+                      disabled={
+                        !formatPathologyMultilineText(pathologyModalEntry.pathologyDescription) &&
+                        !formatPathologyMultilineText(pathologyModalEntry.pathologyConclusion)
+                      }
+                    >
+                      {isCopyingPathologyText ? 'Копирую...' : 'Скопировать описание'}
+                    </button>
+                  </div>
+
+                  {formatPathologyMultilineText(pathologyModalEntry.pathologyDescription) ? (
+                    <div className="xray-fl-pathology-text-block">
+                      <strong>Описание</strong>
+                      <pre>{formatPathologyMultilineText(pathologyModalEntry.pathologyDescription)}</pre>
+                    </div>
+                  ) : null}
+
+                  {formatPathologyMultilineText(pathologyModalEntry.pathologyConclusion) ? (
+                    <div className="xray-fl-pathology-text-block">
+                      <strong>Заключение</strong>
+                      <pre>{formatPathologyMultilineText(pathologyModalEntry.pathologyConclusion)}</pre>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="xray-fl-pathology-modal-footer">
+                  <button
+                    type="button"
+                    className="xray-fl-pathology-delete-all-button"
+                    onClick={() => setIsPathologyDeleteConfirmOpen(true)}
+                    disabled={pathologyActionLoading}
+                  >
+                    {pathologyActionLoading ? 'Удаляю...' : 'Удалить описание'}
+                  </button>
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {isPathologyDeleteConfirmOpen && pathologyModalEntry ? (
+        <XRayConfirmModal
+          kicker="Патология"
+          title="Удалить описание?"
+          description="Описание и заключение будут удалены без возможности восстановления."
+          confirmLabel="Удалить"
+          confirmBusyLabel="Удаляю..."
+          isBusy={pathologyActionLoading}
+          isTopLayer
+          dialogLabelId="xray-fl-pathology-delete-confirm-title"
+          closeAriaLabel="Закрыть окно подтверждения удаления патологии"
+          onClose={() => setIsPathologyDeleteConfirmOpen(false)}
+          onConfirm={() => {
+            if (!pathologyModalEntry) return
+            void handleClearPathology(pathologyModalEntry.id)
+            setIsPathologyDeleteConfirmOpen(false)
+          }}
+        />
+      ) : null}
     </section>
   )
 }
+
+
+
+
+
+

@@ -37,6 +37,8 @@ export interface XRayFlJournalEntry {
   patronymic: string
   birthDate: string
   dose: string
+  pathologyDescription: string
+  pathologyConclusion: string
   rmisUrl: string | null
   createdAt: string
 }
@@ -144,12 +146,30 @@ export interface ImportXRayFlJournalResult {
   skipped: number
 }
 
+export interface ImportXRayFlPathologyResult {
+  matchedKeys: number
+  skippedKeys: number
+  failedKeys: number
+  importedDescriptions: number
+  updatedEntries: number
+}
+
 export interface UpdateXRayFlJournalRmisUrlPayload {
   lastName: string
   firstName: string
   patronymic: string
   birthDate: string
   rmisUrl: string | null
+}
+
+export interface ImportXRayFlPathologyPayload {
+  shotDate: string
+  folderPath: string
+}
+
+export interface UpdateXRayFlJournalPathologyPayload {
+  id: number
+  clearDescription?: boolean
 }
 
 export interface AddXRayPatientPayload {
@@ -205,6 +225,11 @@ export interface XRayApi {
   updateFlJournalRmisUrl: (payload: UpdateXRayFlJournalRmisUrlPayload) => Promise<boolean>
   selectFlJournalFile: () => Promise<string | null>
   importFlJournalFile: (filePath: string) => Promise<ImportXRayFlJournalResult>
+  selectFlPathologyFolder: () => Promise<string | null>
+  importFlPathologyFolder: (
+    payload: ImportXRayFlPathologyPayload,
+  ) => Promise<ImportXRayFlPathologyResult>
+  updateFlJournalPathology: (payload: UpdateXRayFlJournalPathologyPayload) => Promise<boolean>
   listStudies: (patientId: number) => Promise<XRayStudy[]>
   addStudy: (payload: AddXRayStudyPayload) => Promise<XRayStudy>
   updateStudy: (payload: UpdateXRayStudyPayload) => Promise<XRayStudy>
