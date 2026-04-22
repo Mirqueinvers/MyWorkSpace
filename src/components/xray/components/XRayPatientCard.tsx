@@ -69,6 +69,7 @@ export function XRayPatientCard({
   const [isUltrasoundSectionOpen, setIsUltrasoundSectionOpen] = useState(false)
   const [isFlSectionOpen, setIsFlSectionOpen] = useState(false)
   const [isStudiesSectionOpen, setIsStudiesSectionOpen] = useState(true)
+  const rmisUrl = selectedPatient.rmisUrl
 
   return (
     <section className="content-card xray-patient-card">
@@ -94,18 +95,17 @@ export function XRayPatientCard({
                 />
               </svg>
             </button>
-            <button
-              type="button"
-              className={`xray-rmis-button${selectedPatient.rmisUrl ? ' is-active' : ''}`}
-              onClick={() => {
-                if (selectedPatient.rmisUrl) {
-                  void onOpenLink(selectedPatient.rmisUrl)
-                }
-              }}
-              disabled={!selectedPatient.rmisUrl}
-            >
-              {RMIS_LABEL}
-            </button>
+            {rmisUrl ? (
+              <button
+                type="button"
+                className="xray-rmis-button is-active"
+                onClick={() => {
+                  void onOpenLink(rmisUrl)
+                }}
+              >
+                {RMIS_LABEL}
+              </button>
+            ) : null}
           </div>
           {copyFeedback ? <div className="xray-copy-feedback">{copyFeedback}</div> : null}
         </div>

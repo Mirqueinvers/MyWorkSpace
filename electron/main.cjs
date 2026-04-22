@@ -522,7 +522,7 @@ function mapXRayStudy(row) {
     description: row.description ?? '',
     referralDiagnosis: row.referral_diagnosis,
     studyArea: row.study_area,
-    studyType: row.study_type,
+    studyType: normalizeXRayStudyType(row.study_type),
     cassette: row.cassette,
     studyCount: Number(row.study_count),
     radiationDose: row.radiation_dose,
@@ -847,6 +847,19 @@ function normalizePositiveInteger(value, errorCode) {
   return numericValue;
 }
 
+function normalizeXRayStudyType(value) {
+  const normalizedValue = normalizeText(value);
+
+  if (
+    normalizedValue === 'Урография' ||
+    normalizedValue === 'РЈСЂРѕРіСЂР°С„РёСЏ'
+  ) {
+    return 'Урография';
+  }
+
+  return 'Рентген';
+}
+
 function normalizeXRayStudyPayload(payload) {
   const normalizedPatientId = normalizePositiveInteger(
     payload.patientId,
@@ -865,8 +878,7 @@ function normalizeXRayStudyPayload(payload) {
     payload.studyArea,
     'XRAY_STUDY_AREA_REQUIRED'
   );
-  const normalizedStudyType =
-    payload.studyType === 'РЈСЂРѕРіСЂР°С„РёСЏ' ? 'РЈСЂРѕРіСЂР°С„РёСЏ' : 'Р РµРЅС‚РіРµРЅ';
+  const normalizedStudyType = normalizeXRayStudyType(payload.studyType);
   const normalizedCassette = normalizeRequiredText(
     payload.cassette,
     'XRAY_CASSETTE_REQUIRED'

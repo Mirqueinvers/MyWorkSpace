@@ -42,7 +42,7 @@ export function XRayStudyDescriptionModal({
     const description = descriptionDraft.trim()
     const diagnosis = diagnosisDraft.trim()
 
-    const payload = `${description ? `\n\n${description}` : ''}${diagnosis ? `\n\nЗаключение: ${diagnosis}` : ''}`
+    const payload = `${description ? `\n\n${description}` : ''}${diagnosis ? `\n\n${diagnosis}` : ''}`
 
     if (!payload.trim()) {
       return
