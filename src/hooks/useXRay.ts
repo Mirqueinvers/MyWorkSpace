@@ -8,6 +8,7 @@ import type {
   XRaySearchResult,
   XRayStudy,
 } from '../types/xray'
+import type { Patient as MedicalExamPatient } from '../types/medicalExams'
 import type { UltrasoundJournalStudy } from '../types/ultrasound'
 
 const ELECTRON_API_UNAVAILABLE =
@@ -23,6 +24,12 @@ const ULTRASOUND_STUDIES_LOAD_ERROR =
 const STUDY_SAVE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435.'
 const STUDY_DELETE_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435.'
 const OPEN_LINK_ERROR = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443 \u0420\u041c\u0418\u0421.'
+const MEDICAL_EXAMS_LOAD_ERROR =
+  '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440\u044b \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.'
+const MEDICAL_EXAMS_ADD_ERROR =
+  '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440.'
+const MEDICAL_EXAMS_DELETE_ERROR =
+  '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440.'
 
 export function useXRay() {
   const [query, setQuery] = useState('')
@@ -31,6 +38,7 @@ export function useXRay() {
   const [studies, setStudies] = useState<XRayStudy[]>([])
   const [flStudies, setFlStudies] = useState<XRayFlJournalEntry[]>([])
   const [ultrasoundStudies, setUltrasoundStudies] = useState<UltrasoundJournalStudy[]>([])
+  const [medicalExamEntries, setMedicalExamEntries] = useState<MedicalExamPatient[]>([])
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -38,8 +46,11 @@ export function useXRay() {
   const [studiesLoading, setStudiesLoading] = useState(false)
   const [flStudiesLoading, setFlStudiesLoading] = useState(false)
   const [ultrasoundStudiesLoading, setUltrasoundStudiesLoading] = useState(false)
+  const [medicalExamEntriesLoading, setMedicalExamEntriesLoading] = useState(false)
   const [isSavingStudy, setIsSavingStudy] = useState(false)
+  const [isSavingMedicalExam, setIsSavingMedicalExam] = useState(false)
   const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null)
+  const [deletingMedicalExamId, setDeletingMedicalExamId] = useState<number | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -183,6 +194,49 @@ export function useXRay() {
     }
   }, [selectedPatient])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadMedicalExamEntries() {
+      if (!selectedPatient) {
+        setMedicalExamEntries([])
+        return
+      }
+
+      if (!window.electronAPI?.medicalExams?.listByXRayPatient) {
+        setMedicalExamEntries([])
+        return
+      }
+
+      setMedicalExamEntriesLoading(true)
+
+      try {
+        const items = await window.electronAPI.medicalExams.listByXRayPatient(
+          selectedPatient.id
+        )
+
+        if (!isCancelled) {
+          setMedicalExamEntries(items)
+        }
+      } catch {
+        if (!isCancelled) {
+          setMedicalExamEntries([])
+          setError(MEDICAL_EXAMS_LOAD_ERROR)
+        }
+      } finally {
+        if (!isCancelled) {
+          setMedicalExamEntriesLoading(false)
+        }
+      }
+    }
+
+    void loadMedicalExamEntries()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [selectedPatient])
+
   async function handleSearch(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
 
@@ -192,6 +246,7 @@ export function useXRay() {
     setStudies([])
     setFlStudies([])
     setUltrasoundStudies([])
+    setMedicalExamEntries([])
 
     if (!trimmedQuery) {
       setResults([])
@@ -241,6 +296,7 @@ export function useXRay() {
       setStudies([])
       setFlStudies([])
       setUltrasoundStudies([])
+      setMedicalExamEntries([])
       setResults([])
       setQuery(
         `${createdPatient.lastName} ${createdPatient.firstName} ${createdPatient.patronymic} ${createdPatient.birthDate}`.trim(),
@@ -281,6 +337,7 @@ export function useXRay() {
         setStudies([])
         setFlStudies([])
         setUltrasoundStudies([])
+        setMedicalExamEntries([])
         setResults((currentResults) =>
           currentResults.filter((patient) => patient.id !== id),
         )
@@ -420,6 +477,65 @@ export function useXRay() {
     }
   }
 
+  async function handleAddMedicalExamForSelectedPatient() {
+    if (!selectedPatient) {
+      return false
+    }
+
+    if (!window.electronAPI?.medicalExams?.addForPatient) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return false
+    }
+
+    setIsSavingMedicalExam(true)
+    setError('')
+
+    try {
+      const created = await window.electronAPI.medicalExams.addForPatient({
+        xrayPatientId: selectedPatient.id,
+        fullName: `${selectedPatient.lastName} ${selectedPatient.firstName} ${selectedPatient.patronymic}`.trim(),
+        birthDate: selectedPatient.birthDate,
+      })
+
+      setMedicalExamEntries((currentItems) => [created, ...currentItems])
+      return true
+    } catch {
+      setError(MEDICAL_EXAMS_ADD_ERROR)
+      return false
+    } finally {
+      setIsSavingMedicalExam(false)
+    }
+  }
+
+  async function handleDeleteMedicalExamForSelectedPatient(id: number) {
+    if (!selectedPatient) {
+      return false
+    }
+
+    if (!window.electronAPI?.medicalExams?.deletePatient) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return false
+    }
+
+    setDeletingMedicalExamId(id)
+    setError('')
+
+    try {
+      const deleted = await window.electronAPI.medicalExams.deletePatient(id)
+
+      if (deleted) {
+        setMedicalExamEntries((currentItems) => currentItems.filter((entry) => entry.id !== id))
+      }
+
+      return deleted
+    } catch {
+      setError(MEDICAL_EXAMS_DELETE_ERROR)
+      return false
+    } finally {
+      setDeletingMedicalExamId(null)
+    }
+  }
+
   function resetState() {
     setQuery('')
     setResults([])
@@ -427,6 +543,7 @@ export function useXRay() {
     setStudies([])
     setFlStudies([])
     setUltrasoundStudies([])
+    setMedicalExamEntries([])
     setLastSubmittedQuery('')
     setLoading(false)
     setIsSaving(false)
@@ -434,8 +551,11 @@ export function useXRay() {
     setStudiesLoading(false)
     setFlStudiesLoading(false)
     setUltrasoundStudiesLoading(false)
+    setMedicalExamEntriesLoading(false)
     setIsSavingStudy(false)
+    setIsSavingMedicalExam(false)
     setDeletingStudyId(null)
+    setDeletingMedicalExamId(null)
     setError('')
   }
 
@@ -447,6 +567,7 @@ export function useXRay() {
     studies,
     flStudies,
     ultrasoundStudies,
+    medicalExamEntries,
     lastSubmittedQuery,
     loading,
     isSaving,
@@ -454,8 +575,11 @@ export function useXRay() {
     studiesLoading,
     flStudiesLoading,
     ultrasoundStudiesLoading,
+    medicalExamEntriesLoading,
     isSavingStudy,
+    isSavingMedicalExam,
     deletingStudyId,
+    deletingMedicalExamId,
     error,
     handleSearch,
     handleAddPatient,
@@ -466,6 +590,8 @@ export function useXRay() {
     handleAddStudy,
     handleUpdateStudy,
     handleDeleteStudy,
+    handleAddMedicalExamForSelectedPatient,
+    handleDeleteMedicalExamForSelectedPatient,
     resetState,
   }
 }

@@ -9,6 +9,7 @@ import type {
   XRaySearchResult,
   XRayStudy,
 } from '../../types/xray'
+import type { Patient as MedicalExamPatient } from '../../types/medicalExams'
 import type { UltrasoundJournalStudy } from '../../types/ultrasound'
 
 export interface XRaySectionProps {
@@ -18,6 +19,7 @@ export interface XRaySectionProps {
   studies: XRayStudy[]
   flStudies: XRayFlJournalEntry[]
   ultrasoundStudies: UltrasoundJournalStudy[]
+  medicalExamEntries: MedicalExamPatient[]
   lastSubmittedQuery: string
   loading: boolean
   error: string
@@ -26,8 +28,11 @@ export interface XRaySectionProps {
   studiesLoading: boolean
   flStudiesLoading: boolean
   ultrasoundStudiesLoading: boolean
+  medicalExamEntriesLoading: boolean
   isSavingStudy: boolean
+  isSavingMedicalExam: boolean
   deletingStudyId: number | null
+  deletingMedicalExamId: number | null
   onQueryChange: (value: string) => void
   onSearch: (event?: FormEvent<HTMLFormElement>) => Promise<void>
   onSelectPatient: (patient: XRayPatient) => void
@@ -38,6 +43,8 @@ export interface XRaySectionProps {
   onAddStudy: (payload: AddXRayStudyPayload) => Promise<XRayStudy | null>
   onUpdateStudy: (payload: UpdateXRayStudyPayload) => Promise<XRayStudy | null>
   onDeleteStudy: (id: number) => Promise<boolean>
+  onAddMedicalExamForSelectedPatient: () => Promise<boolean>
+  onDeleteMedicalExamForSelectedPatient: (id: number) => Promise<boolean>
   onReset: () => void
 }
 

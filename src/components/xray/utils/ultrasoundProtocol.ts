@@ -115,6 +115,32 @@ function getMergedConclusionText(conclusionMap: Map<string, string[]>, key: stri
   return Array.from(new Set(normalizedValues)).join('\n')
 }
 
+function getSectionConclusionKeys(sectionHtml: string) {
+  return Array.from(
+    new Set(
+      Array.from(sectionHtml.matchAll(/data-uzi-conclusion-key\s*=\s*"([^"]+)"/gi), (match) =>
+        normalizeInlineText(match[1]),
+      ).filter(Boolean),
+    ),
+  )
+}
+
+function inferPelvicProtocolKey(sectionHtml: string) {
+  const loweredText = normalizeInlineText(sectionHtml).toLocaleLowerCase('ru-RU')
+  const femaleHints = ['матк', 'яичн', 'эндомет', 'шейк', 'влагалищ']
+  const maleHints = ['простат', 'предстат', 'семенн', 'мошон']
+
+  if (femaleHints.some((hint) => loweredText.includes(hint))) {
+    return 'omt-female'
+  }
+
+  if (maleHints.some((hint) => loweredText.includes(hint))) {
+    return 'omt-male'
+  }
+
+  return ''
+}
+
 function formatSpecialProtocolBlocks(value: string) {
   let text = value
 
@@ -141,6 +167,15 @@ function formatSpecialProtocolBlocks(value: string) {
     .replace(/(\n\nСлева определяется)/g, '\n$1')
     .replace(/\n{3,}/g, '\n\n')
 
+  if (text.includes('молочных желез')) {
+    text = text
+      .replace(/\s+(День менструального цикла)/g, '\n$1')
+      .replace(/\s+(Структура молочных желез)/g, '\n$1')
+      .replace(/\s+(Правая молочная железа:)/g, '\n\n$1')
+      .replace(/\s+(Левая молочная железа:)/g, '\n\n$1')
+      .replace(/\n{3,}/g, '\n\n')
+  }
+
   return text.trim()
 }
 
@@ -163,8 +198,22 @@ ${headHtml}
 </html>`
 }
 
-function getProtocolCopyGroup(title: string) {
+function formatBreastProtocolDocumentHtml(documentHtml: string) {
+  if (!documentHtml.includes('молочных желез')) {
+    return documentHtml
+  }
+
+  return documentHtml
+    .replace(/\s+(День менструального цикла)/g, '<br>$1')
+    .replace(/\s+(Структура молочных желез)/g, '<br>$1')
+    .replace(/\s+(<strong>Правая молочная железа:<\/strong>)/g, '<br><br>$1')
+    .replace(/\s+(<strong>Левая молочная железа:<\/strong>)/g, '<br><br>$1')
+}
+
+function getProtocolCopyGroup(title: string, sectionHtml = '') {
   const normalizedTitle = normalizeInlineText(title)
+  const sectionConclusionKeys = getSectionConclusionKeys(sectionHtml)
+  const inferredPelvicKey = inferPelvicProtocolKey(`${normalizedTitle}\n${sectionHtml}`)
   const stableKey = getStableProtocolKey(normalizedTitle)
   const isAbdominal = stableKey === 'obp'
   const isKidneys = stableKey === 'kidneys'
@@ -187,6 +236,27 @@ function getProtocolCopyGroup(title: string) {
     return {
       key: 'kidneys',
       label: '\u041f\u043e\u0447\u043a\u0438',
+    }
+  }
+
+  if (sectionConclusionKeys.includes('obp') && sectionConclusionKeys.includes('kidneys')) {
+    return {
+      key: 'obp-kidneys',
+      label: '\u041e\u0411\u041f + \u041f\u043e\u0447\u043a\u0438',
+    }
+  }
+
+  if (sectionConclusionKeys.length > 0) {
+    return {
+      key: sectionConclusionKeys[0],
+      label: normalizedTitle || '\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b',
+    }
+  }
+
+  if (inferredPelvicKey) {
+    return {
+      key: inferredPelvicKey,
+      label: normalizedTitle || '\u041e\u041c\u0422',
     }
   }
 
@@ -367,7 +437,7 @@ export function getProtocolClipboardPayload(
   const htmlConclusion = conclusionText
     ? `<p><strong>Заключение:</strong> ${escapeHtml(conclusionText).replace(/\n/g, '<br>')}</p>`
     : ''
-  const html = `${initialHtml}${htmlConclusion}`
+  const html = formatBreastProtocolDocumentHtml(`${initialHtml}${htmlConclusion}`)
 
   return { text: fullText, html }
 }
@@ -384,10 +454,10 @@ export function getProtocolCopySections(documentHtml: string) {
   const printableBlocks = Array.from(rootNode.querySelectorAll<HTMLElement>('.print-page-inner > .no-break'))
 
   if (printableBlocks.length > 0) {
-    const headerBlock = printableBlocks[0] ?? null
     const groupedSections = new Map<
       string,
       {
+        key: string
         label: string
         order: number
         fragments: string[]
@@ -405,7 +475,7 @@ export function getProtocolCopySections(documentHtml: string) {
         return
       }
 
-      const group = getProtocolCopyGroup(titleNode.textContent ?? '')
+      const group = getProtocolCopyGroup(titleNode.textContent ?? '', blockNode.outerHTML)
       const existingGroup = groupedSections.get(group.key)
 
       if (existingGroup) {
@@ -414,6 +484,7 @@ export function getProtocolCopySections(documentHtml: string) {
       }
 
       groupedSections.set(group.key, {
+        key: group.key,
         label: group.label,
         order: index,
         fragments: [blockNode.outerHTML],
@@ -432,10 +503,12 @@ export function getProtocolCopySections(documentHtml: string) {
           key,
           label: section.label,
           conclusionText: getMergedConclusionText(conclusionMap, key),
-          documentHtml: getProtocolFragmentDocumentHtml(
-            documentNode,
-            rootNode,
-            `${pageStartHtml}${section.fragments.join('')}${pageEndHtml}`,
+          documentHtml: formatBreastProtocolDocumentHtml(
+            getProtocolFragmentDocumentHtml(
+              documentNode,
+              rootNode,
+              `${pageStartHtml}${section.fragments.join('')}${pageEndHtml}`,
+            ),
           ),
         }))
     }
@@ -486,14 +559,15 @@ export function getProtocolCopySections(documentHtml: string) {
     ]
   }
 
-  const groupedSections = new Map<
-    string,
-    {
-      label: string
-      order: number
-      fragments: string[]
-    }
-  >()
+    const groupedSections = new Map<
+      string,
+      {
+        key: string
+        label: string
+        order: number
+        fragments: string[]
+      }
+    >()
 
   const firstTitleIndex = titleIndices[0] ?? 0
   const conclusionStartIndex = parentChildren.findIndex((childNode, index) => {
@@ -518,7 +592,7 @@ export function getProtocolCopySections(documentHtml: string) {
       return
     }
 
-    const group = getProtocolCopyGroup(titleNode.textContent ?? '')
+    const group = getProtocolCopyGroup(titleNode.textContent ?? '', sectionHtml)
     const existingGroup = groupedSections.get(group.key)
 
     if (existingGroup) {
@@ -527,6 +601,7 @@ export function getProtocolCopySections(documentHtml: string) {
     }
 
     groupedSections.set(group.key, {
+      key: group.key,
       label: group.label,
       order: index,
       fragments: [sectionHtml],
@@ -562,10 +637,12 @@ export function getProtocolCopySections(documentHtml: string) {
       key,
       label: section.label,
       conclusionText: getMergedConclusionText(conclusionMap, key),
-      documentHtml: getProtocolFragmentDocumentHtml(
-        documentNode,
-        rootNode,
-        `${metadataHtml}${sectionHeaderHtml}${section.fragments.join('')}`,
+      documentHtml: formatBreastProtocolDocumentHtml(
+        getProtocolFragmentDocumentHtml(
+          documentNode,
+          rootNode,
+          `${metadataHtml}${sectionHeaderHtml}${section.fragments.join('')}`,
+        ),
       ),
     }))
 }

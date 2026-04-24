@@ -180,9 +180,13 @@ export function XRayHome(props: XRaySectionProps) {
           studies={props.studies}
           flStudies={props.flStudies}
           ultrasoundStudies={props.ultrasoundStudies}
+          medicalExamEntries={props.medicalExamEntries}
           studiesLoading={props.studiesLoading}
           flStudiesLoading={props.flStudiesLoading}
           ultrasoundStudiesLoading={props.ultrasoundStudiesLoading}
+          medicalExamEntriesLoading={props.medicalExamEntriesLoading}
+          isSavingMedicalExam={props.isSavingMedicalExam}
+          deletingMedicalExamId={props.deletingMedicalExamId}
           error={props.error}
           copyFeedback={state.copyFeedback}
           onCopyPatientKey={state.handleCopyPatientKey}
@@ -192,6 +196,8 @@ export function XRayHome(props: XRaySectionProps) {
           onOpenStudyTemplates={state.openStudyTemplatesModal}
           onOpenEditStudy={state.openEditStudyModal}
           onOpenUltrasoundProtocol={setUltrasoundProtocolId}
+          onAddMedicalExam={props.onAddMedicalExamForSelectedPatient}
+          onDeleteMedicalExam={props.onDeleteMedicalExamForSelectedPatient}
         />
       ) : null}
 

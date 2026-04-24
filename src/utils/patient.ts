@@ -15,8 +15,7 @@ export function formatPatientName(value: string): string {
   const lastName = normalized.slice(0, -2)
   const initialsSource = normalized.slice(-2)
 
-  const formattedLastName =
-    lastName.charAt(0).toUpperCase() + lastName.slice(1)
+  const formattedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1)
 
   const initials = initialsSource
     .slice(0, 2)
@@ -41,16 +40,25 @@ export function normalizeBirthDateInput(value: string): string {
   return value.replace(/\D/g, '').slice(0, 8)
 }
 
-export function getPatientClipboardValue(
-  fullName: string,
-  birthDate: string,
-): string {
+export function getPatientClipboardValue(fullName: string, birthDate: string): string {
   const normalizedName = String(fullName ?? '').trim()
-  const [lastName = '', initialsPart = ''] = normalizedName.split(/\s+/, 2)
+  const nameParts = normalizedName
+    .replace(/\./g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  const [lastName = '', firstNameOrInitials = '', patronymic = ''] = nameParts
+  const secondPartLetters = firstNameOrInitials.replace(/[^A-Za-zА-Яа-яЁё]/g, '')
 
-  const lastNameInitial = lastName.slice(0, 1).toLowerCase()
-  const initials = initialsPart.replace(/[^A-Za-zА-Яа-яЁё]/g, '').toLowerCase()
+  const lastNameInitial = lastName.slice(0, 1).toLocaleLowerCase('ru-RU')
+  const firstNameInitial = (
+    firstNameOrInitials.slice(0, 1) ||
+    secondPartLetters.slice(0, 1)
+  ).toLocaleLowerCase('ru-RU')
+  const patronymicInitial = (
+    patronymic.slice(0, 1) ||
+    secondPartLetters.slice(1, 2)
+  ).toLocaleLowerCase('ru-RU')
   const normalizedBirthDate = String(birthDate ?? '').replace(/\D/g, '').slice(0, 8)
 
-  return `${lastNameInitial}${initials}${normalizedBirthDate}`
+  return `${lastNameInitial}${firstNameInitial}${patronymicInitial}${normalizedBirthDate}`
 }

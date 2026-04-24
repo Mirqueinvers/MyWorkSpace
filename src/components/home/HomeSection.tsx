@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AppSection } from '../../constants/navigation'
-import { MedicalExamsForm } from '../medical/MedicalExamsForm'
 import type { Patient } from '../../types/medicalExams'
 import type { NoteItem } from '../../types/notes'
 import type { SchoolInstitution } from '../../types/schools'
@@ -26,8 +25,6 @@ interface HomeSectionProps {
   medicalMonthKey: string
   currentMonthExamCount: number
   medicalPatients: Patient[]
-  medicalPatientName: string
-  medicalBirthDate: string
   sickLeaves: SickLeave[]
   urgentSickLeavesCount: number
   schools: SchoolInstitution[]
@@ -45,11 +42,6 @@ interface HomeSectionProps {
   notes: NoteItem[]
   notesText: string
   onMedicalMonthChange: (value: string) => void
-  onMedicalPatientNameChange: (value: string) => void
-  onMedicalBirthDateChange: (value: string) => void
-  onAddMedicalPatient: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
-  medicalIsSaving: boolean
-  medicalPatientNameFocusKey: number
   onNotesTextChange: (value: string) => void
   onAddNote: (event: FormEvent<HTMLFormElement>) => Promise<void>
   notesIsSaving: boolean
@@ -581,7 +573,6 @@ export function HomeSection(props: HomeSectionProps) {
           const isXRayXlWidget = definition.id === 'xray' && size === 'xl'
           const isXRayXxsWidget = definition.id === 'xray' && size === 'xxs'
           const isFluorographyWidget = definition.id === 'fluorography'
-          const isMedicalLWidget = definition.id === 'medical' && size === 'l'
           const isSickLeavesXxsWidget = definition.id === 'sick-leaves' && size === 'xxs'
           const isSickLeavesXsWidget = definition.id === 'sick-leaves' && size === 'xs'
           const isNotesWidget = definition.id === 'notes' && (size === 'xs' || size === 's' || size === 'l')
@@ -594,7 +585,7 @@ export function HomeSection(props: HomeSectionProps) {
           return (
             <article
               key={instanceId}
-              className={`content-card home-widget-card is-${size}${isXRayXlWidget ? ' is-xray-search-only' : ''}${isCompactXRayWidget ? ' is-fluorography-widget' : ''}${isMedicalLWidget ? ' is-medical-form-widget' : ''}${isCompactSickLeavesWidget ? ' is-sick-leaves-compact-widget' : ''}`}
+              className={`content-card home-widget-card is-${size}${isXRayXlWidget ? ' is-xray-search-only' : ''}${isCompactXRayWidget ? ' is-fluorography-widget' : ''}${isCompactSickLeavesWidget ? ' is-sick-leaves-compact-widget' : ''}`}
             >
               {props.isEditing ? (
                 <button
@@ -608,20 +599,7 @@ export function HomeSection(props: HomeSectionProps) {
                 </button>
               ) : null}
 
-              {isMedicalLWidget ? (
-                <MedicalExamsForm
-                  currentMonthExamCount={props.currentMonthExamCount}
-                  monthKey={props.medicalMonthKey}
-                  onMonthChange={props.onMedicalMonthChange}
-                  patientName={props.medicalPatientName}
-                  birthDate={props.medicalBirthDate}
-                  onPatientNameChange={props.onMedicalPatientNameChange}
-                  onBirthDateChange={props.onMedicalBirthDateChange}
-                  onAddPatient={props.onAddMedicalPatient}
-                  isSaving={props.medicalIsSaving}
-                  patientNameFocusKey={props.medicalPatientNameFocusKey}
-                />
-              ) : isNotesWidget ? (
+              {isNotesWidget ? (
                 renderNotesWidgetForm()
               ) : (
                 <>

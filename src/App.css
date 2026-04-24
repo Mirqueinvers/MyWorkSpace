@@ -1484,6 +1484,10 @@ html[data-theme='dark'] .atlas-bone-selected rect {
   align-items: start;
 }
 
+.medical-layout-list-only {
+  grid-template-columns: minmax(420px, 1fr);
+}
+
 .content-card {
   border-radius: 28px;
   background: rgba(248, 250, 252, 0.88);
@@ -1712,6 +1716,26 @@ html[data-theme='dark'] .atlas-bone-selected rect {
   transform: translateY(-1px);
   border-color: rgba(20, 184, 166, 0.32);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  outline: none;
+}
+
+.patient-name-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: #15803d;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.patient-name-link:hover,
+.patient-name-link:focus-visible {
+  color: #166534;
+  text-decoration: underline;
   outline: none;
 }
 

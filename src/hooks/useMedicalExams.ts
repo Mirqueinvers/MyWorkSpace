@@ -8,6 +8,7 @@ const ELECTRON_API_UNAVAILABLE =
 const LOAD_ERROR = 'Не удалось загрузить пациентов из базы SQLite.'
 const SAVE_ERROR = 'Не удалось сохранить пациента в SQLite.'
 const DELETE_ERROR = 'Не удалось удалить пациента из SQLite.'
+const UPDATE_RMIS_ERROR = 'Не удалось сохранить ссылку РМИС.'
 
 export function useMedicalExams(currentMonthKey: string) {
   const [monthKey, setMonthKey] = useState(currentMonthKey)
@@ -68,8 +69,7 @@ export function useMedicalExams(currentMonthKey: string) {
       }
 
       try {
-        const total =
-          await window.electronAPI.medicalExams.countPatients(currentMonthKey)
+        const total = await window.electronAPI.medicalExams.countPatients(currentMonthKey)
 
         if (!isCancelled) {
           setCurrentMonthExamCount(total)
@@ -159,6 +159,38 @@ export function useMedicalExams(currentMonthKey: string) {
     }
   }
 
+  async function handleUpdatePatientRmisUrl(medicalExamId: number, rmisUrl: string | null) {
+    if (!window.electronAPI?.medicalExams?.updateRmisUrl) {
+      setPatientsError(ELECTRON_API_UNAVAILABLE)
+      return false
+    }
+
+    setPatientsError('')
+
+    try {
+      const updated = await window.electronAPI.medicalExams.updateRmisUrl({
+        medicalExamId,
+        rmisUrl,
+      })
+
+      if (!updated) {
+        setPatientsError(UPDATE_RMIS_ERROR)
+        return false
+      }
+
+      setPatients((currentPatients) =>
+        currentPatients.map((patient) =>
+          patient.id === medicalExamId ? { ...patient, rmisUrl } : patient,
+        ),
+      )
+
+      return true
+    } catch {
+      setPatientsError(UPDATE_RMIS_ERROR)
+      return false
+    }
+  }
+
   return {
     monthKey,
     setMonthKey,
@@ -175,5 +207,6 @@ export function useMedicalExams(currentMonthKey: string) {
     currentMonthExamCount,
     handleAddPatient,
     handleDeletePatient,
+    handleUpdatePatientRmisUrl,
   }
 }

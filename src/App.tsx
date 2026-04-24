@@ -171,8 +171,6 @@ function App() {
           medicalMonthKey={medicalExams.monthKey}
           currentMonthExamCount={medicalExams.currentMonthExamCount}
           medicalPatients={medicalExams.patients}
-          medicalPatientName={medicalExams.patientName}
-          medicalBirthDate={medicalExams.birthDate}
           sickLeaves={sickLeaves.sickLeaves}
           urgentSickLeavesCount={urgentSickLeaves.length}
           schools={schools.institutions}
@@ -190,14 +188,9 @@ function App() {
           notes={notes.notes}
           notesText={notes.text}
           onMedicalMonthChange={medicalExams.setMonthKey}
-          onMedicalPatientNameChange={medicalExams.setPatientName}
-          onMedicalBirthDateChange={medicalExams.setBirthDate}
-          onAddMedicalPatient={medicalExams.handleAddPatient}
           onXRayQueryChange={xray.setQuery}
           onXRaySearch={xray.handleSearch}
           onSelectXRayPatient={handleHomeXRayPatientSelect}
-          medicalIsSaving={medicalExams.isSavingPatient}
-          medicalPatientNameFocusKey={medicalExams.patientNameFocusKey}
           onNotesTextChange={notes.setText}
           onAddNote={notes.handleAddNote}
           notesIsSaving={notes.isSaving}
@@ -215,15 +208,10 @@ function App() {
           patients={medicalExams.patients}
           loading={medicalExams.patientsLoading}
           error={medicalExams.patientsError}
-          patientName={medicalExams.patientName}
-          birthDate={medicalExams.birthDate}
-          onPatientNameChange={medicalExams.setPatientName}
-          onBirthDateChange={medicalExams.setBirthDate}
-          onAddPatient={medicalExams.handleAddPatient}
-          onDeletePatient={medicalExams.handleDeletePatient}
-          isSaving={medicalExams.isSavingPatient}
-          deletingPatientId={medicalExams.deletingPatientId}
-          patientNameFocusKey={medicalExams.patientNameFocusKey}
+          onSelectPatient={xray.handleSelectPatient}
+          onOpenPatient={() => setActiveSection('Пациенты')}
+          onUpdatePatientRmisUrl={medicalExams.handleUpdatePatientRmisUrl}
+          onOpenLink={xray.handleOpenLink}
         />
       )
     }
@@ -301,6 +289,7 @@ function App() {
           studies={xray.studies}
           flStudies={xray.flStudies}
           ultrasoundStudies={xray.ultrasoundStudies}
+          medicalExamEntries={xray.medicalExamEntries}
           lastSubmittedQuery={xray.lastSubmittedQuery}
           loading={xray.loading}
           error={xray.error}
@@ -309,8 +298,11 @@ function App() {
           studiesLoading={xray.studiesLoading}
           flStudiesLoading={xray.flStudiesLoading}
           ultrasoundStudiesLoading={xray.ultrasoundStudiesLoading}
+          medicalExamEntriesLoading={xray.medicalExamEntriesLoading}
           isSavingStudy={xray.isSavingStudy}
+          isSavingMedicalExam={xray.isSavingMedicalExam}
           deletingStudyId={xray.deletingStudyId}
+          deletingMedicalExamId={xray.deletingMedicalExamId}
           onQueryChange={xray.setQuery}
           onSearch={xray.handleSearch}
           onSelectPatient={xray.handleSelectPatient}
@@ -321,6 +313,8 @@ function App() {
           onAddStudy={xray.handleAddStudy}
           onUpdateStudy={xray.handleUpdateStudy}
           onDeleteStudy={xray.handleDeleteStudy}
+          onAddMedicalExamForSelectedPatient={xray.handleAddMedicalExamForSelectedPatient}
+          onDeleteMedicalExamForSelectedPatient={xray.handleDeleteMedicalExamForSelectedPatient}
           onReset={xray.resetState}
         />
       )

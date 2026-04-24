@@ -9,6 +9,7 @@ const xrayDoseReferenceSeed = require('./xray-dose-reference-seed.json');
 const isDev = !app.isPackaged;
 
 let database;
+let medicalExamsLinkingReport = null;
 
 function ensureMedicalExamPatientsSchema(db) {
   db.exec(`
@@ -16,12 +17,17 @@ function ensureMedicalExamPatientsSchema(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       full_name TEXT NOT NULL,
       birth_date TEXT NOT NULL DEFAULT '',
+      xray_patient_id INTEGER,
       month_key TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (xray_patient_id) REFERENCES xray_patients (id) ON DELETE SET NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_medical_exam_patients_month_key
     ON medical_exam_patients (month_key, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_medical_exam_patients_xray_patient_id
+    ON medical_exam_patients (xray_patient_id, created_at DESC);
   `);
 
   const columns = db
@@ -33,6 +39,13 @@ function ensureMedicalExamPatientsSchema(db) {
     db.exec(`
       ALTER TABLE medical_exam_patients
       ADD COLUMN birth_date TEXT NOT NULL DEFAULT '';
+    `);
+  }
+
+  if (!columns.includes('xray_patient_id')) {
+    db.exec(`
+      ALTER TABLE medical_exam_patients
+      ADD COLUMN xray_patient_id INTEGER;
     `);
   }
 }
@@ -467,6 +480,60 @@ function assertPeriodRange(startDate, endDate) {
   }
 }
 
+function linkLegacyMedicalExamPatientsToXRay() {
+  const db = getDatabase();
+  const legacyRows = db.prepare(`
+    SELECT id, full_name, birth_date, month_key
+    FROM medical_exam_patients
+    WHERE xray_patient_id IS NULL
+    ORDER BY id ASC
+  `).all();
+
+  const missingMatches = [];
+  const manyMatches = [];
+
+  legacyRows.forEach((row) => {
+    const matches = resolveMedicalExamPatientCandidatesByFullName(
+      row.full_name,
+      row.birth_date
+    );
+
+    if (matches.length === 0) {
+      missingMatches.push({
+        id: row.id,
+        fullName: row.full_name,
+        birthDate: row.birth_date,
+        monthKey: row.month_key,
+      });
+      return;
+    }
+
+    if (matches.length > 2) {
+      manyMatches.push({
+        id: row.id,
+        fullName: row.full_name,
+        birthDate: row.birth_date,
+        monthKey: row.month_key,
+        candidates: matches,
+      });
+      return;
+    }
+
+    db.prepare(`
+      UPDATE medical_exam_patients
+      SET xray_patient_id = ?
+      WHERE id = ?
+    `).run(matches[0], row.id);
+  });
+
+  medicalExamsLinkingReport = {
+    processed: legacyRows.length,
+    missingMatches,
+    manyMatches,
+    linkedCount: legacyRows.length - missingMatches.length - manyMatches.length,
+  };
+}
+
 function getDatabase() {
   if (database) {
     return database;
@@ -484,6 +551,7 @@ function getDatabase() {
   ensureSchoolsSchema(database);
   ensureXRaySchema(database);
   ensureUltrasoundJournalSchema(database);
+  linkLegacyMedicalExamPatientsToXRay();
 
   return database;
 }
@@ -491,8 +559,8 @@ function getDatabase() {
 function normalizeSearchFragment(value) {
   return String(value ?? '')
     .toLocaleLowerCase('ru-RU')
-    .replaceAll('С‘', 'Рµ')
-    .replace(/[^a-zР°-СЏ0-9]+/gi, ' ')
+    .replaceAll('ё', 'е')
+    .replace(/[^a-zа-я0-9]+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -3128,22 +3196,269 @@ function deleteXRayStudy(id) {
   return result.changes > 0;
 }
 
+function normalizeMedicalExamFullName(value) {
+  return String(value ?? '')
+    .toLocaleLowerCase('ru-RU')
+    .replaceAll('ё', 'е')
+    .replace(/[^a-zа-я0-9\s.-]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeMedicalExamWord(value) {
+  return String(value ?? '')
+    .toLocaleLowerCase('ru-RU')
+    .replaceAll('ё', 'е')
+    .replace(/[^a-zа-я-]+/gi, '')
+    .trim();
+}
+
+function getLevenshteinDistance(left, right) {
+  const source = String(left ?? '');
+  const target = String(right ?? '');
+
+  if (!source) return target.length;
+  if (!target) return source.length;
+
+  const matrix = Array.from({ length: source.length + 1 }, () =>
+    Array(target.length + 1).fill(0)
+  );
+
+  for (let sourceIndex = 0; sourceIndex <= source.length; sourceIndex += 1) {
+    matrix[sourceIndex][0] = sourceIndex;
+  }
+
+  for (let targetIndex = 0; targetIndex <= target.length; targetIndex += 1) {
+    matrix[0][targetIndex] = targetIndex;
+  }
+
+  for (let sourceIndex = 1; sourceIndex <= source.length; sourceIndex += 1) {
+    for (let targetIndex = 1; targetIndex <= target.length; targetIndex += 1) {
+      const substitutionCost =
+        source[sourceIndex - 1] === target[targetIndex - 1] ? 0 : 1;
+
+      matrix[sourceIndex][targetIndex] = Math.min(
+        matrix[sourceIndex - 1][targetIndex] + 1,
+        matrix[sourceIndex][targetIndex - 1] + 1,
+        matrix[sourceIndex - 1][targetIndex - 1] + substitutionCost
+      );
+    }
+  }
+
+  return matrix[source.length][target.length];
+}
+
+function parseMedicalExamLegacyName(fullName) {
+  const normalizedValue = normalizeMedicalExamFullName(fullName);
+  const abbreviatedMatch = normalizedValue.match(
+    /^([^\s.]+)\s+([a-zа-я])\.\s*([a-zа-я])\.?$/i
+  );
+
+  if (abbreviatedMatch) {
+    return {
+      lastName: normalizeMedicalExamWord(abbreviatedMatch[1]),
+      firstInitial: normalizeMedicalExamWord(abbreviatedMatch[2]),
+      patronymicInitial: normalizeMedicalExamWord(abbreviatedMatch[3]),
+    };
+  }
+
+  const nameParts = normalizedValue.split(' ').filter(Boolean);
+  return {
+    lastName: normalizeMedicalExamWord(nameParts[0] ?? ''),
+    firstInitial: normalizeMedicalExamWord((nameParts[1] ?? '').slice(0, 1)),
+    patronymicInitial: normalizeMedicalExamWord((nameParts[2] ?? '').slice(0, 1)),
+  };
+}
+
+function resolveMedicalExamPatientCandidatesByLegacyName(fullName, birthDate) {
+  const normalizedBirthDate = String(birthDate ?? '').trim();
+
+  if (!/^\d{8}$/.test(normalizedBirthDate)) {
+    return [];
+  }
+
+  const { lastName, firstInitial, patronymicInitial } =
+    parseMedicalExamLegacyName(fullName);
+  if (!lastName) {
+    return [];
+  }
+
+  const db = getDatabase();
+  const candidates = db.prepare(`
+    SELECT id, last_name, first_name, patronymic
+    FROM xray_patients
+    WHERE birth_date = ?
+  `).all(normalizedBirthDate);
+
+  const scoredCandidates = candidates
+    .map((candidate) => {
+      const normalizedCandidateLastName = normalizeMedicalExamWord(
+        candidate.last_name
+      );
+      const normalizedCandidateFirstInitial = normalizeMedicalExamWord(
+        String(candidate.first_name ?? '').slice(0, 1)
+      );
+      const normalizedCandidatePatronymicInitial = normalizeMedicalExamWord(
+        String(candidate.patronymic ?? '').slice(0, 1)
+      );
+
+      const initialsMatch =
+        (!firstInitial || firstInitial === normalizedCandidateFirstInitial) &&
+        (!patronymicInitial ||
+          patronymicInitial === normalizedCandidatePatronymicInitial);
+
+      if (!initialsMatch) {
+        return null;
+      }
+
+      const distance = getLevenshteinDistance(
+        lastName,
+        normalizedCandidateLastName
+      );
+      const startsWithSameLetter =
+        lastName[0] && lastName[0] === normalizedCandidateLastName[0];
+
+      if (distance > 2 || !startsWithSameLetter) {
+        return null;
+      }
+
+      const score = lastName === normalizedCandidateLastName ? 100 : 100 - distance * 10;
+
+      return {
+        id: candidate.id,
+        score,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) =>
+      right.score === left.score ? right.id - left.id : right.score - left.score
+    );
+
+  return scoredCandidates.map((candidate) => candidate.id);
+}
+
+function resolveMedicalExamPatientCandidatesByFullName(fullName, birthDate) {
+  const normalizedName = normalizeMedicalExamFullName(fullName);
+  const normalizedBirthDate = String(birthDate ?? '').trim();
+
+  if (!normalizedName || !/^\d{8}$/.test(normalizedBirthDate)) {
+    return [];
+  }
+
+  const db = getDatabase();
+  const directMatches = db.prepare(`
+    SELECT id
+    FROM xray_patients
+    WHERE
+      birth_date = ?
+      AND trim(lower(last_name || ' ' || first_name || ' ' || patronymic)) = trim(lower(?))
+    ORDER BY id DESC
+  `).all(normalizedBirthDate, normalizedName);
+
+  if (directMatches.length > 0) {
+    return directMatches.map((item) => item.id);
+  }
+
+  return resolveMedicalExamPatientCandidatesByLegacyName(
+    normalizedName,
+    normalizedBirthDate
+  );
+}
+
+function mapMedicalExamPatient(row) {
+  return {
+    id: row.id,
+    xrayPatientId: row.xray_patient_id ?? undefined,
+    fullName:
+      row.full_name ??
+      [row.last_name, row.first_name, row.patronymic].filter(Boolean).join(' ').trim(),
+    birthDate: row.birth_date,
+    monthKey: row.month_key,
+    createdAt: row.created_at,
+    rmisUrl: row.rmis_url ?? null,
+  };
+}
+
 function listMedicalExamPatients(monthKey) {
+  const normalizedMonthKey = String(monthKey ?? '').trim();
+
+  if (!/^\d{4}-\d{2}$/.test(normalizedMonthKey)) {
+    throw new Error('MONTH_KEY_INVALID');
+  }
+
   const db = getDatabase();
   const statement = db.prepare(`
-    SELECT id, full_name, birth_date, month_key, created_at
+    SELECT
+      medical_exam_patients.id,
+      medical_exam_patients.xray_patient_id,
+      medical_exam_patients.month_key,
+      medical_exam_patients.created_at,
+      xray_patients.last_name,
+      xray_patients.first_name,
+      xray_patients.patronymic,
+      xray_patients.birth_date,
+      xray_patients.rmis_url
     FROM medical_exam_patients
+    JOIN xray_patients ON xray_patients.id = medical_exam_patients.xray_patient_id
     WHERE month_key = ?
-    ORDER BY created_at DESC, id DESC
+    ORDER BY medical_exam_patients.created_at DESC, medical_exam_patients.id DESC
   `);
 
-  return statement.all(monthKey).map((patient) => ({
-    id: patient.id,
-    fullName: patient.full_name,
-    birthDate: patient.birth_date,
-    monthKey: patient.month_key,
-    createdAt: patient.created_at,
-  }));
+  return statement.all(normalizedMonthKey).map(mapMedicalExamPatient);
+}
+
+function listMedicalExamPatientsByPatient({ fullName, birthDate }) {
+  const matches = resolveMedicalExamPatientCandidatesByFullName(fullName, birthDate);
+  if (matches.length === 0) {
+    return [];
+  }
+
+  const db = getDatabase();
+  const placeholders = matches.map(() => '?').join(', ');
+  const statement = db.prepare(`
+    SELECT
+      medical_exam_patients.id,
+      medical_exam_patients.xray_patient_id,
+      medical_exam_patients.month_key,
+      medical_exam_patients.created_at,
+      xray_patients.last_name,
+      xray_patients.first_name,
+      xray_patients.patronymic,
+      xray_patients.birth_date,
+      xray_patients.rmis_url
+    FROM medical_exam_patients
+    JOIN xray_patients ON xray_patients.id = medical_exam_patients.xray_patient_id
+    WHERE medical_exam_patients.xray_patient_id IN (${placeholders})
+    ORDER BY medical_exam_patients.created_at DESC, medical_exam_patients.id DESC
+  `);
+
+  return statement.all(...matches).map(mapMedicalExamPatient);
+}
+
+function listMedicalExamPatientsByXRayPatient(xrayPatientId) {
+  const normalizedPatientId = normalizePositiveInteger(
+    xrayPatientId,
+    'XRAY_PATIENT_ID_INVALID'
+  );
+  const db = getDatabase();
+  const statement = db.prepare(`
+    SELECT
+      medical_exam_patients.id,
+      medical_exam_patients.xray_patient_id,
+      medical_exam_patients.month_key,
+      medical_exam_patients.created_at,
+      xray_patients.last_name,
+      xray_patients.first_name,
+      xray_patients.patronymic,
+      xray_patients.birth_date,
+      xray_patients.rmis_url
+    FROM medical_exam_patients
+    JOIN xray_patients ON xray_patients.id = medical_exam_patients.xray_patient_id
+    WHERE medical_exam_patients.xray_patient_id = ?
+    ORDER BY medical_exam_patients.created_at DESC, medical_exam_patients.id DESC
+  `);
+
+  return statement.all(normalizedPatientId).map(mapMedicalExamPatient);
 }
 
 function countMedicalExamPatients(monthKey) {
@@ -3157,7 +3472,7 @@ function countMedicalExamPatients(monthKey) {
   const statement = db.prepare(`
     SELECT COUNT(*) AS total
     FROM medical_exam_patients
-    WHERE month_key = ?
+    WHERE month_key = ? AND xray_patient_id IS NOT NULL
   `);
   const result = statement.get(normalizedMonthKey);
 
@@ -3182,14 +3497,29 @@ function addMedicalExamPatient({ fullName, birthDate, monthKey }) {
   }
 
   const createdAt = new Date().toISOString();
+  const patientMatches = resolveMedicalExamPatientCandidatesByFullName(
+    normalizedName,
+    normalizedBirthDate
+  );
+
+  if (patientMatches.length === 0) {
+    throw new Error('XRAY_PATIENT_NOT_FOUND');
+  }
+
+  if (patientMatches.length > 2) {
+    throw new Error('XRAY_PATIENT_MATCHES_TOO_MANY');
+  }
+
+  const xrayPatientId = patientMatches[0];
   const db = getDatabase();
   const insertStatement = db.prepare(`
-    INSERT INTO medical_exam_patients (full_name, birth_date, month_key, created_at)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO medical_exam_patients (full_name, birth_date, xray_patient_id, month_key, created_at)
+    VALUES (?, ?, ?, ?, ?)
   `);
   const result = insertStatement.run(
     normalizedName,
     normalizedBirthDate,
+    xrayPatientId,
     normalizedMonthKey,
     createdAt
   );
@@ -3200,6 +3530,74 @@ function addMedicalExamPatient({ fullName, birthDate, monthKey }) {
     birthDate: normalizedBirthDate,
     monthKey: normalizedMonthKey,
     createdAt,
+    rmisUrl:
+      db.prepare(`SELECT rmis_url FROM xray_patients WHERE id = ?`).get(xrayPatientId)
+        ?.rmis_url ?? null,
+  };
+}
+
+function addMedicalExamForPatient({ xrayPatientId, fullName, birthDate, monthKey }) {
+  const now = new Date();
+  const fallbackMonthKey = now.toISOString().slice(0, 7);
+  const normalizedMonthKey = String(monthKey ?? '').trim() || fallbackMonthKey;
+
+  if (!/^\d{4}-\d{2}$/.test(normalizedMonthKey)) {
+    throw new Error('MONTH_KEY_INVALID');
+  }
+
+  const db = getDatabase();
+  let resolvedPatientId = Number.isInteger(Number(xrayPatientId))
+    ? normalizePositiveInteger(xrayPatientId, 'XRAY_PATIENT_ID_INVALID')
+    : null;
+
+  if (!resolvedPatientId) {
+    const matches = resolveMedicalExamPatientCandidatesByFullName(fullName, birthDate);
+    if (matches.length === 0) {
+      throw new Error('XRAY_PATIENT_NOT_FOUND');
+    }
+
+    if (matches.length > 2) {
+      throw new Error('XRAY_PATIENT_MATCHES_TOO_MANY');
+    }
+
+    resolvedPatientId = matches[0];
+  }
+
+  const patient = db.prepare(`
+    SELECT id, last_name, first_name, patronymic, birth_date, rmis_url
+    FROM xray_patients
+    WHERE id = ?
+  `).get(resolvedPatientId);
+
+  if (!patient) {
+    throw new Error('XRAY_PATIENT_NOT_FOUND');
+  }
+
+  const normalizedName = [patient.last_name, patient.first_name, patient.patronymic]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  const normalizedBirthDate = patient.birth_date;
+  const createdAt = new Date().toISOString();
+
+  const result = db.prepare(`
+    INSERT INTO medical_exam_patients (full_name, birth_date, xray_patient_id, month_key, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(
+    normalizedName,
+    normalizedBirthDate,
+    resolvedPatientId,
+    normalizedMonthKey,
+    createdAt
+  );
+
+  return {
+    id: Number(result.lastInsertRowid),
+    fullName: normalizedName,
+    birthDate: normalizedBirthDate,
+    monthKey: normalizedMonthKey,
+    createdAt,
+    rmisUrl: patient.rmis_url ?? null,
   };
 }
 
@@ -3215,6 +3613,55 @@ function deleteMedicalExamPatient(id) {
     WHERE id = ?
   `);
   const result = deleteStatement.run(numericId);
+
+  return result.changes > 0;
+}
+
+function updateMedicalExamPatientRmisUrl({ medicalExamId, rmisUrl }) {
+  const normalizedMedicalExamId = normalizePositiveInteger(
+    medicalExamId,
+    'MEDICAL_EXAM_ID_INVALID'
+  );
+
+  const normalizedRmisUrl = (() => {
+    if (rmisUrl === null || rmisUrl === undefined) {
+      return null;
+    }
+
+    const normalizedValue = normalizeText(rmisUrl);
+    return normalizedValue ? normalizedValue : null;
+  })();
+
+  const db = getDatabase();
+  const medicalExamRow = db.prepare(`
+    SELECT xray_patient_id
+    FROM medical_exam_patients
+    WHERE id = ?
+  `).get(normalizedMedicalExamId);
+
+  if (!medicalExamRow?.xray_patient_id) {
+    return false;
+  }
+
+  const existingPatientRow = db.prepare(`
+    SELECT rmis_url
+    FROM xray_patients
+    WHERE id = ?
+  `).get(medicalExamRow.xray_patient_id);
+
+  if (!existingPatientRow) {
+    return false;
+  }
+
+  if ((existingPatientRow.rmis_url ?? null) === normalizedRmisUrl) {
+    return true;
+  }
+
+  const result = db.prepare(`
+    UPDATE xray_patients
+    SET rmis_url = ?
+    WHERE id = ?
+  `).run(normalizedRmisUrl, medicalExamRow.xray_patient_id);
 
   return result.changes > 0;
 }
@@ -3957,8 +4404,24 @@ function registerIpcHandlers() {
     listMedicalExamPatients(monthKey)
   );
 
+  ipcMain.handle('medical-exams:list-by-patient', (_event, payload) =>
+    listMedicalExamPatientsByPatient(payload)
+  );
+
+  ipcMain.handle('medical-exams:list-by-xray-patient', (_event, xrayPatientId) =>
+    listMedicalExamPatientsByXRayPatient(xrayPatientId)
+  );
+
   ipcMain.handle('medical-exams:add-patient', (_event, payload) =>
     addMedicalExamPatient(payload)
+  );
+
+  ipcMain.handle('medical-exams:add-for-patient', (_event, payload) =>
+    addMedicalExamForPatient(payload)
+  );
+
+  ipcMain.handle('medical-exams:update-rmis-url', (_event, payload) =>
+    updateMedicalExamPatientRmisUrl(payload)
   );
 
   ipcMain.handle('medical-exams:delete-patient', (_event, id) =>

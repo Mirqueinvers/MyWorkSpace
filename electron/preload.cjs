@@ -5,8 +5,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listPatients(monthKey) {
       return ipcRenderer.invoke('medical-exams:list-patients', monthKey);
     },
+    listByPatient(payload) {
+      return ipcRenderer.invoke('medical-exams:list-by-patient', payload);
+    },
+    listByXRayPatient(xrayPatientId) {
+      return ipcRenderer.invoke('medical-exams:list-by-xray-patient', xrayPatientId);
+    },
     addPatient(payload) {
       return ipcRenderer.invoke('medical-exams:add-patient', payload);
+    },
+    addForPatient(payload) {
+      return ipcRenderer.invoke('medical-exams:add-for-patient', payload);
+    },
+    updateRmisUrl(payload) {
+      return ipcRenderer.invoke('medical-exams:update-rmis-url', payload);
     },
     deletePatient(id) {
       return ipcRenderer.invoke('medical-exams:delete-patient', id);

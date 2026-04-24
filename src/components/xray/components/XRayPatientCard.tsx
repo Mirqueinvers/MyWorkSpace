@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { XRayFlJournalEntry, XRayPatient, XRayStudy } from '../../../types/xray'
+import type { Patient as MedicalExamPatient } from '../../../types/medicalExams'
 import type { UltrasoundJournalStudy } from '../../../types/ultrasound'
-import { formatBirthDate, formatStoredDate } from '../../../utils/date'
+import { formatBirthDate, formatMonthLabel, formatPatientCreatedAt, formatStoredDate } from '../../../utils/date'
 import { formatStudyLabel, getPatientFullName } from '../helpers'
 
 interface XRayPatientCardProps {
@@ -9,9 +10,13 @@ interface XRayPatientCardProps {
   studies: XRayStudy[]
   flStudies: XRayFlJournalEntry[]
   ultrasoundStudies: UltrasoundJournalStudy[]
+  medicalExamEntries: MedicalExamPatient[]
   studiesLoading: boolean
   flStudiesLoading: boolean
   ultrasoundStudiesLoading: boolean
+  medicalExamEntriesLoading: boolean
+  isSavingMedicalExam: boolean
+  deletingMedicalExamId: number | null
   error: string
   copyFeedback: string
   onCopyPatientKey: () => void
@@ -21,6 +26,8 @@ interface XRayPatientCardProps {
   onOpenStudyTemplates: (study: XRayStudy) => void
   onOpenEditStudy: (study: XRayStudy) => void
   onOpenUltrasoundProtocol: (studyId: number) => void
+  onAddMedicalExam: () => Promise<boolean>
+  onDeleteMedicalExam: (id: number) => Promise<boolean>
 }
 
 const CARD_LABEL = '\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0430'
@@ -29,6 +36,11 @@ const RMIS_LABEL = '\u0420\u041c\u0418\u0421'
 const EDIT_PATIENT_LABEL = '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430'
 const FLUOROGRAPHY_LABEL = '\u0424\u043b\u044e\u043e\u0440\u043e\u0433\u0440\u0430\u0444\u0438\u044f'
 const ULTRASOUND_LABEL = '\u0423\u0417\u0418'
+const MEDICAL_EXAMS_LABEL = '\u041c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440\u044b'
+const MEDICAL_EXAMS_LOADING = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440\u044b...'
+const MEDICAL_EXAMS_EMPTY = '\u0423 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0437\u0430\u043f\u0438\u0441\u0435\u0439 \u043e \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440\u0430\u0445.'
+const ADD_MEDICAL_EXAM_LABEL = '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440'
+const DELETE_MEDICAL_EXAM_LABEL = '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043c\u0435\u0434 \u043e\u0441\u043c\u043e\u0442\u0440'
 const ULTRASOUND_LOADING = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e \u0423\u0417\u0418-\u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f...'
 const ULTRASOUND_EMPTY =
   '\u0423 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0438\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0445 \u0423\u0417\u0418-\u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0439.'
@@ -53,9 +65,13 @@ export function XRayPatientCard({
   studies,
   flStudies,
   ultrasoundStudies,
+  medicalExamEntries,
   studiesLoading,
   flStudiesLoading,
   ultrasoundStudiesLoading,
+  medicalExamEntriesLoading,
+  isSavingMedicalExam,
+  deletingMedicalExamId,
   error,
   copyFeedback,
   onCopyPatientKey,
@@ -65,7 +81,10 @@ export function XRayPatientCard({
   onOpenStudyTemplates,
   onOpenEditStudy,
   onOpenUltrasoundProtocol,
+  onAddMedicalExam,
+  onDeleteMedicalExam,
 }: XRayPatientCardProps) {
+  const [isMedicalExamsSectionOpen, setIsMedicalExamsSectionOpen] = useState(false)
   const [isUltrasoundSectionOpen, setIsUltrasoundSectionOpen] = useState(false)
   const [isFlSectionOpen, setIsFlSectionOpen] = useState(false)
   const [isStudiesSectionOpen, setIsStudiesSectionOpen] = useState(true)
@@ -130,6 +149,92 @@ export function XRayPatientCard({
       {error ? <div className="state-banner error-banner">{error}</div> : null}
 
       <p className="xray-patient-address">{selectedPatient.address}</p>
+
+      <div className="xray-patient-subsection">
+        <button
+          type="button"
+          className={`xray-patient-subsection-toggle${isMedicalExamsSectionOpen ? ' is-open' : ''}`}
+          onClick={() => setIsMedicalExamsSectionOpen((currentValue) => !currentValue)}
+          aria-expanded={isMedicalExamsSectionOpen}
+        >
+          <span className="xray-patient-subsection-line">
+            <span className="section-kicker">{MEDICAL_EXAMS_LABEL}</span>
+            <span className="xray-patient-subsection-meta">({medicalExamEntries.length})</span>
+            <span className="xray-patient-subsection-chevron" aria-hidden="true">
+              <svg viewBox="0 0 12 12">
+                <path
+                  d="M3 4.5 6 7.5l3-3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </span>
+        </button>
+
+        {isMedicalExamsSectionOpen ? (
+          <div className="xray-patient-subsection-content">
+            <div className="xray-studies-head">
+              <div />
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  void onAddMedicalExam()
+                }}
+                disabled={isSavingMedicalExam}
+              >
+                {isSavingMedicalExam ? 'Добавляю...' : ADD_MEDICAL_EXAM_LABEL}
+              </button>
+            </div>
+
+            {medicalExamEntriesLoading ? <div className="empty-state">{MEDICAL_EXAMS_LOADING}</div> : null}
+
+            {!medicalExamEntriesLoading && medicalExamEntries.length === 0 ? (
+              <div className="empty-state">{MEDICAL_EXAMS_EMPTY}</div>
+            ) : null}
+
+            {!medicalExamEntriesLoading && medicalExamEntries.length > 0 ? (
+              <div className="xray-studies-list">
+                {medicalExamEntries.map((entry) => (
+                  <article
+                    key={entry.id}
+                    className="xray-study-item xray-fl-study-item"
+                    style={{ position: 'relative' }}
+                  >
+                    <div className="xray-study-date">{formatMonthLabel(entry.monthKey)}</div>
+                    <div className="xray-study-item-head">
+                      <div>
+                        <div className="xray-study-item-meta">Добавлен: {formatPatientCreatedAt(entry.createdAt)}</div>
+                      </div>
+                      <div
+                        className="xray-study-actions"
+                        style={{ position: 'absolute', top: '10px', right: '10px' }}
+                      >
+                        <button
+                          type="button"
+                          className="xray-study-edit"
+                          onClick={() => {
+                            void onDeleteMedicalExam(entry.id)
+                          }}
+                          aria-label={DELETE_MEDICAL_EXAM_LABEL}
+                          title={DELETE_MEDICAL_EXAM_LABEL}
+                          disabled={deletingMedicalExamId === entry.id}
+                        >
+                          {deletingMedicalExamId === entry.id ? '…' : '×'}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <div className="xray-patient-subsection">
         <button
