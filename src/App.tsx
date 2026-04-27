@@ -3,6 +3,7 @@ import { PlaceholderSection } from './components/common/PlaceholderSection'
 import AtlasPage from './atlas/pages/AtlasPage'
 import { HomeSection } from './components/home/HomeSection'
 import { ClockPanel } from './components/layout/ClockPanel'
+import { PlanSection } from './components/plan/PlanSection'
 import { TopNav } from './components/layout/TopNav'
 import { MedicalExamsSection } from './components/medical/MedicalExamsSection'
 import { NotesSection } from './components/notes/NotesSection'
@@ -323,6 +324,15 @@ function App() {
     if (activeSection === 'Журналы') {
       return (
         <XRayJournalsSection
+          onSelectPatient={xray.handleSelectPatient}
+          onOpenPatient={() => setActiveSection('Пациенты')}
+        />
+      )
+    }
+
+    if (activeSection === 'План') {
+      return (
+        <PlanSection
           onSelectPatient={xray.handleSelectPatient}
           onOpenPatient={() => setActiveSection('Пациенты')}
         />

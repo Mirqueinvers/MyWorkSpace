@@ -104,6 +104,12 @@ export function SickLeavesSection({
   }
 
   async function lookupXRayPatient(sickLeave: SickLeave) {
+    const xrayApi = window.electronAPI?.xray
+
+    if (!xrayApi) {
+      return null
+    }
+
     const searchQuery = [
       sickLeave.lastName,
       sickLeave.firstName,
@@ -113,7 +119,7 @@ export function SickLeavesSection({
       .filter(Boolean)
       .join(' ')
 
-    const results = await window.electronAPI.xray.searchPatients(searchQuery)
+    const results = await xrayApi.searchPatients(searchQuery)
     const birthDateDigits = normalizeBirthDateDigits(sickLeave.birthDate)
 
     return (

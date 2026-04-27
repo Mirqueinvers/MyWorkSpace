@@ -105,6 +105,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     searchPatients(query) {
       return ipcRenderer.invoke('xray:search-patients', query);
     },
+    listPatients() {
+      return ipcRenderer.invoke('xray:list-patients');
+    },
     addPatient(payload) {
       return ipcRenderer.invoke('xray:add-patient', payload);
     },

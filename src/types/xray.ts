@@ -208,6 +208,7 @@ export interface UpdateXRayStudyPayload extends AddXRayStudyPayload {
 
 export interface XRayApi {
   searchPatients: (query: string) => Promise<XRaySearchResult[]>
+  listPatients: () => Promise<XRayPatient[]>
   addPatient: (payload: AddXRayPatientPayload) => Promise<XRayPatient>
   updatePatient: (payload: UpdateXRayPatientPayload) => Promise<XRayPatient>
   deletePatient: (id: number) => Promise<boolean>

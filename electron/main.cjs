@@ -1115,6 +1115,17 @@ function searchXRayPatients(query) {
     .map(({ score, ...patient }) => patient);
 }
 
+function listXRayPatients() {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT id, last_name, first_name, patronymic, birth_date, address, rmis_url, created_at
+    FROM xray_patients
+    ORDER BY last_name ASC, first_name ASC, patronymic ASC, birth_date ASC, id ASC
+  `).all();
+
+  return rows.map(mapXRayPatient);
+}
+
 function addXRayPatient({ lastName, firstName, patronymic, birthDate, address, rmisUrl }) {
   const normalizedLastName = normalizeRequiredText(lastName, 'XRAY_LAST_NAME_REQUIRED');
   const normalizedFirstName = normalizeRequiredText(firstName, 'XRAY_FIRST_NAME_REQUIRED');
@@ -4490,6 +4501,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:search-patients', (_event, query) =>
     searchXRayPatients(query)
+  );
+
+  ipcMain.handle('xray:list-patients', () =>
+    listXRayPatients()
   );
 
   ipcMain.handle('xray:add-patient', (_event, payload) =>

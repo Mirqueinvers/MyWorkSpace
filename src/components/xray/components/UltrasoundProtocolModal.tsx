@@ -35,7 +35,6 @@ export function UltrasoundProtocolModal({
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false)
 
   const copySections = protocol ? getProtocolCopySections(protocol.documentHtml) : []
-  const selectedAttachment = attachments.find((attachment) => attachment.id === selectedAttachmentId) ?? null
   const previewAttachment = attachments.find((attachment) => attachment.id === previewAttachmentId) ?? null
   const previewImageAttachments = attachments.filter((attachment) => attachment.kind === 'image')
 
