@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { XRayPatient } from '../../types/xray'
+import type { UpdateXRayPatientPayload, XRayPatient } from '../../types/xray'
 import { formatBirthDate } from '../../utils/date'
 import { getPatientClipboardValue } from '../../utils/patient'
 
+const STORAGE_KEY = 'plan-generated-patient-ids-v1'
+const VIEWED_PATIENTS_STORAGE_KEY = 'plan-viewed-patients'
+const VIEWED_PATIENTS_STORAGE_UNINITIALIZED = '__UNINITIALIZED__'
 const ELECTRON_API_UNAVAILABLE =
   'API Electron недоступно. Откройте приложение через dev:electron.'
 const LOAD_ERROR = 'Не удалось загрузить список пациентов.'
+const UPDATE_ERROR = 'Не удалось обновить карточку пациента.'
 const EMPTY_HINT = 'Нажмите «Сгенерировать», чтобы выбрать случайную группу пациентов.'
 const TARGET_COUNT = 60
 
@@ -14,6 +18,7 @@ type PatientGender = 'male' | 'female' | 'unknown'
 interface PlanSectionProps {
   onSelectPatient: (patient: XRayPatient) => void
   onOpenPatient: () => void
+  onUpdatePatient?: (payload: UpdateXRayPatientPayload) => Promise<XRayPatient | null>
 }
 
 function parseBirthDateDigits(value: string) {
@@ -95,20 +100,67 @@ function getPatientKey(patient: XRayPatient) {
   return getPatientClipboardValue(getPatientFullName(patient), patient.birthDate)
 }
 
+function getViewedPatientKey(patient: XRayPatient) {
+  return `${patient.lastName}|${patient.firstName}|${patient.patronymic}|${patient.birthDate}`.toLocaleLowerCase(
+    'ru-RU',
+  )
+}
+
+function loadGeneratedPatientIds() {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(STORAGE_KEY)
+    if (!storedValue) {
+      return []
+    }
+
+    const parsedValue = JSON.parse(storedValue)
+    if (!Array.isArray(parsedValue)) {
+      return []
+    }
+
+    return parsedValue
+      .map((value) => Number(value))
+      .filter((value) => Number.isInteger(value) && value > 0)
+  } catch {
+    return []
+  }
+}
+
 function PatientRow({
   patient,
   onSelectPatient,
   onOpenPatient,
+  onOpenRmisEditor,
+  isEditing,
+  rmisDraft,
+  onRmisDraftChange,
+  onSaveRmis,
+  savingRmis,
+  isViewed,
+  onMarkViewed,
 }: {
   patient: XRayPatient
   onSelectPatient: (patient: XRayPatient) => void
   onOpenPatient: () => void
+  onOpenRmisEditor: (patient: XRayPatient) => void
+  isEditing: boolean
+  rmisDraft: string
+  onRmisDraftChange: (value: string) => void
+  onSaveRmis: (patient: XRayPatient) => void
+  savingRmis: boolean
+  isViewed: boolean
+  onMarkViewed: (patient: XRayPatient) => void
 }) {
   const [isCopied, setIsCopied] = useState(false)
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(getPatientKey(patient))
+      onMarkViewed(patient)
       setIsCopied(true)
       window.setTimeout(() => setIsCopied(false), 1400)
     } catch {
@@ -119,6 +171,19 @@ function PatientRow({
   function handleOpenPatient() {
     onSelectPatient(patient)
     onOpenPatient()
+  }
+
+  async function handleOpenRmisLink() {
+    if (!patient.rmisUrl || !window.electronAPI?.xray?.openLink) {
+      return
+    }
+
+    try {
+      await window.electronAPI.xray.openLink(patient.rmisUrl)
+      onMarkViewed(patient)
+    } catch {
+      // Ignore link-open errors here; the patient card handles the same action elsewhere.
+    }
   }
 
   return (
@@ -148,8 +213,27 @@ function PatientRow({
               />
             </svg>
           </button>
-          <strong className="xray-fl-journal-name">{getPatientFullName(patient)}</strong>
-          <span className="xray-fl-journal-birth-date">{formatBirthDate(patient.birthDate)}</span>
+          <strong
+            className={`xray-fl-journal-name${patient.rmisUrl ? ' has-link' : ''}${isViewed ? ' is-viewed' : ''}`}
+            onClick={() => {
+              if (patient.rmisUrl) {
+                void handleOpenRmisLink()
+              }
+            }}
+            role={patient.rmisUrl ? 'button' : undefined}
+            tabIndex={patient.rmisUrl ? 0 : undefined}
+            onKeyDown={(event) => {
+              if (patient.rmisUrl && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault()
+                void handleOpenRmisLink()
+              }
+            }}
+          >
+            {getPatientFullName(patient)}
+          </strong>
+          <span className={`xray-fl-journal-birth-date${isViewed ? ' is-viewed' : ''}`}>
+            {formatBirthDate(patient.birthDate)}
+          </span>
           <button
             type="button"
             className={`xray-fl-journal-copy-button${isCopied ? ' is-copied' : ''}`}
@@ -193,7 +277,7 @@ function PatientRow({
           <button
             type="button"
             className="xray-fl-journal-add-button"
-            onClick={handleOpenPatient}
+            onClick={() => onOpenRmisEditor(patient)}
             aria-label="Добавить ссылку в карточке пациента"
             title="Добавить ссылку в карточке пациента"
           >
@@ -202,13 +286,45 @@ function PatientRow({
         </div>
         <span>{patient.address}</span>
       </div>
+
+      {isEditing ? (
+        <div className="xray-fl-journal-rmis-editor">
+          <input
+            type="text"
+            className="input"
+            value={rmisDraft}
+            onChange={(event) => onRmisDraftChange(event.target.value)}
+            placeholder="Ссылка на РМИС"
+          />
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => onSaveRmis(patient)}
+            disabled={savingRmis}
+          >
+            {savingRmis ? 'Сохраняю...' : 'Сохранить'}
+          </button>
+        </div>
+      ) : null}
     </article>
   )
 }
 
-export function PlanSection({ onSelectPatient, onOpenPatient }: PlanSectionProps) {
+export function PlanSection({
+  onSelectPatient,
+  onOpenPatient,
+  onUpdatePatient,
+}: PlanSectionProps) {
   const [patients, setPatients] = useState<XRayPatient[]>([])
-  const [generatedPatients, setGeneratedPatients] = useState<XRayPatient[]>([])
+  const [generatedPatientIds, setGeneratedPatientIds] = useState<number[]>(() =>
+    loadGeneratedPatientIds(),
+  )
+  const [viewedPatients, setViewedPatients] = useState<
+    Record<string, boolean> | typeof VIEWED_PATIENTS_STORAGE_UNINITIALIZED
+  >(VIEWED_PATIENTS_STORAGE_UNINITIALIZED)
+  const [editingPatientId, setEditingPatientId] = useState<number | null>(null)
+  const [rmisDraft, setRmisDraft] = useState('')
+  const [savingRmis, setSavingRmis] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -275,16 +391,133 @@ export function PlanSection({ onSelectPatient, onOpenPatient }: PlanSectionProps
     })
   }, [patients])
 
+  const generatedPatients = useMemo(() => {
+    const patientsById = new Map(patients.map((patient) => [patient.id, patient]))
+
+    return generatedPatientIds
+      .map((patientId) => patientsById.get(patientId))
+      .filter((patient): patient is XRayPatient => Boolean(patient))
+  }, [generatedPatientIds, patients])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(generatedPatientIds))
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [generatedPatientIds])
+
+  useEffect(() => {
+    try {
+      const savedValue = window.sessionStorage.getItem(VIEWED_PATIENTS_STORAGE_KEY)
+
+      if (!savedValue) {
+        setViewedPatients({})
+        return
+      }
+
+      const parsedValue = JSON.parse(savedValue) as Record<string, boolean>
+      setViewedPatients(parsedValue)
+    } catch {
+      setViewedPatients({})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (viewedPatients === VIEWED_PATIENTS_STORAGE_UNINITIALIZED) {
+      return
+    }
+
+    try {
+      window.sessionStorage.setItem(VIEWED_PATIENTS_STORAGE_KEY, JSON.stringify(viewedPatients))
+    } catch {
+      // Ignore session storage write failures.
+    }
+  }, [viewedPatients])
+
+  function markPatientViewed(patient: XRayPatient) {
+    setViewedPatients((currentValue) => {
+      const nextValue =
+        currentValue === VIEWED_PATIENTS_STORAGE_UNINITIALIZED ? {} : currentValue
+
+      return {
+        ...nextValue,
+        [getViewedPatientKey(patient)]: true,
+      }
+    })
+  }
+
   function handleGenerate() {
     if (eligiblePatients.length === 0) {
-      setGeneratedPatients([])
       setError('Не нашлось пациентов, подходящих под заданные условия.')
       return
     }
 
     const shuffledPatients = shufflePatients(eligiblePatients)
-    setGeneratedPatients(shuffledPatients.slice(0, Math.min(TARGET_COUNT, shuffledPatients.length)))
+    setGeneratedPatientIds(
+      shuffledPatients
+        .slice(0, Math.min(TARGET_COUNT, shuffledPatients.length))
+        .map((patient) => patient.id),
+    )
     setError('')
+  }
+
+  function handleClearGeneratedList() {
+    setGeneratedPatientIds([])
+    setError('')
+  }
+
+  function handleOpenRmisEditor(patient: XRayPatient) {
+    setEditingPatientId(patient.id)
+    setRmisDraft(patient.rmisUrl ?? '')
+    setError('')
+  }
+
+  async function handleSaveRmis(patient: XRayPatient) {
+    const updatePatient = onUpdatePatient ?? window.electronAPI?.xray?.updatePatient
+
+    if (!updatePatient) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return
+    }
+
+    setSavingRmis(true)
+    setError('')
+
+    try {
+      const payload: UpdateXRayPatientPayload = {
+        id: patient.id,
+        lastName: patient.lastName,
+        firstName: patient.firstName,
+        patronymic: patient.patronymic,
+        birthDate: patient.birthDate,
+        address: patient.address,
+        rmisUrl: rmisDraft.trim() || null,
+      }
+
+      const updatedPatient = await updatePatient(payload)
+
+      if (!updatedPatient) {
+        setError(UPDATE_ERROR)
+        return
+      }
+
+      setPatients((currentPatients) =>
+        currentPatients.map((currentPatient) =>
+          currentPatient.id === updatedPatient.id ? updatedPatient : currentPatient,
+        ),
+      )
+      setEditingPatientId(null)
+      setRmisDraft('')
+    } catch {
+      setError(UPDATE_ERROR)
+    } finally {
+      setSavingRmis(false)
+    }
   }
 
   return (
@@ -309,6 +542,14 @@ export function PlanSection({ onSelectPatient, onOpenPatient }: PlanSectionProps
           >
             Сгенерировать
           </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleClearGeneratedList}
+            disabled={loading || generatedPatientIds.length === 0}
+          >
+            Очистить список
+          </button>
         </div>
       </div>
 
@@ -329,13 +570,24 @@ export function PlanSection({ onSelectPatient, onOpenPatient }: PlanSectionProps
       {generatedPatients.length > 0 ? (
         <div className="xray-journal-list">
           {generatedPatients.map((patient) => (
-            <PatientRow
-              key={patient.id}
-              patient={patient}
-              onSelectPatient={onSelectPatient}
-              onOpenPatient={onOpenPatient}
-            />
-          ))}
+              <PatientRow
+                key={patient.id}
+                patient={patient}
+                onSelectPatient={onSelectPatient}
+                onOpenPatient={onOpenPatient}
+                onOpenRmisEditor={handleOpenRmisEditor}
+                isEditing={editingPatientId === patient.id}
+                rmisDraft={rmisDraft}
+                onRmisDraftChange={setRmisDraft}
+                onSaveRmis={(currentPatient) => void handleSaveRmis(currentPatient)}
+                savingRmis={savingRmis}
+                isViewed={
+                  viewedPatients !== VIEWED_PATIENTS_STORAGE_UNINITIALIZED &&
+                  Boolean(viewedPatients[getViewedPatientKey(patient)])
+                }
+                onMarkViewed={markPatientViewed}
+              />
+            ))}
         </div>
       ) : null}
     </section>

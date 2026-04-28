@@ -164,6 +164,14 @@ function App() {
     setActiveSection('Пациенты')
   }
 
+  function handleSectionChange(section: AppSection) {
+    if (section === 'Пациенты') {
+      xray.resetState()
+    }
+
+    setActiveSection(section)
+  }
+
   function renderContent() {
     if (activeSection === 'Главная') {
       return (
@@ -188,6 +196,7 @@ function App() {
           xrayError={xray.error}
           notes={notes.notes}
           notesText={notes.text}
+          theme={theme}
           onMedicalMonthChange={medicalExams.setMonthKey}
           onXRayQueryChange={xray.setQuery}
           onXRaySearch={xray.handleSearch}
@@ -195,6 +204,7 @@ function App() {
           onNotesTextChange={notes.setText}
           onAddNote={notes.handleAddNote}
           notesIsSaving={notes.isSaving}
+          onThemeChange={setTheme}
           onOpenSection={setActiveSection}
         />
       )
@@ -210,7 +220,7 @@ function App() {
           loading={medicalExams.patientsLoading}
           error={medicalExams.patientsError}
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => setActiveSection('Пациенты')}
+          onOpenPatient={() => handleSectionChange('Пациенты')}
           onUpdatePatientRmisUrl={medicalExams.handleUpdatePatientRmisUrl}
           onOpenLink={xray.handleOpenLink}
         />
@@ -237,7 +247,7 @@ function App() {
           openSickLeavesCount={sickLeaves.openSickLeavesCount}
           lastNameFocusKey={sickLeaves.lastNameFocusKey}
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => setActiveSection('Пациенты')}
+          onOpenPatient={() => handleSectionChange('Пациенты')}
           onLastNameChange={sickLeaves.setLastName}
           onFirstNameChange={sickLeaves.setFirstName}
           onPatronymicChange={sickLeaves.setPatronymic}
@@ -325,7 +335,7 @@ function App() {
       return (
         <XRayJournalsSection
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => setActiveSection('Пациенты')}
+          onOpenPatient={() => handleSectionChange('Пациенты')}
         />
       )
     }
@@ -334,7 +344,7 @@ function App() {
       return (
         <PlanSection
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => setActiveSection('Пациенты')}
+          onOpenPatient={() => handleSectionChange('Пациенты')}
         />
       )
     }
@@ -378,17 +388,17 @@ function App() {
     <main className="app-shell">
       <TopNav
         activeSection={activeSection}
-        isHomeEditing={isHomeEditing}
-        theme={theme}
-        onSectionChange={setActiveSection}
-        onToggleHomeEditing={() => setIsHomeEditing((current) => !current)}
-        onThemeChange={setTheme}
+        onSectionChange={handleSectionChange}
       />
 
       <section className="content-area">{renderContent()}</section>
 
       <aside className="right-rail">
-        <ClockPanel weather={weather} />
+        <ClockPanel
+          weather={weather}
+          isHomeEditing={isHomeEditing}
+          onToggleHomeEditing={() => setIsHomeEditing((current) => !current)}
+        />
         <RemindersPanel
           currentDateDigits={todayDateDigits}
           reminders={visibleReminders}

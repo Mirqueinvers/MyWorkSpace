@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { AppSection } from '../../constants/navigation'
 import type { Patient } from '../../types/medicalExams'
@@ -19,6 +19,7 @@ type HomeWidgetId =
   | 'fluorography'
   | 'notes'
 type HomeWidgetSize = 'xxs' | 'xs' | 's' | 'l' | 'xl'
+type AppTheme = 'light' | 'dark' | 'cartoon' | 'paper' | 'notebook'
 
 interface HomeSectionProps {
   isEditing: boolean
@@ -41,10 +42,12 @@ interface HomeSectionProps {
   xrayError: string
   notes: NoteItem[]
   notesText: string
+  theme: AppTheme
   onMedicalMonthChange: (value: string) => void
   onNotesTextChange: (value: string) => void
   onAddNote: (event: FormEvent<HTMLFormElement>) => Promise<void>
   notesIsSaving: boolean
+  onThemeChange: (theme: AppTheme) => void
   onXRayQueryChange: (value: string) => void
   onXRaySearch: (event?: FormEvent<HTMLFormElement>) => Promise<void>
   onSelectXRayPatient: (patient: XRaySearchResult) => void
@@ -77,6 +80,14 @@ const HIDE_LABEL = '\u0421\u043a\u0440\u044b\u0442\u044c'
 const MANAGE_LABEL =
   '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0438\u0434\u0436\u0435\u0442 \u0438 \u0435\u0433\u043e \u0440\u0430\u0437\u043c\u0435\u0440'
 const EMPTY_VALUE = '\u2014'
+
+const THEME_OPTIONS: Array<{ id: AppTheme; label: string }> = [
+  { id: 'light', label: 'Светлая тема' },
+  { id: 'dark', label: 'Тёмная тема' },
+  { id: 'cartoon', label: 'Мультяшная тема' },
+  { id: 'paper', label: 'Бумажная тема' },
+  { id: 'notebook', label: 'Тетрадная тема' },
+]
 
 const SIZE_LABELS: Record<HomeWidgetSize, string> = {
   xxs: 'XXS',
@@ -119,7 +130,45 @@ function getOpenSickLeavePreviews(sickLeaves: SickLeave[]) {
         birthDate: formatBirthDate(item.birthDate),
         endDate: lastPeriod ? formatBirthDate(lastPeriod.endDate) : EMPTY_VALUE,
       }
-    })
+  })
+}
+
+function ThemeIcon({ theme }: { theme: AppTheme }) {
+  const isDarkTheme = theme === 'dark'
+  const isCartoonTheme = theme === 'cartoon'
+  const isPaperTheme = theme === 'paper'
+  const isNotebookTheme = theme === 'notebook'
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {isNotebookTheme ? (
+        <path
+          d="M7.25 3.75A2.25 2.25 0 0 0 5 6v12a2.25 2.25 0 0 0 2.25 2.25h9.5A2.25 2.25 0 0 0 19 18V6a2.25 2.25 0 0 0-2.25-2.25h-9.5Zm0 1.5h9.5c.41 0 .75.34.75.75v12a.75.75 0 0 1-.75.75h-9.5A.75.75 0 0 1 6.5 18V6c0-.41.34-.75.75-.75Zm2 2.75a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5A.75.75 0 0 1 9.25 8Zm0 3a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5H10a.75.75 0 0 1-.75-.75ZM7.5 6.5a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-1.5 0v-.5A.75.75 0 0 1 7.5 6.5Zm0 3a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-1.5 0v-.5A.75.75 0 0 1 7.5 9.5Zm0 3a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-1.5 0v-.5A.75.75 0 0 1 7.5 12.5Z"
+          fill="currentColor"
+        />
+      ) : isPaperTheme ? (
+        <path
+          d="M7.75 3.75A2.75 2.75 0 0 0 5 6.5v11A2.75 2.75 0 0 0 7.75 20.25h8.5A2.75 2.75 0 0 0 19 17.5v-8.3a2.75 2.75 0 0 0-.8-1.95l-2.45-2.45a2.75 2.75 0 0 0-1.95-.8h-6.05Zm0 1.5h5.5v2.5c0 1.24 1.01 2.25 2.25 2.25H17.5v7.5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-11c0-.69.56-1.25 1.25-1.25Zm7 1.06l1.69 1.69h-.94a.75.75 0 0 1-.75-.75v-.94Zm-5.5 6.94a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h4.75a.75.75 0 0 1 0 1.5H10a.75.75 0 0 1-.75-.75Z"
+          fill="currentColor"
+        />
+      ) : isCartoonTheme ? (
+        <path
+          d="M12 3.25c1.16 0 2.1.94 2.1 2.1c0 .19-.03.38-.08.56l.87.24c.4-.48 1-.79 1.67-.79c1.21 0 2.19.98 2.19 2.19c0 .31-.07.62-.2.89l.7.55c.18-.08.37-.12.56-.12c1.16 0 2.1.94 2.1 2.1s-.94 2.1-2.1 2.1c-.19 0-.38-.03-.56-.08l-.25.87c.48.4.79 1 .79 1.67c0 1.21-.98 2.19-2.19 2.19c-.31 0-.62-.07-.89-.2l-.55.7c.08.18.12.37.12.56c0 1.16-.94 2.1-2.1 2.1s-2.1-.94-2.1-2.1c0-.19.03-.38.08-.56l-.87-.25c-.4.48-1 .79-1.67.79c-1.21 0-2.19-.98-2.19-2.19c0-.31.07-.62.2-.89l-.7-.55c-.18.08-.37.12-.56.12c-1.16 0-2.1-.94-2.1-2.1s.94-2.1 2.1-2.1c.19 0 .38.03.56.08l.24-.87c-.48-.4-.79-1-.79-1.67c0-1.21.98-2.19 2.19-2.19c.31 0 .62.07.89.2l.55-.7a2.08 2.08 0 0 1-.12-.56c0-1.16.94-2.1 2.1-2.1Zm0 5.25a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7Z"
+          fill="currentColor"
+        />
+      ) : isDarkTheme ? (
+        <path
+          d="M12 4.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V5a.75.75 0 0 1 .75-.75Zm0 11a3.25 3.25 0 1 0 0-6.5a3.25 3.25 0 0 0 0 6.5Zm0 4a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V20a.75.75 0 0 1 .75-.75ZM4.25 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Zm13.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H18.25a.75.75 0 0 1-.75-.75ZM6.47 6.47a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 1 1-1.06 1.06L6.47 7.53a.75.75 0 0 1 0-1.06Zm8.94 8.94a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM6.47 17.53a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 1 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Zm8.94-8.94a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Z"
+          fill="currentColor"
+        />
+      ) : (
+        <path
+          d="M14.8 3.2a.75.75 0 0 1 .88.96a7.24 7.24 0 0 0 8.16 9.16a.75.75 0 0 1 .64 1.27A9.5 9.5 0 1 1 13.53 2.56a.75.75 0 0 1 1.27.64Zm-1.12 1.84a8 8 0 1 0 7.27 7.27a8.74 8.74 0 0 1-7.27-7.27Z"
+          fill="currentColor"
+        />
+      )}
+    </svg>
+  )
 }
 
 const HOME_WIDGETS: HomeWidgetDefinition[] = [
@@ -336,6 +385,7 @@ function normalizeWidgetInstances(value: unknown): HomeWidgetInstance[] {
 
 export function HomeSection(props: HomeSectionProps) {
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false)
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
   const [widgetInstances, setWidgetInstances] = useState<HomeWidgetInstance[]>(() => {
     if (typeof window === 'undefined') {
       return getDefaultWidgetInstances()
@@ -361,6 +411,7 @@ export function HomeSection(props: HomeSectionProps) {
       {} as Record<HomeWidgetId, HomeWidgetSize>,
     ),
   )
+  const themePickerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -373,8 +424,31 @@ export function HomeSection(props: HomeSectionProps) {
   useEffect(() => {
     if (!props.isEditing) {
       setIsAddPanelOpen(false)
+      setIsThemeMenuOpen(false)
     }
   }, [props.isEditing])
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!themePickerRef.current?.contains(event.target as Node)) {
+        setIsThemeMenuOpen(false)
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsThemeMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
 
   const visibleWidgets = useMemo(
     () =>
@@ -416,6 +490,11 @@ export function HomeSection(props: HomeSectionProps) {
 
   function handleRemoveWidget(instanceId: string) {
     setWidgetInstances((current) => current.filter((item) => item.instanceId !== instanceId))
+  }
+
+  function handleChangeTheme(theme: AppTheme) {
+    props.onThemeChange(theme)
+    setIsThemeMenuOpen(false)
   }
 
   function renderXRayWidgetSearch() {
@@ -514,54 +593,95 @@ export function HomeSection(props: HomeSectionProps) {
       {props.isEditing ? (
         <div className="content-card home-hero-card">
           <div className="home-widget-toolbar">
-            <button
-              type="button"
-              className={`home-widget-add-button${isAddPanelOpen ? ' is-open' : ''}`}
-              onClick={() => setIsAddPanelOpen((current) => !current)}
-            >
-              {ADD_WIDGET_LABEL}
-            </button>
+            <div className="home-widget-toolbar-actions">
+              <button
+                type="button"
+                className={`home-widget-add-button${isAddPanelOpen ? ' is-open' : ''}`}
+                onClick={() => setIsAddPanelOpen((current) => !current)}
+              >
+                {ADD_WIDGET_LABEL}
+              </button>
+
+              <div
+                ref={themePickerRef}
+                className={`home-widget-theme-picker${isThemeMenuOpen ? ' is-open' : ''}`}
+              >
+                <button
+                  type="button"
+                  className={`home-widget-theme-button${props.theme !== 'light' ? ' is-active' : ''}${
+                    props.theme === 'cartoon' ? ' is-cartoon' : ''
+                  }${props.theme === 'paper' ? ' is-paper' : ''}${props.theme === 'notebook' ? ' is-notebook' : ''}${
+                    isThemeMenuOpen ? ' is-open' : ''
+                  }`}
+                  onClick={() => setIsThemeMenuOpen((current) => !current)}
+                  aria-label="Выбрать тему"
+                  title="Выбрать тему"
+                  aria-expanded={isThemeMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <ThemeIcon theme={props.theme} />
+                </button>
+
+                <div className={`home-widget-theme-menu${isThemeMenuOpen ? ' is-open' : ''}`} role="menu">
+                  {THEME_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`home-widget-theme-option${option.id === props.theme ? ' is-active' : ''}${
+                        option.id === 'cartoon' ? ' is-cartoon' : ''
+                      }${option.id === 'paper' ? ' is-paper' : ''}${option.id === 'notebook' ? ' is-notebook' : ''}`}
+                      onClick={() => handleChangeTheme(option.id)}
+                      title={option.label}
+                      aria-label={option.label}
+                      role="menuitem"
+                    >
+                      <ThemeIcon theme={option.id} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
             {isAddPanelOpen ? (
-                <div className="home-widget-add-panel">
-                  <div className="home-widget-toolbar-copy">{MANAGE_LABEL}</div>
+              <div className="home-widget-add-panel">
+                <div className="home-widget-toolbar-copy">{MANAGE_LABEL}</div>
 
-                  <div className="home-widget-available-list">
-                    {HOME_WIDGETS.map((widget) => {
-                      const pendingSize = pendingSizes[widget.id] ?? widget.defaultSize
-                      const availableSizes = widget.availableSizes ?? (['xxs', 'xs', 's', 'l', 'xl'] as HomeWidgetSize[])
-                      return (
-                        <div key={widget.id} className="home-widget-available-item">
-                          <div className="home-widget-available-copy">
-                            <span className="home-widget-available-kicker">{widget.kicker}</span>
-                          </div>
-
-                          <div className="home-widget-available-actions">
-                            <div className="home-widget-size-group">
-                              {availableSizes.map((size) => (
-                                <button
-                                  key={`${widget.id}-${size}`}
-                                  type="button"
-                                  className={`home-widget-size-button${pendingSize === size ? ' is-active' : ''}`}
-                                  onClick={() => updatePendingSize(widget.id, size)}
-                                >
-                                  {SIZE_LABELS[size]}
-                                </button>
-                              ))}
-                            </div>
-
-                            <button
-                              type="button"
-                              className="home-widget-hidden-chip"
-                              onClick={() => handleAddWidget(widget.id, pendingSize)}
-                            >
-                              <span>{ADD_LABEL}</span>
-                            </button>
-                          </div>
+                <div className="home-widget-available-list">
+                  {HOME_WIDGETS.map((widget) => {
+                    const pendingSize = pendingSizes[widget.id] ?? widget.defaultSize
+                    const availableSizes = widget.availableSizes ?? (['xxs', 'xs', 's', 'l', 'xl'] as HomeWidgetSize[])
+                    return (
+                      <div key={widget.id} className="home-widget-available-item">
+                        <div className="home-widget-available-copy">
+                          <span className="home-widget-available-kicker">{widget.kicker}</span>
                         </div>
-                      )
-                    })}
-                  </div>
+
+                        <div className="home-widget-available-actions">
+                          <div className="home-widget-size-group">
+                            {availableSizes.map((size) => (
+                              <button
+                                key={`${widget.id}-${size}`}
+                                type="button"
+                                className={`home-widget-size-button${pendingSize === size ? ' is-active' : ''}`}
+                                onClick={() => updatePendingSize(widget.id, size)}
+                              >
+                                {SIZE_LABELS[size]}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="home-widget-hidden-chip"
+                            onClick={() => handleAddWidget(widget.id, pendingSize)}
+                          >
+                            <span>{ADD_LABEL}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             ) : null}
           </div>
