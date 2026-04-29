@@ -9,6 +9,7 @@ import { MedicalExamsSection } from './components/medical/MedicalExamsSection'
 import { NotesSection } from './components/notes/NotesSection'
 import { ReferencesSection } from './components/references/ReferencesSection'
 import { RemindersPanel } from './components/reminders/RemindersPanel'
+import { SchoolSection } from './components/school/SchoolSection'
 import { SchoolsSection } from './components/schools/SchoolsSection'
 import { SickLeavesSection } from './components/sickLeaves/SickLeavesSection'
 import { XRayDoses, XRayStatistics } from './components/xray/components'
@@ -20,6 +21,7 @@ import type { XRaySearchResult, XRayStatisticsRangePayload } from './types/xray'
 import { useMedicalExams } from './hooks/useMedicalExams'
 import { useNotes } from './hooks/useNotes'
 import { useReminders } from './hooks/useReminders'
+import { useSchool } from './hooks/useSchool'
 import { useSchools } from './hooks/useSchools'
 import { useSickLeaves } from './hooks/useSickLeaves'
 import { useWeather } from './hooks/useWeather'
@@ -76,6 +78,7 @@ function App() {
   const sickLeaves = useSickLeaves()
   const reminders = useReminders()
   const notes = useNotes()
+  const school = useSchool()
   const schools = useSchools()
   const xray = useXRay()
   const todayDateDigits = getCurrentDateDigits()
@@ -161,11 +164,11 @@ function App() {
 
   function handleHomeXRayPatientSelect(patient: XRaySearchResult) {
     xray.handleSelectPatient(patient)
-    setActiveSection('Пациенты')
+    setActiveSection(NAV_ITEMS[1])
   }
 
   function handleSectionChange(section: AppSection) {
-    if (section === 'Пациенты') {
+    if (section === NAV_ITEMS[1]) {
       xray.resetState()
     }
 
@@ -173,7 +176,7 @@ function App() {
   }
 
   function renderContent() {
-    if (activeSection === 'Главная') {
+    if (activeSection === NAV_ITEMS[0]) {
       return (
         <HomeSection
           isEditing={isHomeEditing}
@@ -210,7 +213,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Мед осмотры') {
+    if (activeSection === NAV_ITEMS[7]) {
       return (
         <MedicalExamsSection
           currentMonthExamCount={medicalExams.currentMonthExamCount}
@@ -220,14 +223,14 @@ function App() {
           loading={medicalExams.patientsLoading}
           error={medicalExams.patientsError}
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => handleSectionChange('Пациенты')}
+          onOpenPatient={() => handleSectionChange(NAV_ITEMS[1])}
           onUpdatePatientRmisUrl={medicalExams.handleUpdatePatientRmisUrl}
           onOpenLink={xray.handleOpenLink}
         />
       )
     }
 
-    if (activeSection === 'Больничные листы') {
+    if (activeSection === NAV_ITEMS[8]) {
       return (
         <SickLeavesSection
           lastName={sickLeaves.lastName}
@@ -247,7 +250,7 @@ function App() {
           openSickLeavesCount={sickLeaves.openSickLeavesCount}
           lastNameFocusKey={sickLeaves.lastNameFocusKey}
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => handleSectionChange('Пациенты')}
+          onOpenPatient={() => handleSectionChange(NAV_ITEMS[1])}
           onLastNameChange={sickLeaves.setLastName}
           onFirstNameChange={sickLeaves.setFirstName}
           onPatronymicChange={sickLeaves.setPatronymic}
@@ -264,7 +267,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Школы') {
+    if (activeSection === NAV_ITEMS[9]) {
       return (
         <SchoolsSection
           institutionName={schools.institutionName}
@@ -291,7 +294,32 @@ function App() {
       )
     }
 
-    if (activeSection === 'Пациенты') {
+    if (activeSection === NAV_ITEMS[10]) {
+      return (
+        <SchoolSection
+          institutionName={school.institutionName}
+          institutionType={school.institutionType}
+          institutions={school.institutions}
+          loading={school.loading}
+          error={school.error}
+          isSavingInstitution={school.isSavingInstitution}
+          savingClassInstitutionId={school.savingClassInstitutionId}
+          savingLinkStudentId={school.savingLinkStudentId}
+          deletingEntityKey={school.deletingEntityKey}
+          onInstitutionNameChange={school.setInstitutionName}
+          onInstitutionTypeChange={school.setInstitutionType}
+          onAddInstitution={school.handleAddInstitution}
+          onAddClass={school.handleAddClass}
+          onAddLink={school.handleAddLink}
+          onDeleteInstitution={school.handleDeleteInstitution}
+          onDeleteClass={school.handleDeleteClass}
+          onSelectPatient={xray.handleSelectPatient}
+          onOpenPatient={() => setActiveSection(NAV_ITEMS[1])}
+        />
+      )
+    }
+
+    if (activeSection === NAV_ITEMS[1]) {
       return (
         <XRaySection
           query={xray.query}
@@ -331,33 +359,33 @@ function App() {
       )
     }
 
-    if (activeSection === 'Журналы') {
+    if (activeSection === NAV_ITEMS[2]) {
       return (
         <XRayJournalsSection
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => handleSectionChange('Пациенты')}
+          onOpenPatient={() => handleSectionChange(NAV_ITEMS[1])}
         />
       )
     }
 
-    if (activeSection === 'План') {
+    if (activeSection === NAV_ITEMS[3]) {
       return (
         <PlanSection
           onSelectPatient={xray.handleSelectPatient}
-          onOpenPatient={() => handleSectionChange('Пациенты')}
+          onOpenPatient={() => handleSectionChange(NAV_ITEMS[1])}
         />
       )
     }
 
-    if (activeSection === 'Статистика') {
+    if (activeSection === NAV_ITEMS[4]) {
       return <XRayStatistics />
     }
 
-    if (activeSection === 'Дозы') {
+    if (activeSection === NAV_ITEMS[5]) {
       return <XRayDoses />
     }
 
-    if (activeSection === 'Заметки') {
+    if (activeSection === NAV_ITEMS[11]) {
       return (
         <NotesSection
           text={notes.text}
@@ -373,7 +401,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'Справки') {
+    if (activeSection === NAV_ITEMS[12]) {
       return <ReferencesSection />
     }
 
