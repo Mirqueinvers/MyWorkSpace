@@ -1,7 +1,6 @@
 import type { MedicalExamsApi } from './medicalExams'
 import type { NotesApi } from './notes'
 import type { RemindersApi } from './reminders'
-import type { SchoolApi } from './school'
 import type { SchoolsApi } from './schools'
 import type { SickLeavesApi } from './sickLeaves'
 import type { UltrasoundJournalApi } from './ultrasound'
@@ -14,7 +13,6 @@ declare global {
       sickLeaves: SickLeavesApi
       reminders: RemindersApi
       notes: NotesApi
-      school: SchoolApi
       schools: SchoolsApi
       xray: XRayApi
       ultrasoundJournal: UltrasoundJournalApi
