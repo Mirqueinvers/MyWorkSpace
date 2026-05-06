@@ -171,6 +171,56 @@ function ensureSchoolsSchema(db) {
   `);
 }
 
+function ensureSchoolSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_v2_institutions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS school_v2_classes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      institution_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (institution_id) REFERENCES school_v2_institutions (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS school_v2_students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      birth_date TEXT NOT NULL,
+      xray_patient_id INTEGER,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (class_id) REFERENCES school_v2_classes (id) ON DELETE CASCADE,
+      FOREIGN KEY (xray_patient_id) REFERENCES xray_patients (id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS school_v2_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      url TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (student_id) REFERENCES school_v2_students (id) ON DELETE CASCADE
+    );
+  `);
+
+  const columns = db
+    .prepare(`PRAGMA table_info('school_v2_students')`)
+    .all()
+    .map((column) => column.name);
+
+  if (!columns.includes('xray_patient_id')) {
+    db.exec(`
+      ALTER TABLE school_v2_students
+      ADD COLUMN xray_patient_id INTEGER;
+    `);
+  }
+}
+
 function ensureXRaySchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS xray_patients (
@@ -549,8 +599,10 @@ function getDatabase() {
   ensureRemindersSchema(database);
   ensureNotesSchema(database);
   ensureSchoolsSchema(database);
+  ensureSchoolSchema(database);
   ensureXRaySchema(database);
   ensureUltrasoundJournalSchema(database);
+  linkSchoolStudentsToXRayPatients();
   linkLegacyMedicalExamPatientsToXRay();
 
   return database;
@@ -580,6 +632,73 @@ function mapXRayPatient(row) {
     rmisUrl: row.rmis_url ?? null,
     createdAt: row.created_at,
   };
+}
+
+function normalizeSchoolStudentFullName(value) {
+  return String(value ?? '')
+    .toLocaleLowerCase('ru-RU')
+    .replaceAll('ё', 'е')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findMatchingXRayPatientIdForSchoolStudent(studentName, birthDate) {
+  const normalizedBirthDate = String(birthDate ?? '').trim();
+
+  if (!/^\d{8}$/.test(normalizedBirthDate)) {
+    return null;
+  }
+
+  const normalizedStudentName = normalizeSchoolStudentFullName(studentName);
+  if (!normalizedStudentName) {
+    return null;
+  }
+
+  const db = getDatabase();
+  const candidates = db.prepare(`
+    SELECT id, last_name, first_name, patronymic, birth_date
+    FROM xray_patients
+    WHERE birth_date = ?
+  `).all(normalizedBirthDate);
+
+  const exactMatch = candidates.find((candidate) => {
+    const normalizedCandidateName = normalizeSchoolStudentFullName(
+      [candidate.last_name, candidate.first_name, candidate.patronymic].filter(Boolean).join(' '),
+    );
+    return normalizedCandidateName === normalizedStudentName;
+  });
+
+  return exactMatch ? exactMatch.id : null;
+}
+
+function linkSchoolStudentsToXRayPatients() {
+  const db = getDatabase();
+  const students = db.prepare(`
+    SELECT id, name, birth_date, xray_patient_id
+    FROM school_v2_students
+    ORDER BY id ASC
+  `).all();
+
+  for (const student of students) {
+    if (student.xray_patient_id) {
+      continue;
+    }
+
+    const matchedXRayPatientId = findMatchingXRayPatientIdForSchoolStudent(
+      student.name,
+      student.birth_date
+    );
+
+    if (!matchedXRayPatientId) {
+      continue;
+    }
+
+    db.prepare(`
+      UPDATE school_v2_students
+      SET xray_patient_id = ?
+      WHERE id = ?
+    `).run(matchedXRayPatientId, student.id);
+  }
 }
 
 function mapXRayStudy(row) {
@@ -1124,6 +1243,23 @@ function listXRayPatients() {
   `).all();
 
   return rows.map(mapXRayPatient);
+}
+
+function getXRayPatientById(id) {
+  const normalizedId = Number(id);
+
+  if (!Number.isInteger(normalizedId) || normalizedId <= 0) {
+    throw new Error('XRAY_PATIENT_ID_INVALID');
+  }
+
+  const db = getDatabase();
+  const row = db.prepare(`
+    SELECT id, last_name, first_name, patronymic, birth_date, address, rmis_url, created_at
+    FROM xray_patients
+    WHERE id = ?
+  `).get(normalizedId);
+
+  return row ? mapXRayPatient(row) : null;
 }
 
 function addXRayPatient({ lastName, firstName, patronymic, birthDate, address, rmisUrl }) {
@@ -4370,6 +4506,365 @@ function deleteSchoolLink(id) {
   return result.changes > 0;
 }
 
+function getSchoolV2Links(studentId) {
+  const db = getDatabase();
+  const statement = db.prepare(`
+    SELECT id, student_id, url, created_at
+    FROM school_v2_links
+    WHERE student_id = ?
+    ORDER BY created_at ASC, id ASC
+  `);
+
+  return statement.all(studentId).map((link) => ({
+    id: link.id,
+    studentId: link.student_id,
+    url: link.url,
+    createdAt: link.created_at,
+  }));
+}
+
+function getSchoolV2Students(classId) {
+  const db = getDatabase();
+  const statement = db.prepare(`
+    SELECT id, class_id, name, birth_date, xray_patient_id, created_at
+    FROM school_v2_students
+    WHERE class_id = ?
+    ORDER BY created_at ASC, id ASC
+  `);
+
+  return statement.all(classId).map((student) => ({
+    id: student.id,
+    classId: student.class_id,
+    name: student.name,
+    birthDate: student.birth_date,
+    xrayPatientId: student.xray_patient_id ?? null,
+    rmisUrl: student.xray_patient_id
+      ? db.prepare(`SELECT rmis_url FROM xray_patients WHERE id = ?`).get(student.xray_patient_id)?.rmis_url ?? null
+      : null,
+    createdAt: student.created_at,
+    links: getSchoolV2Links(student.id),
+  }));
+}
+
+function getSchoolV2Classes(institutionId) {
+  const db = getDatabase();
+  const statement = db.prepare(`
+    SELECT id, institution_id, name, created_at
+    FROM school_v2_classes
+    WHERE institution_id = ?
+    ORDER BY created_at ASC, id ASC
+  `);
+
+  return statement.all(institutionId).map((schoolClass) => ({
+    id: schoolClass.id,
+    institutionId: schoolClass.institution_id,
+    name: schoolClass.name,
+    createdAt: schoolClass.created_at,
+    students: getSchoolV2Students(schoolClass.id),
+  }));
+}
+
+function mapSchoolV2Institution(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    createdAt: row.created_at,
+    classes: getSchoolV2Classes(row.id),
+  };
+}
+
+function importSchoolSeedIfNeeded() {
+  const db = getDatabase();
+  const result = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM school_v2_institutions
+  `).get();
+
+  if (Number(result.total ?? 0) > 0) {
+    return;
+  }
+
+  const seedPath = path.join(__dirname, 'school-seed.json');
+  if (!fs.existsSync(seedPath)) {
+    return;
+  }
+
+  const seed = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+  if (!Array.isArray(seed)) {
+    return;
+  }
+
+  const insertInstitutionStatement = db.prepare(`
+    INSERT INTO school_v2_institutions (name, type, created_at)
+    VALUES (?, ?, ?)
+  `);
+  const insertClassStatement = db.prepare(`
+    INSERT INTO school_v2_classes (institution_id, name, created_at)
+    VALUES (?, ?, ?)
+  `);
+  const insertStudentStatement = db.prepare(`
+    INSERT INTO school_v2_students (class_id, name, birth_date, xray_patient_id, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  const insertLinkStatement = db.prepare(`
+    INSERT INTO school_v2_links (student_id, url, created_at)
+    VALUES (?, ?, ?)
+  `);
+
+  for (const institution of seed) {
+    const institutionCreatedAt = new Date().toISOString();
+    const institutionResult = insertInstitutionStatement.run(
+      institution.name,
+      institution.type,
+      institutionCreatedAt
+    );
+    const institutionId = Number(institutionResult.lastInsertRowid);
+
+    for (const schoolClass of institution.classes ?? []) {
+      const classCreatedAt = new Date().toISOString();
+      const classResult = insertClassStatement.run(
+        institutionId,
+        schoolClass.name,
+        classCreatedAt
+      );
+      const classId = Number(classResult.lastInsertRowid);
+
+      for (const student of schoolClass.students ?? []) {
+        const studentCreatedAt = new Date().toISOString();
+        const birthDate = normalizeDateDigits(student.birthDate);
+        const xrayPatientId = findMatchingXRayPatientIdForSchoolStudent(
+          student.name,
+          birthDate
+        );
+        const studentResult = insertStudentStatement.run(
+          classId,
+          student.name,
+          birthDate,
+          xrayPatientId,
+          studentCreatedAt
+        );
+        const studentId = Number(studentResult.lastInsertRowid);
+
+        for (const link of student.links ?? []) {
+          insertLinkStatement.run(
+            studentId,
+            link.url,
+            new Date().toISOString()
+          );
+        }
+      }
+    }
+  }
+}
+
+function listSchoolInstitutionsV2() {
+  importSchoolSeedIfNeeded();
+  const db = getDatabase();
+  const statement = db.prepare(`
+    SELECT id, name, type, created_at
+    FROM school_v2_institutions
+    ORDER BY created_at ASC, id ASC
+  `);
+
+  return statement.all().map(mapSchoolV2Institution);
+}
+
+function addSchoolInstitutionV2({ name, type }) {
+  const normalizedName = normalizeRequiredText(name, 'INSTITUTION_NAME_REQUIRED');
+  const normalizedType = normalizeRequiredText(type, 'INSTITUTION_TYPE_REQUIRED');
+
+  if (!['school', 'kindergarten'].includes(normalizedType)) {
+    throw new Error('INSTITUTION_TYPE_INVALID');
+  }
+
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const result = db.prepare(`
+    INSERT INTO school_v2_institutions (name, type, created_at)
+    VALUES (?, ?, ?)
+  `).run(normalizedName, normalizedType, createdAt);
+
+  return {
+    id: Number(result.lastInsertRowid),
+    name: normalizedName,
+    type: normalizedType,
+    createdAt,
+    classes: [],
+  };
+}
+
+function addSchoolClassV2({ institutionId, name }) {
+  const normalizedInstitutionId = Number(institutionId);
+  const normalizedName = normalizeRequiredText(name, 'CLASS_NAME_REQUIRED');
+
+  if (!Number.isInteger(normalizedInstitutionId) || normalizedInstitutionId <= 0) {
+    throw new Error('INSTITUTION_ID_INVALID');
+  }
+
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const result = db.prepare(`
+    INSERT INTO school_v2_classes (institution_id, name, created_at)
+    VALUES (?, ?, ?)
+  `).run(normalizedInstitutionId, normalizedName, createdAt);
+
+  return {
+    id: Number(result.lastInsertRowid),
+    institutionId: normalizedInstitutionId,
+    name: normalizedName,
+    createdAt,
+    students: [],
+  };
+}
+
+function addSchoolStudentV2({ classId, name, birthDate }) {
+  const normalizedClassId = Number(classId);
+  const normalizedName = normalizeRequiredText(name, 'STUDENT_NAME_REQUIRED');
+  const normalizedBirthDate = normalizeDateDigits(birthDate);
+
+  if (!Number.isInteger(normalizedClassId) || normalizedClassId <= 0) {
+    throw new Error('CLASS_ID_INVALID');
+  }
+
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const result = db.prepare(`
+    INSERT INTO school_v2_students (class_id, name, birth_date, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(normalizedClassId, normalizedName, normalizedBirthDate, createdAt);
+
+  return {
+    id: Number(result.lastInsertRowid),
+    classId: normalizedClassId,
+    name: normalizedName,
+    birthDate: normalizedBirthDate,
+    createdAt,
+    links: [],
+  };
+}
+
+function addSchoolLinkV2({ studentId, url }) {
+  const normalizedStudentId = Number(studentId);
+  const normalizedUrl = normalizeRequiredText(url, 'LINK_URL_REQUIRED');
+
+  if (!Number.isInteger(normalizedStudentId) || normalizedStudentId <= 0) {
+    throw new Error('STUDENT_ID_INVALID');
+  }
+
+  const createdAt = new Date().toISOString();
+  const db = getDatabase();
+  const student = db.prepare(`
+    SELECT id, name, birth_date, xray_patient_id
+    FROM school_v2_students
+    WHERE id = ?
+  `).get(normalizedStudentId);
+  const result = db.prepare(`
+    INSERT INTO school_v2_links (student_id, url, created_at)
+  VALUES (?, ?, ?)
+  `).run(normalizedStudentId, normalizedUrl, createdAt);
+
+  const xrayPatientId = student?.xray_patient_id
+    ?? (student ? findMatchingXRayPatientIdForSchoolStudent(student.name, student.birth_date) : null);
+
+  if (xrayPatientId) {
+    db.prepare(`
+      UPDATE xray_patients
+      SET rmis_url = ?
+      WHERE id = ?
+    `).run(normalizedUrl, xrayPatientId);
+  }
+
+  return {
+    id: Number(result.lastInsertRowid),
+    studentId: normalizedStudentId,
+    url: normalizedUrl,
+    createdAt,
+  };
+}
+
+async function openSchoolLinkV2(url) {
+  const normalizedUrl = normalizeRequiredText(url, 'LINK_URL_REQUIRED');
+  const urlWithProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(normalizedUrl)
+    ? normalizedUrl
+    : `https://${normalizedUrl}`;
+
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(urlWithProtocol);
+  } catch {
+    throw new Error('LINK_URL_INVALID');
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error('LINK_URL_INVALID');
+  }
+
+  await shell.openExternal(parsedUrl.toString());
+  return true;
+}
+
+function deleteSchoolInstitutionV2(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new Error('INSTITUTION_ID_INVALID');
+  }
+
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM school_v2_institutions
+    WHERE id = ?
+  `).run(numericId);
+
+  return result.changes > 0;
+}
+
+function deleteSchoolClassV2(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new Error('CLASS_ID_INVALID');
+  }
+
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM school_v2_classes
+    WHERE id = ?
+  `).run(numericId);
+
+  return result.changes > 0;
+}
+
+function deleteSchoolStudentV2(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new Error('STUDENT_ID_INVALID');
+  }
+
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM school_v2_students
+    WHERE id = ?
+  `).run(numericId);
+
+  return result.changes > 0;
+}
+
+function deleteSchoolLinkV2(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new Error('LINK_ID_INVALID');
+  }
+
+  const db = getDatabase();
+  const result = db.prepare(`
+    DELETE FROM school_v2_links
+    WHERE id = ?
+  `).run(numericId);
+
+  return result.changes > 0;
+}
+
 function listNotes() {
   const db = getDatabase();
   return db.prepare(`
@@ -4471,6 +4966,34 @@ function registerIpcHandlers() {
 
   ipcMain.handle('notes:delete', (_event, id) => deleteNote(id));
 
+  ipcMain.handle('school:list', () => listSchoolInstitutionsV2());
+
+  ipcMain.handle('school:add-institution', (_event, payload) =>
+    addSchoolInstitutionV2(payload)
+  );
+
+  ipcMain.handle('school:add-class', (_event, payload) => addSchoolClassV2(payload));
+
+  ipcMain.handle('school:add-student', (_event, payload) =>
+    addSchoolStudentV2(payload)
+  );
+
+  ipcMain.handle('school:add-link', (_event, payload) => addSchoolLinkV2(payload));
+
+  ipcMain.handle('school:open-link', (_event, url) => openSchoolLinkV2(url));
+
+  ipcMain.handle('school:delete-institution', (_event, id) =>
+    deleteSchoolInstitutionV2(id)
+  );
+
+  ipcMain.handle('school:delete-class', (_event, id) => deleteSchoolClassV2(id));
+
+  ipcMain.handle('school:delete-student', (_event, id) =>
+    deleteSchoolStudentV2(id)
+  );
+
+  ipcMain.handle('school:delete-link', (_event, id) => deleteSchoolLinkV2(id));
+
   ipcMain.handle('schools:list', () => listSchoolInstitutions());
 
   ipcMain.handle('schools:add-institution', (_event, payload) =>
@@ -4505,6 +5028,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:list-patients', () =>
     listXRayPatients()
+  );
+
+  ipcMain.handle('xray:get-patient-by-id', (_event, id) =>
+    getXRayPatientById(id)
   );
 
   ipcMain.handle('xray:add-patient', (_event, payload) =>

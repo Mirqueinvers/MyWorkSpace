@@ -69,6 +69,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('notes:delete', id);
     },
   },
+  school: {
+    list() {
+      return ipcRenderer.invoke('school:list');
+    },
+    addInstitution(payload) {
+      return ipcRenderer.invoke('school:add-institution', payload);
+    },
+    addClass(payload) {
+      return ipcRenderer.invoke('school:add-class', payload);
+    },
+    addStudent(payload) {
+      return ipcRenderer.invoke('school:add-student', payload);
+    },
+    addLink(payload) {
+      return ipcRenderer.invoke('school:add-link', payload);
+    },
+    openLink(url) {
+      return ipcRenderer.invoke('school:open-link', url);
+    },
+    deleteInstitution(id) {
+      return ipcRenderer.invoke('school:delete-institution', id);
+    },
+    deleteClass(id) {
+      return ipcRenderer.invoke('school:delete-class', id);
+    },
+    deleteStudent(id) {
+      return ipcRenderer.invoke('school:delete-student', id);
+    },
+    deleteLink(id) {
+      return ipcRenderer.invoke('school:delete-link', id);
+    },
+  },
   schools: {
     list() {
       return ipcRenderer.invoke('schools:list');
@@ -107,6 +139,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     listPatients() {
       return ipcRenderer.invoke('xray:list-patients');
+    },
+    getPatientById(id) {
+      return ipcRenderer.invoke('xray:get-patient-by-id', id);
     },
     addPatient(payload) {
       return ipcRenderer.invoke('xray:add-patient', payload);
