@@ -2,6 +2,8 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 const fs = require('node:fs');
+const dgram = require('node:dgram');
+const { execSync } = require('node:child_process');
 const { DatabaseSync } = require('node:sqlite');
 const dicomParser = require('dicom-parser');
 const xrayDoseReferenceSeed = require('./xray-dose-reference-seed.json');
@@ -2700,6 +2702,248 @@ function importUltrasoundJournalFile(filePath) {
   };
 }
 
+async function importFlRemoteFile(ip, fileName) {
+  const normalizedIp = String(ip ?? '').trim();
+  if (!normalizedIp) {
+    throw new Error('IP address is required');
+  }
+  const normalizedFileName = String(fileName ?? '').trim();
+  if (!normalizedFileName) {
+    throw new Error('File name is required');
+  }
+  return await importFlRemoteLogContent(normalizedIp, normalizedFileName);
+}
+
+async function listFlRemoteFiles(ip) {
+  const normalizedIp = String(ip ?? '').trim();
+  if (!normalizedIp) {
+    throw new Error('IP address is required');
+  }
+  const url = `http://${normalizedIp}:38245/list`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to list files: ${response.status}`);
+  }
+  return response.json();
+}
+
+async function fetchFlRemoteFile(ip, fileName) {
+  const normalizedIp = String(ip ?? '').trim();
+  if (!normalizedIp) {
+    throw new Error('IP address is required');
+  }
+  const normalizedFileName = String(fileName ?? '').trim();
+  if (!normalizedFileName) {
+    throw new Error('File name is required');
+  }
+  const url = `http://${normalizedIp}:38245/file/${encodeURIComponent(normalizedFileName)}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file: ${response.status}`);
+  }
+  return response.text();
+}
+
+function parseSRReaderLog(content) {
+  const lines = String(content ?? '').split(/\r?\n/);
+  const entries = [];
+  let currentEntry = null;
+  let descriptionLines = [];
+  let conclusionLines = [];
+  let isInDescription = false;
+  let isInConclusion = false;
+  let isInDoctor = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(/\u00a0/g, ' ').trim();
+    const lowerLine = line.toLocaleLowerCase('ru-RU');
+
+    if (line.startsWith('ФИО:')) {
+      if (currentEntry) {
+        finishCurrentEntry();
+      }
+      const match = line.match(/ФИО:\s*([^|]+?)\s*\|?\s*Дата рождения:\s*([^|]+?)\s*\|?\s*Пол:\s*(.+)/);
+      if (match) {
+        const fullName = match[1].trim();
+        const nameParts = fullName.split(/\s+/).filter(Boolean);
+        const birthDateRaw = match[2].trim();
+
+        let birthDate = '';
+        const bdMatch = birthDateRaw.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+        if (bdMatch) {
+          const year = bdMatch[3].length === 2 ? `20${bdMatch[3]}` : bdMatch[3];
+          birthDate = `${bdMatch[1].padStart(2, '0')}${bdMatch[2].padStart(2, '0')}${year}`;
+        }
+
+        let lastName = nameParts[0] || '';
+        let firstName = nameParts[1] || '';
+        let patronymic = nameParts.slice(2).join(' ');
+
+        currentEntry = {
+          lastName,
+          firstName,
+          patronymic,
+          birthDate,
+          shotDate: '',
+          pathologyDescription: '',
+          pathologyConclusion: '',
+        };
+        isInDescription = false;
+        isInConclusion = false;
+        isInDoctor = false;
+        descriptionLines = [];
+        conclusionLines = [];
+      }
+      continue;
+    }
+
+    if (currentEntry && line.startsWith('Исследование:')) {
+      const dateMatch = line.match(/Дата проведения:\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+      if (dateMatch) {
+        const year = dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3];
+        currentEntry.shotDate = `${year}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+      }
+      continue;
+    }
+
+    if (currentEntry && (lowerLine.includes('описание') || line.endsWith('Описание:'))) {
+      isInDescription = true;
+      isInConclusion = false;
+      isInDoctor = false;
+      continue;
+    }
+
+    if (currentEntry && (lowerLine.includes('заключение') || line.endsWith('Заключение:'))) {
+      isInDescription = false;
+      isInConclusion = true;
+      isInDoctor = false;
+      continue;
+    }
+
+    if (currentEntry && isInConclusion && lowerLine.includes('врач:')) {
+      isInDescription = false;
+      isInConclusion = false;
+      isInDoctor = true;
+      finishCurrentEntry();
+      continue;
+    }
+
+    if (currentEntry && isInDescription && line && !line.startsWith('File:') && !line.startsWith('SetFirstBlock') && !line.match(/^\d{4}-\d{2}-\d{2}/)) {
+      if (line === 'Type of Decision' || line.startsWith('Type of Decision')) {
+        isInDescription = false;
+        continue;
+      }
+      descriptionLines.push(line);
+      continue;
+    }
+
+    if (currentEntry && isInConclusion && line && !line.startsWith('File:') && !line.startsWith('SetFirstBlock') && !line.match(/^\d{4}-\d{2}-\d{2}/)) {
+      if (line === 'Type of Decision' || line.startsWith('Type of Decision')) {
+        isInConclusion = false;
+        finishCurrentEntry();
+        continue;
+      }
+      conclusionLines.push(line);
+      continue;
+    }
+
+    // Skip technical lines
+    if (currentEntry && (line.startsWith('File:') || line.startsWith('SetFirstBlock') || line.match(/^\d{4}-\d{2}-\d{2}/))) {
+      continue;
+    }
+  }
+
+  finishCurrentEntry();
+
+  function finishCurrentEntry() {
+    if (currentEntry && currentEntry.shotDate) {
+      currentEntry.pathologyDescription = descriptionLines
+        .filter(Boolean)
+        .join('\n')
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\r/g, '\n')
+        .replace(/\\n/g, '\n')
+        .trim();
+      currentEntry.pathologyConclusion = conclusionLines
+        .filter(Boolean)
+        .join('\n')
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\r/g, '\n')
+        .replace(/\\n/g, '\n')
+        .trim();
+      entries.push({ ...currentEntry });
+    }
+    currentEntry = null;
+    descriptionLines = [];
+    conclusionLines = [];
+    isInDescription = false;
+    isInConclusion = false;
+  }
+
+  return entries;
+}
+
+async function importFlRemoteLogContent(ip, fileName) {
+  const content = await fetchFlRemoteFile(ip, fileName);
+  const entries = parseSRReaderLog(content);
+
+  if (entries.length === 0) {
+    return { imported: 0, skipped: 0 };
+  }
+
+  const db = getDatabase();
+  const createdAt = new Date().toISOString();
+  let imported = 0;
+  let skipped = 0;
+
+  const statement = db.prepare(`
+    INSERT OR IGNORE INTO xray_flu_journal (
+      shot_date,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      dose,
+      pathology_description,
+      pathology_conclusion,
+      source_file,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec('BEGIN');
+
+  try {
+    entries.forEach((item) => {
+      const result = statement.run(
+        item.shotDate,
+        item.lastName,
+        item.firstName,
+        item.patronymic,
+        item.birthDate,
+        '0',
+        item.pathologyDescription,
+        item.pathologyConclusion,
+        fileName,
+        createdAt
+      );
+
+      if (result.changes > 0) {
+        imported += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+
+  return { imported, skipped };
+}
+
 async function selectXRayFlJournalFile() {
   const result = await dialog.showOpenDialog({
     title: 'Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р» Р¤Р» Р¶СѓСЂРЅР°Р»Р°',
@@ -4987,6 +5231,95 @@ function deleteNote(id) {
   return result.changes > 0;
 }
 
+function sendWakeOnLan(macAddress, broadcastIp) {
+  const normalizedMac = String(macAddress ?? '')
+    .replace(/[^a-fA-F0-9]/g, '')
+    .toLowerCase();
+
+  if (!/^[a-f0-9]{12}$/.test(normalizedMac)) {
+    throw new Error('WOL_MAC_INVALID');
+  }
+
+  const normalizedBroadcast = String(broadcastIp ?? '').trim() || '255.255.255.255';
+  const macBytes = Buffer.from(normalizedMac, 'hex');
+  const packet = Buffer.alloc(6 + 16 * 6);
+
+  // Первые 6 байт — 0xFF
+  for (let i = 0; i < 6; i += 1) {
+    packet[i] = 0xFF;
+  }
+
+  // 16 раз повторяем MAC-адрес
+  for (let i = 0; i < 16; i += 1) {
+    macBytes.copy(packet, 6 + i * 6);
+  }
+
+  return new Promise((resolve, reject) => {
+    const socket = dgram.createSocket('udp4');
+    socket.on('error', (error) => {
+      socket.close();
+      reject(error);
+    });
+
+    socket.send(packet, 0, packet.length, 9, normalizedBroadcast, (error) => {
+      socket.close();
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(true);
+    });
+  });
+}
+
+function remoteShutdown(ip, timeoutSeconds = 10) {
+  const normalizedIp = String(ip ?? '').trim();
+  if (!normalizedIp) {
+    throw new Error('SHUTDOWN_IP_REQUIRED');
+  }
+
+  const normalizedTimeout = Number.isFinite(Number(timeoutSeconds))
+    ? Math.max(0, Math.floor(Number(timeoutSeconds)))
+    : 10;
+
+  try {
+    execSync(
+      `shutdown /s /m \\\\${normalizedIp} /t ${normalizedTimeout} /f`,
+      { timeout: 10000, stdio: 'pipe' }
+    );
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message) {
+      throw new Error(`SHUTDOWN_FAILED: ${error.message}`);
+    }
+    throw new Error('SHUTDOWN_FAILED');
+  }
+}
+
+function remoteRestart(ip, timeoutSeconds = 10) {
+  const normalizedIp = String(ip ?? '').trim();
+  if (!normalizedIp) {
+    throw new Error('RESTART_IP_REQUIRED');
+  }
+
+  const normalizedTimeout = Number.isFinite(Number(timeoutSeconds))
+    ? Math.max(0, Math.floor(Number(timeoutSeconds)))
+    : 10;
+
+  try {
+    execSync(
+      `shutdown /r /m \\\\${normalizedIp} /t ${normalizedTimeout} /f`,
+      { timeout: 10000, stdio: 'pipe' }
+    );
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message) {
+      throw new Error(`RESTART_FAILED: ${error.message}`);
+    }
+    throw new Error('RESTART_FAILED');
+  }
+}
+
 function registerIpcHandlers() {
   ipcMain.handle('medical-exams:list-patients', (_event, monthKey) =>
     listMedicalExamPatients(monthKey)
@@ -5180,6 +5513,18 @@ function registerIpcHandlers() {
     importXRayFlJournalFile(filePath)
   );
 
+  ipcMain.handle('xray:list-fl-remote-files', async (_event, ip) =>
+    listFlRemoteFiles(ip)
+  );
+
+  ipcMain.handle('xray:fetch-fl-remote-file', async (_event, ip, fileName) =>
+    fetchFlRemoteFile(ip, fileName)
+  );
+
+  ipcMain.handle('xray:import-fl-remote-file', async (_event, ip, fileName) =>
+    importFlRemoteFile(ip, fileName)
+  );
+
   ipcMain.handle('xray:select-fl-pathology-folder', () =>
     selectXRayFlPathologyFolder()
   );
@@ -5294,6 +5639,18 @@ function registerIpcHandlers() {
 
   ipcMain.handle('xray:delete-study', (_event, id) =>
     deleteXRayStudy(id)
+  );
+
+  ipcMain.handle('network:wake-on-lan', async (_event, macAddress, broadcastIp) =>
+    sendWakeOnLan(macAddress, broadcastIp)
+  );
+
+  ipcMain.handle('network:remote-shutdown', (_event, ip, timeoutSeconds) =>
+    remoteShutdown(ip, timeoutSeconds)
+  );
+
+  ipcMain.handle('network:remote-restart', (_event, ip, timeoutSeconds) =>
+    remoteRestart(ip, timeoutSeconds)
   );
 }
 

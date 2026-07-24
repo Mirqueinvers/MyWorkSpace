@@ -188,6 +188,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importFlJournalFile(filePath) {
       return ipcRenderer.invoke('xray:import-fl-journal-file', filePath);
     },
+    listFlRemoteFiles(ip) {
+      return ipcRenderer.invoke('xray:list-fl-remote-files', ip);
+    },
+    fetchFlRemoteFile(ip, fileName) {
+      return ipcRenderer.invoke('xray:fetch-fl-remote-file', ip, fileName);
+    },
+    importFlRemoteFile(ip, fileName) {
+      return ipcRenderer.invoke('xray:import-fl-remote-file', ip, fileName);
+    },
     selectFlPathologyFolder() {
       return ipcRenderer.invoke('xray:select-fl-pathology-folder');
     },
@@ -208,6 +217,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     deleteStudy(id) {
       return ipcRenderer.invoke('xray:delete-study', id);
+    },
+  },
+  network: {
+    wakeOnLan(macAddress, broadcastIp) {
+      return ipcRenderer.invoke('network:wake-on-lan', macAddress, broadcastIp);
+    },
+    remoteShutdown(ip, timeoutSeconds) {
+      return ipcRenderer.invoke('network:remote-shutdown', ip, timeoutSeconds);
+    },
+    remoteRestart(ip, timeoutSeconds) {
+      return ipcRenderer.invoke('network:remote-restart', ip, timeoutSeconds);
     },
   },
   ultrasoundJournal: {

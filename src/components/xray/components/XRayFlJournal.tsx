@@ -16,6 +16,9 @@ const FL_JOURNAL_API_UNAVAILABLE =
 const JOURNAL_LOAD_ERROR = 'Не удалось загрузить флюорографический журнал за выбранную дату.'
 const IMPORT_ERROR = 'Не удалось импортировать файл журнала.'
 const PATHOLOGY_IMPORT_ERROR = 'Не удалось импортировать патологию.'
+const REMOTE_LIST_ERROR = 'Не удалось получить список файлов с удалённого ПК.'
+const REMOTE_IMPORT_ERROR = 'Не удалось импортировать файл с удалённого ПК.'
+const REMOTE_IMPORT_SUCCESS = 'Импорт с удалённого ПК выполнен успешно.'
 const RMIS_SAVE_ERROR = 'Не удалось сохранить ссылку РМИС.'
 const PATIENT_OPEN_ERROR = 'Не удалось открыть карточку пациента.'
 const VIEWED_FL_PATIENTS_STORAGE_KEY = 'xray-fl-viewed-patients'
@@ -121,6 +124,11 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
   const [viewedPatients, setViewedPatients] = useState<
     Record<string, boolean> | typeof VIEWED_FL_PATIENTS_STORAGE_UNINITIALIZED
   >(VIEWED_FL_PATIENTS_STORAGE_UNINITIALIZED)
+  const [remoteIp, setRemoteIp] = useState('')
+  const [remoteFiles, setRemoteFiles] = useState<Array<{ name: string; size: number; modifiedAt: string }>>([])
+  const [selectedRemoteFile, setSelectedRemoteFile] = useState('')
+  const [remoteLoading, setRemoteLoading] = useState(false)
+  const [remoteImportLoading, setRemoteImportLoading] = useState(false)
 
   useEffect(() => {
     try {
@@ -426,6 +434,80 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
     setError('')
   }
 
+  async function handleListRemoteFiles() {
+    if (!window.electronAPI?.xray?.listFlRemoteFiles) {
+      setError(FL_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    const trimmedIp = remoteIp.trim()
+    if (!trimmedIp) {
+      setError('Укажите IP-адрес удалённого ПК.')
+      return
+    }
+
+    setRemoteLoading(true)
+    setError('')
+    setRemoteFiles([])
+    setSelectedRemoteFile('')
+
+    try {
+      const files = await window.electronAPI.xray.listFlRemoteFiles(trimmedIp)
+      setRemoteFiles(files)
+      if (files.length > 0) {
+        setSelectedRemoteFile(files[0].name)
+      }
+    } catch (listError) {
+      if (listError instanceof Error && listError.message) {
+        setError(`${REMOTE_LIST_ERROR} ${listError.message}`)
+      } else {
+        setError(REMOTE_LIST_ERROR)
+      }
+    } finally {
+      setRemoteLoading(false)
+    }
+  }
+
+  async function handleImportRemoteFile() {
+    if (!window.electronAPI?.xray?.importFlRemoteFile) {
+      setError(FL_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    const trimmedIp = remoteIp.trim()
+    if (!trimmedIp) {
+      setError('Укажите IP-адрес удалённого ПК.')
+      return
+    }
+
+    if (!selectedRemoteFile) {
+      setError('Выберите файл для импорта.')
+      return
+    }
+
+    setRemoteImportLoading(true)
+    setError('')
+
+    try {
+      const result = await window.electronAPI.xray.importFlRemoteFile(trimmedIp, selectedRemoteFile)
+      if (result.imported > 0 || result.skipped > 0) {
+        setImportResult(result)
+        await loadJournalByDate(journalDate)
+      }
+      if (result.imported === 0 && result.skipped === 0) {
+        setError('Не найдено новых записей в выбранном файле.')
+      }
+    } catch (importError) {
+      if (importError instanceof Error && importError.message) {
+        setError(`${REMOTE_IMPORT_ERROR} ${importError.message}`)
+      } else {
+        setError(REMOTE_IMPORT_ERROR)
+      }
+    } finally {
+      setRemoteImportLoading(false)
+    }
+  }
+
   async function handleSaveRmis(entry: XRayFlJournalEntry) {
     if (!window.electronAPI?.xray?.updateFlJournalRmisUrl) {
       setError(FL_JOURNAL_API_UNAVAILABLE)
@@ -543,6 +625,53 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
           <span>{formatPathologyImportResult(pathologyImportResult)}</span>
         </div>
       ) : null}
+
+      <details className="xray-fl-journal-remote-section">
+        <summary className="xray-fl-journal-remote-summary">Импорт по сети</summary>
+        <div className="xray-fl-journal-remote-body">
+          <div className="xray-fl-journal-remote-row">
+            <input
+              type="text"
+              className="input xray-fl-journal-remote-ip"
+              value={remoteIp}
+              onChange={(event) => setRemoteIp(event.target.value)}
+              placeholder="IP-адрес удалённого ПК (например, 192.168.1.100)"
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void handleListRemoteFiles()}
+              disabled={remoteLoading}
+            >
+              {remoteLoading ? 'Получаю список...' : 'Список файлов'}
+            </button>
+          </div>
+
+          {remoteFiles.length > 0 ? (
+            <div className="xray-fl-journal-remote-row">
+              <select
+                className="input xray-fl-journal-remote-select"
+                value={selectedRemoteFile}
+                onChange={(event) => setSelectedRemoteFile(event.target.value)}
+              >
+                {remoteFiles.map((file) => (
+                  <option key={file.name} value={file.name}>
+                    {file.name} ({((file.size ?? 0) / 1024 / 1024).toFixed(1)} МБ, {new Date(file.modifiedAt).toLocaleDateString('ru-RU')})
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => void handleImportRemoteFile()}
+                disabled={remoteImportLoading || !selectedRemoteFile}
+              >
+                {remoteImportLoading ? 'Импортирую...' : 'Импорт'}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </details>
 
       {entries.length > 0 ? (
         <div className="xray-journal-meta">
@@ -804,9 +933,4 @@ export function XRayFlJournal({ onSelectPatient, onOpenPatient }: XRayFlJournalP
     </section>
   )
 }
-
-
-
-
-
 

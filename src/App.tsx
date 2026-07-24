@@ -6,6 +6,7 @@ import { ClockPanel } from './components/layout/ClockPanel'
 import { PlanSection } from './components/plan/PlanSection'
 import { TopNav } from './components/layout/TopNav'
 import { MedicalExamsSection } from './components/medical/MedicalExamsSection'
+import { NetworkSection } from './components/network/NetworkSection'
 import { NotesSection } from './components/notes/NotesSection'
 import { ReferencesSection } from './components/references/ReferencesSection'
 import { RemindersPanel } from './components/reminders/RemindersPanel'
@@ -390,6 +391,10 @@ function App() {
     }
 
     if (activeSection === NAV_ITEMS[11]) {
+      return <NetworkSection />
+    }
+
+    if (activeSection === NAV_ITEMS[12]) {
       return (
         <NotesSection
           text={notes.text}
@@ -405,7 +410,7 @@ function App() {
       )
     }
 
-    if (activeSection === NAV_ITEMS[12]) {
+    if (activeSection === NAV_ITEMS[13]) {
       return <ReferencesSection />
     }
 

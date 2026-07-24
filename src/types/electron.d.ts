@@ -7,6 +7,12 @@ import type { SickLeavesApi } from './sickLeaves'
 import type { UltrasoundJournalApi } from './ultrasound'
 import type { XRayApi } from './xray'
 
+interface NetworkApi {
+  wakeOnLan(macAddress: string, broadcastIp?: string): Promise<boolean>
+  remoteShutdown(ip: string, timeoutSeconds?: number): Promise<boolean>
+  remoteRestart(ip: string, timeoutSeconds?: number): Promise<boolean>
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -17,6 +23,7 @@ declare global {
       school: SchoolApi
       schools: SchoolsApi
       xray: XRayApi
+      network: NetworkApi
       ultrasoundJournal: UltrasoundJournalApi
     }
   }

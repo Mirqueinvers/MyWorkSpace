@@ -232,6 +232,9 @@ export interface XRayApi {
     payload: ImportXRayFlPathologyPayload,
   ) => Promise<ImportXRayFlPathologyResult>
   updateFlJournalPathology: (payload: UpdateXRayFlJournalPathologyPayload) => Promise<boolean>
+  listFlRemoteFiles: (ip: string) => Promise<Array<{ name: string; size: number; modifiedAt: string }>>
+  fetchFlRemoteFile: (ip: string, fileName: string) => Promise<string>
+  importFlRemoteFile: (ip: string, fileName: string) => Promise<ImportXRayFlJournalResult>
   listStudies: (patientId: number) => Promise<XRayStudy[]>
   addStudy: (payload: AddXRayStudyPayload) => Promise<XRayStudy>
   updateStudy: (payload: UpdateXRayStudyPayload) => Promise<XRayStudy>
