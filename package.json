@@ -69,5 +69,17 @@
       "allowToChangeInstallationDirectory": true
     },
     "publish": null
-  }
+  },
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mirqueinvers/MyWorkSpace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mirqueinvers/MyWorkSpace/issues"
+  },
+  "homepage": "https://github.com/Mirqueinvers/MyWorkSpace#readme"
 }
