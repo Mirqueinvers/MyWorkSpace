@@ -223,11 +223,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     wakeOnLan(macAddress, broadcastIp) {
       return ipcRenderer.invoke('network:wake-on-lan', macAddress, broadcastIp);
     },
-    remoteShutdown(ip, timeoutSeconds) {
-      return ipcRenderer.invoke('network:remote-shutdown', ip, timeoutSeconds);
+    remoteShutdown(payload) {
+      return ipcRenderer.invoke('network:remote-shutdown', payload);
     },
-    remoteRestart(ip, timeoutSeconds) {
-      return ipcRenderer.invoke('network:remote-restart', ip, timeoutSeconds);
+    remoteRestart(payload) {
+      return ipcRenderer.invoke('network:remote-restart', payload);
     },
   },
   ultrasoundJournal: {

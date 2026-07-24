@@ -13,6 +13,8 @@ function formatMacAddress(value: string) {
 
 export function NetworkSection() {
   const [ip, setIp] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [macAddress, setMacAddress] = useState('')
   const [broadcastIp, setBroadcastIp] = useState('')
   const [error, setError] = useState('')
@@ -75,7 +77,12 @@ export function NetworkSection() {
     setShutdownLoading(true)
 
     try {
-      await window.electronAPI.network.remoteShutdown(trimmedIp, 10)
+      await window.electronAPI.network.remoteShutdown({
+        ip: trimmedIp,
+        username: username.trim() || undefined,
+        password: password || undefined,
+        timeoutSeconds: 10,
+      })
       setSuccess(`Команда выключения отправлена на ${trimmedIp}`)
       setConfirmShutdown(false)
     } catch (shutdownError) {
@@ -107,7 +114,12 @@ export function NetworkSection() {
     setRestartLoading(true)
 
     try {
-      await window.electronAPI.network.remoteRestart(trimmedIp, 10)
+      await window.electronAPI.network.remoteRestart({
+        ip: trimmedIp,
+        username: username.trim() || undefined,
+        password: password || undefined,
+        timeoutSeconds: 10,
+      })
       setSuccess(`Команда перезагрузки отправлена на ${trimmedIp}`)
       setConfirmRestart(false)
     } catch (restartError) {
@@ -178,7 +190,25 @@ export function NetworkSection() {
               className="input"
               value={ip}
               onChange={(event) => setIp(event.target.value)}
-              placeholder="IP-адрес удалённого ПК (например, 192.168.1.100)"
+              placeholder="IP-адрес удалённого ПК (например, 192.168.0.126)"
+            />
+          </div>
+          <div className="network-form-row">
+            <input
+              type="text"
+              className="input"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Имя пользователя (ПК\Логин или Логин)"
+            />
+          </div>
+          <div className="network-form-row">
+            <input
+              type="password"
+              className="input"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Пароль"
             />
           </div>
           <div className="network-form-row network-button-group">
@@ -268,7 +298,8 @@ export function NetworkSection() {
         <h4>Требования:</h4>
         <ul>
           <li><strong>Включение (WOL):</strong> BIOS: Wake-on-LAN включён, в Windows: драйвер сетевой карты разрешает Magic Packet, быстрый запуск отключён</li>
-          <li><strong>Выключение:</strong> На целевом ПК: реестр <code>LocalAccountTokenFilterPolicy = 1</code>, сетевой доступ разрешён</li>
+          <li><strong>Выключение:</strong> На целевом ПК: реестр <code>LocalAccountTokenFilterPolicy = 1</code>, служба Remote Registry запущена</li>
+          <li>Если учётные записи не совпадают — укажите Имя пользователя и Пароль для подключения к целевому ПК</li>
           <li>Все ПК должны быть в одной локальной сети</li>
         </ul>
       </div>

@@ -7,10 +7,17 @@ import type { SickLeavesApi } from './sickLeaves'
 import type { UltrasoundJournalApi } from './ultrasound'
 import type { XRayApi } from './xray'
 
+interface RemotePowerPayload {
+  ip: string
+  username?: string
+  password?: string
+  timeoutSeconds?: number
+}
+
 interface NetworkApi {
   wakeOnLan(macAddress: string, broadcastIp?: string): Promise<boolean>
-  remoteShutdown(ip: string, timeoutSeconds?: number): Promise<boolean>
-  remoteRestart(ip: string, timeoutSeconds?: number): Promise<boolean>
+  remoteShutdown(payload: RemotePowerPayload): Promise<boolean>
+  remoteRestart(payload: RemotePowerPayload): Promise<boolean>
 }
 
 declare global {

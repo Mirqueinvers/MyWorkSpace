@@ -5272,7 +5272,7 @@ function sendWakeOnLan(macAddress, broadcastIp) {
   });
 }
 
-function remoteShutdown(ip, timeoutSeconds = 10) {
+function remoteShutdown({ ip, username, password, timeoutSeconds = 10 }) {
   const normalizedIp = String(ip ?? '').trim();
   if (!normalizedIp) {
     throw new Error('SHUTDOWN_IP_REQUIRED');
@@ -5283,10 +5283,33 @@ function remoteShutdown(ip, timeoutSeconds = 10) {
     : 10;
 
   try {
+    // Если указаны учётные данные — подключаемся по сети
+    const normalizedUsername = String(username ?? '').trim();
+    const normalizedPassword = String(password ?? '');
+
+    if (normalizedUsername) {
+      execSync(
+        `net use \\\\${normalizedIp}\\IPC$ ${normalizedPassword} /user:${normalizedUsername}`,
+        { timeout: 10000, stdio: 'pipe' }
+      );
+    }
+
     execSync(
       `shutdown /s /m \\\\${normalizedIp} /t ${normalizedTimeout} /f`,
-      { timeout: 10000, stdio: 'pipe' }
+      { timeout: 15000, stdio: 'pipe' }
     );
+
+    if (normalizedUsername) {
+      try {
+        execSync(
+          `net use \\\\${normalizedIp}\\IPC$ /delete /y`,
+          { timeout: 5000, stdio: 'pipe' }
+        );
+      } catch {
+        // Игнорируем ошибки при удалении сетевого подключения
+      }
+    }
+
     return true;
   } catch (error) {
     if (error instanceof Error && error.message) {
@@ -5296,7 +5319,7 @@ function remoteShutdown(ip, timeoutSeconds = 10) {
   }
 }
 
-function remoteRestart(ip, timeoutSeconds = 10) {
+function remoteRestart({ ip, username, password, timeoutSeconds = 10 }) {
   const normalizedIp = String(ip ?? '').trim();
   if (!normalizedIp) {
     throw new Error('RESTART_IP_REQUIRED');
@@ -5307,10 +5330,32 @@ function remoteRestart(ip, timeoutSeconds = 10) {
     : 10;
 
   try {
+    const normalizedUsername = String(username ?? '').trim();
+    const normalizedPassword = String(password ?? '');
+
+    if (normalizedUsername) {
+      execSync(
+        `net use \\\\${normalizedIp}\\IPC$ ${normalizedPassword} /user:${normalizedUsername}`,
+        { timeout: 10000, stdio: 'pipe' }
+      );
+    }
+
     execSync(
       `shutdown /r /m \\\\${normalizedIp} /t ${normalizedTimeout} /f`,
-      { timeout: 10000, stdio: 'pipe' }
+      { timeout: 15000, stdio: 'pipe' }
     );
+
+    if (normalizedUsername) {
+      try {
+        execSync(
+          `net use \\\\${normalizedIp}\\IPC$ /delete /y`,
+          { timeout: 5000, stdio: 'pipe' }
+        );
+      } catch {
+        // Игнорируем ошибки при удалении сетевого подключения
+      }
+    }
+
     return true;
   } catch (error) {
     if (error instanceof Error && error.message) {
@@ -5645,12 +5690,12 @@ function registerIpcHandlers() {
     sendWakeOnLan(macAddress, broadcastIp)
   );
 
-  ipcMain.handle('network:remote-shutdown', (_event, ip, timeoutSeconds) =>
-    remoteShutdown(ip, timeoutSeconds)
+  ipcMain.handle('network:remote-shutdown', (_event, payload) =>
+    remoteShutdown(payload)
   );
 
-  ipcMain.handle('network:remote-restart', (_event, ip, timeoutSeconds) =>
-    remoteRestart(ip, timeoutSeconds)
+  ipcMain.handle('network:remote-restart', (_event, payload) =>
+    remoteRestart(payload)
   );
 }
 
