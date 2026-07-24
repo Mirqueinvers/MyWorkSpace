@@ -14,10 +14,16 @@ interface RemotePowerPayload {
   timeoutSeconds?: number
 }
 
+interface ConnectionTestResult {
+  success: boolean
+  message: string
+}
+
 interface NetworkApi {
   wakeOnLan(macAddress: string, broadcastIp?: string): Promise<boolean>
   remoteShutdown(payload: RemotePowerPayload): Promise<boolean>
   remoteRestart(payload: RemotePowerPayload): Promise<boolean>
+  testConnection(payload: RemotePowerPayload): Promise<ConnectionTestResult>
 }
 
 declare global {

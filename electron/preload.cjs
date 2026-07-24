@@ -229,6 +229,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     remoteRestart(payload) {
       return ipcRenderer.invoke('network:remote-restart', payload);
     },
+    testConnection(payload) {
+      return ipcRenderer.invoke('network:test-connection', payload);
+    },
   },
   ultrasoundJournal: {
     listByDate(studyDate) {

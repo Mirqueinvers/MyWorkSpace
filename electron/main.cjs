@@ -5319,6 +5319,56 @@ function remoteShutdown({ ip, username, password, timeoutSeconds = 10 }) {
   }
 }
 
+function testNetworkConnection({ ip, username, password }) {
+  const normalizedIp = String(ip ?? '').trim();
+  if (!normalizedIp) {
+    return { success: false, message: 'IP-адрес не указан.' };
+  }
+
+  const normalizedUsername = String(username ?? '').trim();
+  const normalizedPassword = String(password ?? '');
+
+  try {
+    if (!normalizedUsername) {
+      execSync(
+        `net use \\\\${normalizedIp}\\IPC$`,
+        { timeout: 10000, stdio: 'pipe' }
+      );
+    } else {
+      execSync(
+        `net use \\\\${normalizedIp}\\IPC$ ${normalizedPassword} /user:${normalizedUsername}`,
+        { timeout: 10000, stdio: 'pipe' }
+      );
+    }
+
+    try {
+      execSync(
+        `net use \\\\${normalizedIp}\\IPC$ /delete /y`,
+        { timeout: 5000, stdio: 'pipe' }
+      );
+    } catch {
+      // Игнорируем ошибки при удалении
+    }
+
+    return { success: true, message: `Подключение к ${normalizedIp} успешно установлено.` };
+  } catch (error) {
+    try {
+      execSync(
+        `net use \\\\${normalizedIp}\\IPC$ /delete /y`,
+        { timeout: 5000, stdio: 'pipe' }
+      );
+    } catch {
+      // Игнорируем ошибки при удалении
+    }
+
+    const errorMessage = error instanceof Error && error.message
+      ? error.message.replace(/^Command failed: [^:]+: /, '').trim()
+      : 'Неизвестная ошибка';
+
+    return { success: false, message: `Ошибка подключения: ${errorMessage}` };
+  }
+}
+
 function remoteRestart({ ip, username, password, timeoutSeconds = 10 }) {
   const normalizedIp = String(ip ?? '').trim();
   if (!normalizedIp) {
@@ -5696,6 +5746,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('network:remote-restart', (_event, payload) =>
     remoteRestart(payload)
+  );
+
+  ipcMain.handle('network:test-connection', (_event, payload) =>
+    testNetworkConnection(payload)
   );
 }
 

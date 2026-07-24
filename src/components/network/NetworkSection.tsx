@@ -22,6 +22,8 @@ export function NetworkSection() {
   const [wolLoading, setWolLoading] = useState(false)
   const [shutdownLoading, setShutdownLoading] = useState(false)
   const [restartLoading, setRestartLoading] = useState(false)
+  const [testLoading, setTestLoading] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [confirmShutdown, setConfirmShutdown] = useState(false)
   const [confirmRestart, setConfirmRestart] = useState(false)
 
@@ -94,6 +96,41 @@ export function NetworkSection() {
       }
     } finally {
       setShutdownLoading(false)
+    }
+  }
+
+  async function handleTestConnection() {
+    clearMessages()
+    setTestResult(null)
+
+    const trimmedIp = ip.trim()
+    if (!trimmedIp) {
+      setError('Укажите IP-адрес удалённого ПК.')
+      return
+    }
+
+    if (!window.electronAPI?.network?.testConnection) {
+      setError(ELECTRON_API_UNAVAILABLE)
+      return
+    }
+
+    setTestLoading(true)
+
+    try {
+      const result = await window.electronAPI.network.testConnection({
+        ip: trimmedIp,
+        username: username.trim() || undefined,
+        password: password || undefined,
+      })
+      setTestResult(result)
+    } catch (testError) {
+      if (testError instanceof Error && testError.message) {
+        setError(`Ошибка: ${testError.message}`)
+      } else {
+        setError('Ошибка при проверке подключения.')
+      }
+    } finally {
+      setTestLoading(false)
     }
   }
 
@@ -211,6 +248,23 @@ export function NetworkSection() {
               placeholder="Пароль"
             />
           </div>
+          <div className="network-form-row">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void handleTestConnection()}
+              disabled={testLoading}
+            >
+              {testLoading ? 'Проверяю...' : 'Проверить подключение'}
+            </button>
+          </div>
+          {testResult ? (
+            <div className="network-form-row">
+              <p className={`network-message ${testResult.success ? 'network-success' : 'network-error'}`}>
+                {testResult.message}
+              </p>
+            </div>
+          ) : null}
           <div className="network-form-row network-button-group">
             {!confirmShutdown ? (
               <button
