@@ -250,5 +250,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openAttachment(filePath) {
       return ipcRenderer.invoke('ultrasound-journal:open-attachment', filePath);
     },
+    importFromServer(payload) {
+      return ipcRenderer.invoke('ultrasound-journal:import-from-server', payload);
+    },
   },
 });

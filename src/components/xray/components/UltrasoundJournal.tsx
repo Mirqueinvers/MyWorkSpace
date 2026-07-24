@@ -115,6 +115,8 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
   const [selectedFilePath, setSelectedFilePath] = useState('')
   const [importLoading, setImportLoading] = useState(false)
   const [importResult, setImportResult] = useState<ImportUltrasoundJournalResult | null>(null)
+  const [serverUrl, setServerUrl] = useState('')
+  const [networkImportLoading, setNetworkImportLoading] = useState(false)
   const [protocolId, setProtocolId] = useState<number | null>(null)
   const [protocolEntry, setProtocolEntry] = useState<UltrasoundProtocolEntry | null>(null)
   const [protocolLoading, setProtocolLoading] = useState(false)
@@ -259,6 +261,48 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
       }
     } finally {
       setImportLoading(false)
+    }
+  }
+
+  async function handleNetworkImport() {
+    const electronAPI = window.electronAPI
+    const ultrasoundJournal = electronAPI?.ultrasoundJournal
+
+    if (!ultrasoundJournal?.importFromServer) {
+      setError(ULTRASOUND_JOURNAL_API_UNAVAILABLE)
+      return
+    }
+
+    const trimmedUrl = serverUrl.trim()
+    if (!trimmedUrl) {
+      setError('Введите IP-адрес компьютера УЗИ.')
+      return
+    }
+
+    setNetworkImportLoading(true)
+    setError('')
+    setImportResult(null)
+
+    try {
+      const result = await ultrasoundJournal.importFromServer({
+        serverUrl: trimmedUrl.startsWith('http') ? trimmedUrl : `http://${trimmedUrl}:38241`,
+        date: journalDate,
+      })
+      setImportResult(result)
+      await loadJournalByDate(journalDate)
+    } catch (networkError) {
+      if (networkError instanceof Error && networkError.message) {
+        const messageMap: Record<string, string> = {
+          'ULTRASOUND_JOURNAL_SERVER_PARAMS_REQUIRED': 'Укажите IP-адрес и дату.',
+          'ULTRASOUND_JOURNAL_SERVER_UNREACHABLE': 'Не удалось подключиться к компьютеру УЗИ. Проверьте IP-адрес.',
+          'ULTRASOUND_JOURNAL_SERVER_ERROR': 'Ошибка на стороне компьютера УЗИ.',
+        }
+        setError(messageMap[networkError.message] ?? `Ошибка сети: ${networkError.message}`)
+      } else {
+        setError('Не удалось выполнить импорт по сети.')
+      }
+    } finally {
+      setNetworkImportLoading(false)
     }
   }
 
@@ -536,7 +580,7 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
             onClick={() => void handleImport()}
             disabled={importLoading}
           >
-            {importLoading ? 'Импортирую...' : 'Импорт'}
+            {importLoading ? 'Импортирую...' : 'Импорт (флешка)'}
           </button>
 
           {selectedFilePath ? (
@@ -544,6 +588,26 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
               <span>{selectedFilePath}</span>
             </div>
           ) : null}
+        </div>
+
+        <div className="xray-fl-journal-import" style={{ marginTop: '8px' }}>
+          <input
+            type="text"
+            className="input"
+            value={serverUrl}
+            onChange={(event) => setServerUrl(event.target.value)}
+            placeholder="IP компьютера УЗИ (например, 192.168.1.100)"
+            style={{ flex: 1, minWidth: 0 }}
+            disabled={networkImportLoading}
+          />
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => void handleNetworkImport()}
+            disabled={networkImportLoading || !serverUrl.trim()}
+          >
+            {networkImportLoading ? 'Загрузка...' : 'Импорт по сети'}
+          </button>
         </div>
 
         {importResult ? (
@@ -830,5 +894,4 @@ export function UltrasoundJournal({ onSelectPatient, onOpenPatient }: Ultrasound
     </>
   )
 }
-
 

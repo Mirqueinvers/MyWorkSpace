@@ -5146,6 +5146,46 @@ function registerIpcHandlers() {
     importUltrasoundJournalFile(filePath)
   );
 
+  ipcMain.handle('ultrasound-journal:import-from-server', async (_event, { serverUrl, date }) => {
+    if (!serverUrl || !date) {
+      throw new Error('ULTRASOUND_JOURNAL_SERVER_PARAMS_REQUIRED');
+    }
+
+    const normalizedServerUrl = serverUrl.replace(/\/+$/, '');
+    const url = `${normalizedServerUrl}/api/ultrasound/export?date=${encodeURIComponent(date)}`;
+
+    let response;
+    try {
+      response = await fetch(url);
+    } catch (fetchError) {
+      throw new Error('ULTRASOUND_JOURNAL_SERVER_UNREACHABLE');
+    }
+
+    if (!response.ok) {
+      throw new Error('ULTRASOUND_JOURNAL_SERVER_ERROR');
+    }
+
+    const html = await response.text();
+
+    // Сохраняем во временный файл и импортируем через существующую функцию
+    const tempDir = app.getPath('temp');
+    const tempFileName = `ultrasound-network-import-${Date.now()}.html`;
+    const tempFilePath = path.join(tempDir, tempFileName);
+
+    fs.writeFileSync(tempFilePath, html, 'utf-8');
+
+    try {
+      return importUltrasoundJournalFile(tempFilePath);
+    } finally {
+      // Удаляем временный файл после импорта
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch {
+        // Игнорируем ошибки удаления временного файла
+      }
+    }
+  });
+
   ipcMain.handle('ultrasound-journal:select-attachment-file', () =>
     selectUltrasoundAttachmentFile()
   );
