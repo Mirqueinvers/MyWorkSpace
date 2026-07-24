@@ -2553,6 +2553,88 @@ function importXRayFlPathologyFolder({ shotDate, folderPath }) {
   };
 }
 
+function importUltrasoundJournalHtml(html, sourceFile) {
+  const styleMatch = String(html).match(/<style>([\s\S]*?)<\/style>/i);
+  const styleCss = styleMatch ? styleMatch[1] : '';
+  const blocks = extractDivBlocksByClass(String(html), 'export-protocol');
+  const entries = [];
+
+  blocks.forEach((blockHtml) => {
+    if (/Протокол исследования\s*#\d+\s*пропущен/i.test(blockHtml)) {
+      return;
+    }
+
+    const parsedEntry = parseUltrasoundProtocolBlock(
+      blockHtml,
+      styleCss,
+      sourceFile,
+    );
+
+    if (parsedEntry) {
+      entries.push(parsedEntry);
+    }
+  });
+
+  const db = getDatabase();
+  const createdAt = new Date().toISOString();
+  let imported = 0;
+  let skipped = 0;
+
+  const statement = db.prepare(`
+    INSERT OR IGNORE INTO ultrasound_journal_entries (
+      study_date,
+      patient_full_name,
+      last_name,
+      first_name,
+      patronymic,
+      birth_date,
+      study_title,
+      doctor_name,
+      conclusion,
+      source_file,
+      content_hash,
+      document_html,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec('BEGIN');
+
+  try {
+    entries.forEach((entry) => {
+      const result = statement.run(
+        entry.studyDate,
+        entry.patientFullName,
+        entry.lastName,
+        entry.firstName,
+        entry.patronymic,
+        entry.birthDate,
+        entry.studyTitle,
+        entry.doctorName,
+        entry.conclusion,
+        entry.sourceFile,
+        entry.contentHash,
+        entry.documentHtml,
+        createdAt,
+      );
+
+      if (result.changes > 0) {
+        imported += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+
+  return { imported, skipped };
+}
+
 function importUltrasoundJournalFile(filePath) {
   const { entries } = parseUltrasoundJournalFile(filePath);
   const db = getDatabase();
@@ -5246,11 +5328,106 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
 }
 
+const EXPORT_SERVER_PORT = 38243;
+
+function readHttpBody(request) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    request.on('data', (chunk) => chunks.push(chunk));
+    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    request.on('error', () => resolve(''));
+  });
+}
+
+function startExportHttpServer(mainWindow) {
+  const http = require('node:http');
+
+  const server = http.createServer(async (req, res) => {
+    const writeJson = (statusCode, payload) => {
+      res.statusCode = statusCode;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.end(JSON.stringify(payload));
+    };
+
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      writeJson(405, { success: false, message: 'Method not allowed' });
+      return;
+    }
+
+    if (req.url !== '/receive-export') {
+      writeJson(404, { success: false, message: 'Not found' });
+      return;
+    }
+
+    try {
+      const rawBody = await readHttpBody(req);
+      const payload = JSON.parse(rawBody);
+
+      if (!payload.html) {
+        writeJson(400, { success: false, message: 'HTML content is required' });
+        return;
+      }
+
+      const sourceFile = payload.fileName || 'uzi-protocol.html';
+      const result = importUltrasoundJournalHtml(payload.html, sourceFile);
+
+      // Уведомляем renderer об обновлении журнала
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('ultrasound:journal-updated', result);
+        }
+      } catch {
+        // Игнорируем ошибки отправки
+      }
+
+      writeJson(200, {
+        success: true,
+        imported: result.imported,
+        skipped: result.skipped,
+        message: `Импортировано: ${result.imported}, пропущено дублей: ${result.skipped}`,
+      });
+    } catch (error) {
+      console.error('Export server error:', error);
+      writeJson(500, {
+        success: false,
+        message: 'Ошибка при импорте: ' + (error.message || 'Неизвестная ошибка'),
+      });
+    }
+  });
+
+  server.listen(EXPORT_SERVER_PORT, '0.0.0.0', () => {
+    console.log(`Export HTTP server listening on port ${EXPORT_SERVER_PORT}`);
+  });
+
+  server.on('error', (error) => {
+    console.error('Export server failed to start:', error);
+  });
+
+  return server;
+}
+
+let exportServer = null;
+
 app.whenReady().then(() => {
   app.setAppUserModelId('com.mirqueinvers.myworkspase');
   getDatabase();
   registerIpcHandlers();
   createWindow();
+
+  // Уведомляем renderer об импорте (через mainWindow)
+  const mainWindow = BrowserWindow.getAllWindows()[0];
+
+  // Запускаем HTTP-сервер для приёма экспорта
+  startExportHttpServer(mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
