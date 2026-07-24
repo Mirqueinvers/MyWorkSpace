@@ -5272,7 +5272,7 @@ function sendWakeOnLan(macAddress, broadcastIp) {
   });
 }
 
-function remoteShutdown({ ip, username, password, timeoutSeconds = 10 }) {
+function remoteShutdown({ ip, username, password, timeoutSeconds = 30 }) {
   const normalizedIp = String(ip ?? '').trim();
   if (!normalizedIp) {
     throw new Error('SHUTDOWN_IP_REQUIRED');
@@ -5290,13 +5290,13 @@ function remoteShutdown({ ip, username, password, timeoutSeconds = 10 }) {
     if (normalizedUsername) {
       execSync(
         `net use \\\\${normalizedIp}\\IPC$ ${normalizedPassword} /user:${normalizedUsername}`,
-        { timeout: 10000, stdio: 'pipe' }
+        { timeout: 30000, stdio: 'pipe' }
       );
     }
 
     execSync(
       `shutdown /s /m \\\\${normalizedIp} /t ${normalizedTimeout} /f`,
-      { timeout: 15000, stdio: 'pipe' }
+      { timeout: 60000, stdio: 'pipe' }
     );
 
     if (normalizedUsername) {
@@ -5332,12 +5332,12 @@ function testNetworkConnection({ ip, username, password }) {
     if (!normalizedUsername) {
       execSync(
         `net use \\\\${normalizedIp}\\IPC$`,
-        { timeout: 10000, stdio: 'pipe' }
+        { timeout: 30000, stdio: 'pipe' }
       );
     } else {
       execSync(
         `net use \\\\${normalizedIp}\\IPC$ ${normalizedPassword} /user:${normalizedUsername}`,
-        { timeout: 10000, stdio: 'pipe' }
+        { timeout: 30000, stdio: 'pipe' }
       );
     }
 
@@ -5369,7 +5369,7 @@ function testNetworkConnection({ ip, username, password }) {
   }
 }
 
-function remoteRestart({ ip, username, password, timeoutSeconds = 10 }) {
+function remoteRestart({ ip, username, password, timeoutSeconds = 30 }) {
   const normalizedIp = String(ip ?? '').trim();
   if (!normalizedIp) {
     throw new Error('RESTART_IP_REQUIRED');
@@ -5386,13 +5386,13 @@ function remoteRestart({ ip, username, password, timeoutSeconds = 10 }) {
     if (normalizedUsername) {
       execSync(
         `net use \\\\${normalizedIp}\\IPC$ ${normalizedPassword} /user:${normalizedUsername}`,
-        { timeout: 10000, stdio: 'pipe' }
+        { timeout: 30000, stdio: 'pipe' }
       );
     }
 
     execSync(
       `shutdown /r /m \\\\${normalizedIp} /t ${normalizedTimeout} /f`,
-      { timeout: 15000, stdio: 'pipe' }
+      { timeout: 60000, stdio: 'pipe' }
     );
 
     if (normalizedUsername) {
